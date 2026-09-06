@@ -629,48 +629,223 @@ align-items:center;gap:3px;cursor:pointer;min-width:0}
 </section>
 
 <!-- ================= DOCS (Parque) =================
-     Os materiais comerciais da pasta base-conhecimento, servidos DO DRIVE —
-     o Drive é a fonte da verdade de PDF e planilha (regra de ouro do INFRA),
-     e a pasta já é "qualquer pessoa com o link". Aqui só moram os links.
-     ⚠️ Os IDs abaixo valem enquanto cada arquivo for SUBSTITUÍDO no lugar
-     (Gerenciar versões / substituir). Apagar e subir de novo troca o ID e
-     quebra o link — regerou uma peça? confira o ID aqui no mesmo passo. -->
+     A prateleira publicada (06/09). A lista vem da rota ?app=docs&fn=list do
+     Cofre, que lê a pasta 02-parque-da-saudade/base-conhecimento do Drive AO
+     VIVO: publicar um documento é arrastar o arquivo para a pasta. Nada fica
+     fixado aqui — item fixado à mão é exatamente o que saiu (a tabela por ID
+     de arquivo, de 01/09, quebrava a cada peça regerada).
+     O carimbo é a HORA DA LEITURA, não a de uma foto: por isso esta aba NÃO
+     aplica a tarja de "acima de 48h" — ela nunca acenderia, e se acendesse
+     estaria mentindo. Cada leitor abre o arquivo com a própria credencial do
+     Drive (a rota devolve o link, nunca mexe em permissão). -->
+<style>
+/* Toda classe que declara display ganha o par [hidden]{display:none} — o
+   display de autor vence o [hidden] do navegador, e a armadilha já mordeu
+   três vezes neste projeto. */
+.docs-topo{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:0 0 12px}
+.docs-topo[hidden]{display:none}
+.docs-filtro{flex:1 1 220px;min-width:0;background:var(--card2);border:1px solid var(--edge);
+border-radius:10px;color:var(--text-1);padding:8px 11px;font:inherit;font-size:13px;outline:none}
+.docs-filtro:focus{border-color:var(--edge2)}
+.docs-filtro::placeholder{color:var(--text-3)}
+.docs-carimbo{font-size:11.5px;color:var(--text-3)}
+.docs-aviso{display:block;font-size:12.5px;color:var(--text-2);padding:10px 12px;
+border:1px dashed var(--edge2);border-radius:10px;margin:0 0 12px}
+.docs-aviso[hidden]{display:none}
+.docs-lista{display:flex;flex-direction:column;gap:6px;max-width:100%;min-width:0}
+.docs-lista[hidden]{display:none}
+.docs-grupo{display:block;font-size:11px;font-weight:700;letter-spacing:.12em;
+text-transform:uppercase;color:var(--text-3);margin:10px 0 2px}
+.docs-grupo[hidden]{display:none}
+.docs-item{display:flex;gap:12px;align-items:flex-start;padding:10px 12px;border:1px solid var(--edge);
+border-radius:12px;background:var(--card2);color:inherit;text-decoration:none;min-width:0;max-width:100%}
+.docs-item:hover{border-color:var(--edge2);background:rgba(255,255,255,.06)}
+.docs-item[hidden]{display:none}
+.docs-tipo{flex:0 0 auto;font-size:10.5px;font-weight:700;letter-spacing:.08em;padding:3px 7px;
+border-radius:6px;border:1px solid var(--edge2);color:var(--s1b);margin-top:2px;min-width:38px;text-align:center}
+.docs-corpo{display:flex;flex-direction:column;gap:3px;min-width:0;flex:1 1 auto}
+.docs-corpo[hidden]{display:none}
+.docs-titulo{font-weight:600;font-size:14px;color:var(--text-1);overflow-wrap:anywhere}
+.docs-resumo{font-size:12.5px;color:var(--text-2);overflow-wrap:anywhere}
+.docs-meta{display:flex;gap:8px;flex-wrap:wrap;align-items:center;font-size:11.5px;color:var(--text-3)}
+.docs-meta[hidden]{display:none}
+.docs-publico{font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:1px 6px;
+border-radius:5px;border:1px solid rgba(251,191,36,.45);color:var(--warn)}
+.docs-vazio{display:block;font-size:13px;color:var(--text-3);padding:14px 0}
+.docs-vazio[hidden]{display:none}
+@media(max-width:640px){
+  .docs-item{flex-direction:column;gap:6px;padding:10px}
+  .docs-tipo{margin-top:0}
+}
+</style>
 <section class="panel ps" id="pPSDocs">
   <div class="card">
     <h3>Documentos comerciais — Parque da Saudade</h3>
-    <p class="note">A família inteira nasce do Playbook de Vendas (edição v2.3, de 01/09/2026) e mora no
-    Drive — estes links baixam sempre a versão que está lá.
-    <a href="https://drive.google.com/drive/folders/1TTSpqGiFhnCKfTZ9WDrrJvSrs4DbZhDB" target="_blank" rel="noopener" style="color:var(--s1b)">Abrir a pasta no Drive ↗</a></p>
-    <div class="tblbox"><table>
-      <thead><tr><th>Documento</th><th>O que é</th><th></th></tr></thead>
-      <tbody>
-        <tr><td><b>Manual do Vendedor</b> <span class="muted">PDF · 33 pág.</span></td>
-          <td>Método, descoberta, visita, objeções, fechamento, protocolo de luto, linha vermelha</td>
-          <td><a href="https://drive.google.com/uc?export=download&amp;id=1OMWYn8N3-8bgPv-eMGvKqrZNKL7ATeA5" style="color:var(--s1b)">baixar</a></td></tr>
-        <tr><td><b>Cartão de Bolso</b> <span class="muted">PDF · A4 frente e verso</span></td>
-          <td>Objeções, linha vermelha, luto e as nove perguntas — para a mão do vendedor</td>
-          <td><a href="https://drive.google.com/uc?export=download&amp;id=1XgiopSTVIFUeqZDj7YqfghQr-VT8U1KU" style="color:var(--s1b)">baixar</a></td></tr>
-        <tr><td><b>Playbook de Vendas</b> <span class="muted">Markdown</span></td>
-          <td>A fonte da verdade do discurso comercial — todas as outras peças derivam dele</td>
-          <td><a href="https://drive.google.com/uc?export=download&amp;id=1WbKZwIRibogaKYi4QgR-H4xFE1H8cvTc" style="color:var(--s1b)">baixar</a></td></tr>
-        <tr><td><b>Treinamento 1 — O Parque e o Produto</b> <span class="muted">PPTX · 23 slides</span></td>
-          <td>O Parque, a Jornada do Acolhimento, os quatro produtos, condições e a trava de uso</td>
-          <td><a href="https://drive.google.com/uc?export=download&amp;id=148tousJCXYo44wZ203eLtgjwKdBwxJSa" style="color:var(--s1b)">baixar</a></td></tr>
-        <tr><td><b>Treinamento 2 — As Ferramentas</b> <span class="muted">PPTX · 17 slides</span></td>
-          <td>Pocket tela a tela, Facilita, funil, fila de backoffice e origem do lead</td>
-          <td><a href="https://drive.google.com/uc?export=download&amp;id=1e5eMrcXQHITLBvPQ7PWmXHffqpQ5W3z1" style="color:var(--s1b)">baixar</a></td></tr>
-        <tr><td><b>Treinamento 3 — O Método</b> <span class="muted">PPTX · 21 slides</span></td>
-          <td>Método, checklist, objeções, necessidade imediata, linha vermelha</td>
-          <td><a href="https://drive.google.com/uc?export=download&amp;id=1SmmAW7k-YU0q3tHNiSlUF_A4B2uM8Z8x" style="color:var(--s1b)">baixar</a></td></tr>
-        <tr><td><b>Deck da empresa (revisado)</b> <span class="muted">PPTX · 19 slides</span></td>
-          <td>TREINAMENTO_VENDAS_NPS sem os slides 2 e 3 — material de terceiro; não é fonte de número</td>
-          <td><a href="https://drive.google.com/uc?export=download&amp;id=1uMXWe_64K7hcQ6gvxigFCvysJ1grDLVt" style="color:var(--s1b)">baixar</a></td></tr>
-      </tbody>
-    </table></div>
-    <p class="note">Preço, parcela, estoque e meta não entram em documento nenhum — tudo isso é volátil
+    <p class="note">Tudo que está na pasta <b>base-conhecimento</b> do Drive aparece aqui, lido na hora —
+    publicar um documento é arrastar o arquivo para a pasta; a descrição do arquivo no Drive vira o resumo.
+    <a href="https://drive.google.com/drive/folders/1TTSpqGiFhnCKfTZ9WDrrJvSrs4DbZhDB" target="_blank" rel="noopener noreferrer" style="color:var(--s1b)">Abrir a pasta no Drive ↗</a></p>
+    <div class="docs-topo">
+      <input class="docs-filtro" id="docsFiltro" type="search" placeholder="Filtrar por título ou resumo" autocomplete="off" spellcheck="false">
+      <span class="docs-carimbo" id="docsCarimbo"></span>
+    </div>
+    <div class="docs-aviso" id="docsAviso" hidden></div>
+    <div class="docs-lista" id="docsLista" hidden></div>
+    <p class="note" style="margin-top:12px">Preço, parcela, estoque e meta não entram em documento nenhum — tudo isso é volátil
     e mora no Pocket e neste Painel.</p>
   </div>
 </section>
+<script>
+/* ---- aba Docs: a prateleira publicada (06/09) ----
+   Mecânica: token hub_token_gestao do localStorage (mesma origem do Painel) —
+   sem token não desenha; `truncado` ausente ou true bloqueia o desenho inteiro;
+   ordem por modificadoEm DESC, para o arquivo recém-arrastado aparecer no topo,
+   que é a prova de que funcionou. Relê a pasta a cada abertura da aba, mantendo
+   a lista anterior na tela enquanto a nova não chega. */
+(function () {
+  var API = 'https://script.google.com/macros/s/AKfycbydLmUEX3g6FeojFGAcVHfNKoPsr4d9oTBUdi7GtcfsirQL6xHJM0BELVGcCrcqrICY/exec';
+  var CHAVE_TOKEN = 'hub_token_gestao';
+  var PRAZO = 30000;
+  var itens = [];            // o que a rota devolveu, já em ordem
+  var emVoo = false;
+
+  function $(id) { return document.getElementById(id); }
+  function esc(v) {
+    return String(v == null ? '' : v).replace(/[&<>"]/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
+    });
+  }
+  function aviso(html) { var a = $('docsAviso'); a.innerHTML = html; a.hidden = !html; }
+
+  /* Título = nome sem a extensão, "_" vira espaço. */
+  function titulo(nome) {
+    var t = String(nome || '').replace(/\.[A-Za-z0-9]{1,5}$/, '').replace(/_/g, ' ').trim();
+    return t || String(nome || '');
+  }
+  /* Chip de tipo, derivado do mimeType; a extensão socorre quando o Drive
+     guarda um genérico (um .md sobe como text/markdown ou octet-stream). */
+  var TIPOS = [
+    ['application/pdf', 'PDF'],
+    ['presentationml', 'PPTX'], ['application/vnd.ms-powerpoint', 'PPT'],
+    ['spreadsheetml', 'XLSX'], ['application/vnd.ms-excel', 'XLS'],
+    ['wordprocessingml', 'DOCX'], ['application/msword', 'DOC'],
+    ['vnd.google-apps.spreadsheet', 'Planilha'], ['vnd.google-apps.document', 'Doc'],
+    ['vnd.google-apps.presentation', 'Slides'], ['vnd.google-apps.form', 'Form'],
+    ['vnd.google-apps.folder', 'Pasta'],
+    ['text/markdown', 'MD'], ['text/csv', 'CSV'], ['text/plain', 'TXT'],
+    ['image/', 'Imagem'], ['video/', 'Vídeo'], ['audio/', 'Áudio'], ['zip', 'ZIP']
+  ];
+  function tipo(mime, nome) {
+    var m = String(mime || '').toLowerCase();
+    for (var i = 0; i < TIPOS.length; i++) if (m.indexOf(TIPOS[i][0]) >= 0) return TIPOS[i][1];
+    var ext = (String(nome || '').match(/\.([A-Za-z0-9]{1,5})$/) || [])[1];
+    return ext ? ext.toUpperCase() : 'Arquivo';
+  }
+  function tamanho(b) {
+    if (b === null || b === undefined || b === '') return '';   // arquivo do Google: sem tamanho
+    b = +b; if (!(b > 0)) return '';
+    if (b < 1024) return b + ' B';
+    if (b < 1048576) return Math.round(b / 1024) + ' KB';
+    return (b / 1048576).toFixed(b < 10485760 ? 1 : 0).replace('.', ',') + ' MB';
+  }
+  function data(iso) {
+    var d = new Date(iso); if (isNaN(d)) return '';
+    return d.toLocaleDateString('pt-BR') + ' ' + d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  }
+
+  function item(a) {
+    var meta = [];
+    var t = tamanho(a.tamanho); if (t) meta.push(esc(t));
+    var d = data(a.modificadoEm); if (d) meta.push(esc(d));
+    if (a.compartilhamento === 'link') meta.push('<span class="docs-publico" title="Este arquivo abre para quem tiver o endereço">link público</span>');
+    return '<a class="docs-item" href="' + esc(a.link) + '" target="_blank" rel="noopener noreferrer" data-busca="' +
+      esc((titulo(a.nome) + ' ' + (a.descricao || '')).toLowerCase()) + '">' +
+      '<span class="docs-tipo">' + esc(tipo(a.mimeType, a.nome)) + '</span>' +
+      '<span class="docs-corpo">' +
+        '<span class="docs-titulo">' + esc(titulo(a.nome)) + '</span>' +
+        (a.descricao ? '<span class="docs-resumo">' + esc(a.descricao) + '</span>' : '') +
+        (meta.length ? '<span class="docs-meta">' + meta.join(' · ') + '</span>' : '') +
+      '</span></a>';
+  }
+
+  function desenhar() {
+    var L = $('docsLista');
+    if (!itens.length) { L.innerHTML = '<span class="docs-vazio">nenhum documento na pasta</span>'; L.hidden = false; return; }
+    var raiz = itens.filter(function (a) { return !a.grupo; });
+    var grupos = {};
+    itens.forEach(function (a) { if (a.grupo) (grupos[a.grupo] = grupos[a.grupo] || []).push(a); });
+    var h = raiz.map(item).join('');
+    Object.keys(grupos).sort(function (x, y) { return x.localeCompare(y, 'pt-BR'); }).forEach(function (g) {
+      h += '<span class="docs-grupo" data-grupo="' + esc(g) + '">' + esc(g) + '</span>' + grupos[g].map(item).join('');
+    });
+    h += '<span class="docs-vazio" id="docsNada" hidden>nenhum documento casa com o filtro</span>';
+    L.innerHTML = h; L.hidden = false;
+    filtrar();
+  }
+
+  function filtrar() {
+    var q = String($('docsFiltro').value || '').trim().toLowerCase();
+    var L = $('docsLista'), vis = 0, grupoAtual = null, vistosNoGrupo = 0;
+    var nos = L.children;
+    for (var i = 0; i < nos.length; i++) {
+      var n = nos[i];
+      if (n.classList.contains('docs-grupo')) {
+        if (grupoAtual) grupoAtual.hidden = !vistosNoGrupo;
+        grupoAtual = n; vistosNoGrupo = 0; continue;
+      }
+      if (!n.classList.contains('docs-item')) continue;
+      var casa = !q || (n.dataset.busca || '').indexOf(q) >= 0;
+      n.hidden = !casa;
+      if (casa) { vis++; vistosNoGrupo++; }
+    }
+    if (grupoAtual) grupoAtual.hidden = !vistosNoGrupo;
+    var nada = $('docsNada'); if (nada) nada.hidden = !!vis || !itens.length;
+  }
+
+  function carregar() {
+    if (emVoo) return;
+    var token = null;
+    try { token = localStorage.getItem(CHAVE_TOKEN); } catch (e) {}
+    if (!token) { aviso('Sem token de gestão neste aparelho — o Painel pede o token na entrada.'); return; }
+    emVoo = true;
+    $('docsCarimbo').textContent = itens.length ? 'relendo a pasta…' : 'lendo a pasta do Drive…';
+    var ctl = ('AbortController' in window) ? new AbortController() : null;
+    var timer = setTimeout(function () { if (ctl) ctl.abort(); }, PRAZO);
+    fetch(API + '?app=docs&fn=list&token=' + encodeURIComponent(token), ctl ? { signal: ctl.signal } : {})
+      .then(function (r) { return r.json(); })
+      .then(function (j) {
+        if (!j || !j.ok) {
+          var err = esc(j && j.error || 'resposta inválida');
+          aviso(/token/i.test(err) ? 'O Cofre recusou o token (' + err + '). Recarregue a página para digitá-lo de novo.'
+                                    : 'O Cofre respondeu com erro: ' + err);
+          return;
+        }
+        /* truncado ausente ou true: não se desenha prateleira pela metade */
+        if (j.truncado !== false) {
+          aviso('A lista veio incompleta (' + esc(j.n) + ' de ' + esc(j.total) + ', teto ' + esc(j.teto) +
+                ') — não desenho uma prateleira pela metade. Abra a pasta no Drive.');
+          $('docsLista').hidden = true;
+          return;
+        }
+        itens = (j.arquivos || []).slice().sort(function (a, b) {
+          return a.modificadoEm < b.modificadoEm ? 1 : (a.modificadoEm > b.modificadoEm ? -1 : 0);
+        });
+        aviso('');
+        $('docsCarimbo').textContent = 'lido do Drive às ' + (j.carimbo || '') + ' · ' + itens.length +
+          (itens.length === 1 ? ' arquivo' : ' arquivos');
+        desenhar();
+      })
+      .catch(function (e) {
+        var msg = (e && e.name === 'AbortError') ? 'o Cofre demorou mais de 30 s' : esc(e && e.message || e);
+        aviso('Não consegui ler a pasta (' + msg + '). ' + (itens.length ? 'A lista abaixo é da leitura anterior.' : 'Abra a pasta no Drive ou tente de novo.'));
+        if (!itens.length) $('docsCarimbo').textContent = '';
+      })
+      .then(function () { clearTimeout(timer); emVoo = false; });
+  }
+
+  $('docsFiltro').addEventListener('input', filtrar);
+  window.__docsAbrir = carregar;   // chamado por irParaPS quando a aba abre
+})();
+</script>
 
 </div>
 
@@ -1486,6 +1661,7 @@ function irParaPS(pid){
   document.querySelectorAll('.panel.ps').forEach(p=>p.classList.toggle('on', p.id===pid));
   const alvo = document.getElementById(pid);
   if (alvo) ligarMoldura(alvo.querySelector('iframe[data-src]'));
+  if (pid === 'pPSDocs' && window.__docsAbrir) window.__docsAbrir();   // a prateleira relê a pasta
   window.scrollTo({top:0});
 }
 document.querySelectorAll('#tabsPS .tab[data-p],#bnavPS button[data-p]').forEach(b=>b.onclick=()=>irParaPS(b.dataset.p));
