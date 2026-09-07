@@ -1963,7 +1963,8 @@ window.__renderEU = function (dados, ymSel) {
      rodada incremental; o teto de 5 min é para o dia com atraso acumulado. */
   function sincronizarNoCofre(token) {
     passo('buscando as vendas no Facilita…');
-    return comPrazo(API + '?token=' + encodeURIComponent(token) + '&app=sync&fn=rodar',
+    // &so=facilita (06/09): só a etapa do CRM, ~40 s — como no painel de fora
+    return comPrazo(API + '?token=' + encodeURIComponent(token) + '&app=sync&fn=rodar&so=facilita',
                     300000, 'A sincronização');
   }
 

@@ -1,6 +1,13 @@
 /* Painel Comercial — Parque da Saudade + Estrela Urbanidade
    Service worker: instalação PWA + reserva offline.
-   Atualizado em: 04/09/2026 — A RETROSPECTIVA GANHA A "COMISSÃO DO MÊS":
+   Atualizado em: 06/09/2026 (noite) — A SINCRONIA FICOU MAIS CURTA: o
+   Atualizar do Parque manda &so=facilita (só a etapa do CRM, ~40 s em vez
+   de ~2 min); a página REVALIDA sozinha — ao voltar para a aba e a cada
+   5 min enquanto visível — contra um Cofre que agora responde do cache;
+   e carimbo novo com os MESMOS números só atualiza o selo (o batimento de
+   5 min do Cofre avança a hora sem venda nova), enquanto "Mostrar" fica
+   para conteúdo diferente. Sem bump, a gestão seguiria com o botão lento.
+   Antes, 04/09/2026 — A RETROSPECTIVA GANHA A "COMISSÃO DO MÊS":
    resumo por vendedor, extrato de 11 colunas por vendedor e "Exportar para
    Excel" (SheetJS baixado de cdnjs NO CLIQUE, cross-origin — este SW não o
    cacheia de propósito: sem rede, o botão diz que não conseguiu). A conta
@@ -136,7 +143,7 @@
    links dos arquivos são drive.google.com, externos, e NÃO entram no cache).
    Estratégia: rede primeiro (pega versão nova quando online), cache como
    reserva offline. A cada deploy, bumpar a versão em CACHE. */
-const CACHE = 'painel-comercial-260906-1';
+const CACHE = 'painel-comercial-260906-2';
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(['./'])).then(() => self.skipWaiting()));

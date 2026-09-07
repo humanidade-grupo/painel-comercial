@@ -2145,7 +2145,7 @@ let _rtps; window.addEventListener('resize', ()=>{ clearTimeout(_rtps); _rtps=se
        diz qual delas vai fazer, antes de a pessoa esperar por ela. */
     var btr = document.getElementById('btRec');
     if (btr) btr.title = ps
-      ? 'Busca as vendas no Facilita, atualiza o Cofre e relê a tela (~1 min)'
+      ? 'Busca as vendas no Facilita, atualiza o Cofre e relê a tela (~40 s)'
       : 'Reimporta a planilha da Estrela e relê a tela';
 
     atualizarSelo(ps ? 'ps' : 'eu');
@@ -2387,7 +2387,11 @@ let _rtps; window.addEventListener('resize', ()=>{ clearTimeout(_rtps); _rtps=se
      é para o dia em que houver atraso acumulado. */
   function sincronizarNoCofre(token) {
     passo('buscando as vendas no Facilita…');
-    return comPrazo(API + '?token=' + encodeURIComponent(token) + '&app=sync&fn=rodar',
+    /* &so=facilita (06/09): só a etapa do CRM. A rodada inteira (Estrela +
+       Controle + Facilita) levava ~2 min por um dado que esta metade nem lê;
+       só o Facilita fica em ~40 s. O teto de 5 min continua para o dia com
+       atraso acumulado. */
+    return comPrazo(API + '?token=' + encodeURIComponent(token) + '&app=sync&fn=rodar&so=facilita',
                     300000, 'A sincronização');
   }
 
@@ -2494,7 +2498,7 @@ let _rtps; window.addEventListener('resize', ()=>{ clearTimeout(_rtps); _rtps=se
     if (sessionStorage.getItem(MARCA_FRESCA)) {
       sessionStorage.removeItem(MARCA_FRESCA);
       var recem = doCache();
-      if (recem) { subir(recem, false); return; }
+      if (recem) { subir(recem, false); ligarRevalidacao(token); return; }
     }
   } catch (e) {}
 
@@ -2507,30 +2511,35 @@ let _rtps; window.addEventListener('resize', ()=>{ clearTimeout(_rtps); _rtps=se
      do cache, instantâneo — redesenhar no lugar as ~900 linhas da Estrela
      nunca foi seguro, ver o comentário do ligarRecarregar); token revogado →
      portão. Falha de rede → o selo assume a linguagem de cópia local. */
-  var copia = doCache();
-  if (copia) {
-    // o piso de 1,4s da carga existe para busca de rede não parecer defeito;
-    // subindo do cache não há busca — a bola sai da frente sem espera
-    CARGA_T0 = Date.now() - CARGA_MIN;
-    subir(copia, false);
+  /* REVALIDAR (06/09): busca o Cofre em segundo plano e compara com a cópia
+     que está na tela. Desde 06/09 o Cofre responde do cache em menos de 1 s e
+     o batimento de 5 min avança o carimbo mesmo sem venda nova — por isso o
+     carimbo sozinho NÃO abre o "Mostrar": ele só atualiza o selo. O que abre
+     o "Mostrar" é CONTEÚDO diferente (vendas, metas, origem anunciada) —
+     lição de 04/09: a Config muda o que a rota serve sem mexer no carimbo, e
+     o `Sati IA` digitado em `painel.canal_portas` ficou invisível na tela.
+     Roda no arranque, ao voltar para a aba e a cada 5 min enquanto a página
+     está visível. */
+  var REVALIDA_MS = 5 * 60 * 1000, ultimaRevalida = 0, revalidando = false;
+  function assina(x) {
+    try { return JSON.stringify({ e: x.vendas, p: (x.ps || {}).vendas, m: (x.ps || {}).metas,
+                                  o: (x.ps || {}).origem_anuncio }); }
+    catch (e) { return ''; }
+  }
+  function revalidar(token) {
+    if (revalidando) return;
+    revalidando = true;
+    ultimaRevalida = Date.now();
+    var copia = doCache() || window.__DADOS__ || {};
     buscar(token).then(function (j) {
+      revalidando = false;
       if (j && j.ok) {
         try { localStorage.setItem(CHAVE_CACHE, JSON.stringify(j)); } catch (e) {}
-        /* Carimbo igual NAO quer dizer numero igual (04/09): a Config do Cofre
-           muda o que a rota serve (portas, vendedores, origem anunciada) sem
-           mexer no carimbo da importacao — e o `Sati IA` digitado em
-           `painel.canal_portas` ficou invisivel na tela ate a rodada seguinte,
-           com a copia local ja atualizada em silencio. Por isso a assinatura do
-           conteudo tambem conta. */
-        var assina = function (x) {
-          try { return JSON.stringify({ e: x.vendas, p: (x.ps || {}).vendas, m: (x.ps || {}).metas,
-                                        o: (x.ps || {}).origem_anuncio }); }
-          catch (e) { return ''; }
-        };
-        var mudou = (j.atualizado_em !== copia.atualizado_em) ||
-          (((j.ps || {}).atualizado_em || '') !== (((copia.ps || {}).atualizado_em) || '')) ||
-          assina(j) !== assina(copia);
-        if (mudou) {
+        var carimboEu = j.atualizado_em || '';
+        var carimboPs = (j.ps || {}).atualizado_em || '';
+        var carimboMudou = carimboEu !== (copia.atualizado_em || '') ||
+                           carimboPs !== ((copia.ps || {}).atualizado_em || '');
+        if (assina(j) !== assina(copia)) {
           selo('Chegaram números novos do Cofre. ' +
                '<a href="#" id="verNovo" style="color:inherit;font-weight:700;text-decoration:underline">Mostrar</a>');
           var a = document.getElementById('verNovo');
@@ -2539,6 +2548,16 @@ let _rtps; window.addEventListener('resize', ()=>{ clearTimeout(_rtps); _rtps=se
             try { sessionStorage.setItem(MARCA_FRESCA, '1'); } catch (e) {}
             location.reload();
           };
+        } else if (carimboMudou || CARIMBO.copia) {
+          // mesmos números, hora nova (ou a rede voltou): o selo acompanha, sem alarde
+          CARIMBO.eu = carimboEu; CARIMBO.ps = carimboPs;
+          CARIMBO.copia = false; CARIMBO.motivo = null;
+          CARIMBO.msEu = j.ms || 0; CARIMBO.msPs = (j.ps && j.ps.ms) || 0;
+          CARIMBO.psErro  = (j.ps && j.ps.sync_erro) || '';
+          CARIMBO.psFalha = (j.ps && j.ps.sync_ultima_falha) || '';
+          if (!document.getElementById('verNovo')) {
+            atualizarSelo(document.body.classList.contains('emp-ps') ? 'ps' : 'eu');
+          }
         }
       } else if (tokenRuim(j)) {
         localStorage.removeItem(CHAVE_TOKEN);
@@ -2547,10 +2566,29 @@ let _rtps; window.addEventListener('resize', ()=>{ clearTimeout(_rtps); _rtps=se
       // o token vale e o Cofre falhou: a tela fica como está — o carimbo do
       // selo já diz de quando é o número
     }).catch(function (e) {
+      revalidando = false;
       CARIMBO.copia = true;
       CARIMBO.motivo = e;
       atualizarSelo(document.body.classList.contains('emp-ps') ? 'ps' : 'eu');
     });
+  }
+  function ligarRevalidacao(token) {
+    document.addEventListener('visibilitychange', function () {
+      if (document.visibilityState === 'visible' && Date.now() - ultimaRevalida > 60000) revalidar(token);
+    });
+    setInterval(function () {
+      if (document.visibilityState === 'visible' && Date.now() - ultimaRevalida >= REVALIDA_MS - 1000) revalidar(token);
+    }, REVALIDA_MS);
+  }
+
+  var copia = doCache();
+  if (copia) {
+    // o piso de 1,4s da carga existe para busca de rede não parecer defeito;
+    // subindo do cache não há busca — a bola sai da frente sem espera
+    CARGA_T0 = Date.now() - CARGA_MIN;
+    subir(copia, false);
+    revalidar(token);
+    ligarRevalidacao(token);
     return;
   }
 
@@ -2558,6 +2596,7 @@ let _rtps; window.addEventListener('resize', ()=>{ clearTimeout(_rtps); _rtps=se
     if (j && j.ok) {
       try { localStorage.setItem(CHAVE_CACHE, JSON.stringify(j)); } catch (e) {}
       subir(j, false);
+      ligarRevalidacao(token);
     } else if (tokenRuim(j)) {
       // token revogado ou rotacionado
       localStorage.removeItem(CHAVE_TOKEN);
