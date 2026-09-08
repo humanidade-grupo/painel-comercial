@@ -1,6 +1,12 @@
 /* Painel Comercial — Parque da Saudade + Estrela Urbanidade
    Service worker: instalação PWA + reserva offline.
-   Atualizado em: 06/09/2026 (noite) — A SINCRONIA FICOU MAIS CURTA: o
+   Atualizado em: 07/09/2026 (noite) — O REGISTRO VOLTOU. Desde da2464f
+   (17/08) nenhum HTML chamava navigator.serviceWorker.register: este arquivo
+   foi bumpado por 20 sessões sem estar instalado em navegador algum. O
+   index.html volta a registrá-lo no load. Rede primeiro segue valendo: a
+   versão velha só aparece offline, e o bump continua sendo o que limpa o
+   cache anterior na ativação.
+   Antes, 06/09/2026 (noite) — A SINCRONIA FICOU MAIS CURTA: o
    Atualizar do Parque manda &so=facilita (só a etapa do CRM, ~40 s em vez
    de ~2 min); a página REVALIDA sozinha — ao voltar para a aba e a cada
    5 min enquanto visível — contra um Cofre que agora responde do cache;
@@ -143,7 +149,7 @@
    links dos arquivos são drive.google.com, externos, e NÃO entram no cache).
    Estratégia: rede primeiro (pega versão nova quando online), cache como
    reserva offline. A cada deploy, bumpar a versão em CACHE. */
-const CACHE = 'painel-comercial-260907-5';
+const CACHE = 'painel-comercial-260907-6';
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(['./'])).then(() => self.skipWaiting()));

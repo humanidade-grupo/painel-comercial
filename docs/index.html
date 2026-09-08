@@ -2740,5 +2740,17 @@ let _rtps; window.addEventListener('resize', ()=>{ clearTimeout(_rtps); _rtps=se
     .catch(function(){});                        // sem rede: fica o cache, ou fica escondida
 })();
 </script>
+<script>
+/* Service worker: o registro caiu na reescrita de 17/08 (da2464f) sem ninguém
+   notar — o sw.js seguiu sendo bumpado por 20 sessões sem estar instalado.
+   Religado em 07/09/2026: rede primeiro, cache só como reserva offline; o
+   escopo /painel-comercial/ cobre v2/, esteira/ e retrospectiva/. Sem isto o
+   manifest e os ícones prometem um app que não abre sem rede. */
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function () {
+    navigator.serviceWorker.register('./sw.js').catch(function () {});
+  });
+}
+</script>
 </body>
 </html>
