@@ -359,7 +359,7 @@ function diasNoMes(ym) { return new Date(Math.floor(ym / 100), ym % 100, 0).getD
 
 /* Blocos da meta: o mês partido em checkpoints. 'd10' = decêndios (3 blocos
    num mês de 30), 'sem' = semanas corridas a partir do dia 1. */
-var BLOCOS = { modo: 'd10' };
+var BLOCOS = { modo: 'sem' };                 // semana é o padrão (pedido do Ricardo, 08/09)
 /* Faixas de um mês de `nDias` em blocos de `tam` dias. O rabo do mês entra no
    bloco anterior em vez de virar bloco próprio (ver "meta em blocos"). Usado
    pelo card da meta E pelo heatmap "Quando o Parque vende" — uma régua só. */
@@ -741,13 +741,14 @@ window.__renderPS = function (dados, ymSel) {
 
   /* -------- meta em blocos --------
      Pedido do Ricardo em 02/09: a meta do mês quebrada em checkpoints, para
-     ninguém descobrir no dia 28 que o mês já era. A meta de cada bloco é
-     proporcional aos dias dele, calculada por acumulado e diferença — assim os
-     blocos somam EXATAMENTE a meta, coisa que "23 por semana" não faz: 23×4=92
-     num mês que tem 4,3 semanas, e a conta some com o resto. */
+     ninguém descobrir no dia 28 que o mês já era. Até 07/09 a meta de cada
+     bloco era proporcional aos dias dele (set/26 em semanas dava 21+21+21+27,
+     porque o rabo de 2 dias funde na última). Em 08/09 o Ricardo pediu POR
+     IGUAL: meta ÷ número de blocos, inteiro, e a sobra vai para os PRIMEIROS
+     blocos — 90 em 4 semanas = 23+23+22+22. Os blocos seguem somando
+     exatamente a meta. */
   var cBlocos = el('<div class="card s12"><h3>Meta em blocos — ' + esc(ymLabel(ym)) + '</h3>' +
-    '<div class="why">a meta do mês partida em checkpoints · meta do bloco = meta ÷ ' + nDias +
-      ' dias × dias do bloco, e por isso os blocos somam a meta cheia</div>' +
+    '<div class="why">a meta do mês partida em checkpoints · meta do bloco = meta ÷ número de blocos, por igual (a sobra vai para os primeiros), e por isso os blocos somam a meta cheia</div>' +
     '<div class="termobar"><div class="seg" role="group" aria-label="Tamanho do bloco">' +
       '<button id="blD" type="button">10 dias</button>' +
       '<button id="blS" type="button">semana</button></div></div>' +
@@ -840,12 +841,11 @@ window.__renderPS = function (dados, ymSel) {
     function faixas(tam) { return faixasBlocos(nDias, tam); }
 
     function desenhar() {
-      var bs = faixas(BLOCOS.modo === 'sem' ? 7 : 10), acumMeta = 0, feitoAte = 0, metaAte = 0;
+      var bs = faixas(BLOCOS.modo === 'sem' ? 7 : 10), feitoAte = 0, metaAte = 0;
 
-      bs.forEach(function (b) {
-        var ate = metaOf ? Math.round(metaOf * b.b / nDias) : null;
-        b.meta = (ate === null) ? null : ate - acumMeta;
-        if (ate !== null) acumMeta = ate;
+      var base = metaOf ? Math.floor(metaOf / bs.length) : null, sobra = metaOf ? metaOf - base * bs.length : 0;
+      bs.forEach(function (b, k) {
+        b.meta = (base === null) ? null : base + (k < sobra ? 1 : 0);   // por igual; sobra nos primeiros blocos
         b.feito = 0;
         for (var d = b.a; d <= b.b; d++) b.feito += (porDia[d] || 0);
         b.dias = b.b - b.a + 1;
