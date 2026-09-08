@@ -623,8 +623,8 @@ window.__renderPS = function (dados, ymSel) {
   }
 
   /* -------- quinzenas: 1ª | 2ª --------
-     Pedido do Ricardo em 07/09: o card do mês tinha espaço vazio abaixo do
-     gauge. Fatia de cada quinzena no mês selecionado, no anterior e na média
+     Pedido do Ricardo em 07/09: vai no rodapé do card "Quando o Parque vende",
+     que tinha espaço vazio. Fatia de cada quinzena no mês selecionado, no anterior e na média
      dos até 6 meses anteriores, e a quinzena em curso comparada com o mesmo
      dia do mês anterior. Quinzena = dia ≤ 15 / dia ≥ 16. */
   var quinzHTML = (function () {
@@ -666,7 +666,7 @@ window.__renderPS = function (dados, ymSel) {
     '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;flex-wrap:wrap;gap:6px">' +
     (metaOf ? '<span class="statuschip ' + stMes + '">' + stTxt + '</span>' : '<span class="vazio">defina a meta na Config do Cofre</span>') +
     (esperado && mesCorrente ? '<span style="font-size:11.5px;color:var(--muted)">esperado até hoje: <b style="color:var(--ink2)">' + fN(esperado, 0) + '</b></span>' : '') +
-    '</div>' + hojeHTML + quinzHTML + '</div>'));
+    '</div>' + hojeHTML + '</div>'));
 
   g.appendChild(el(
     '<div class="card s4"><h3>Projeção de fechamento</h3>' +
@@ -730,7 +730,7 @@ window.__renderPS = function (dados, ymSel) {
     '<div id="psTermoTab"></div></div>');
   g.appendChild(cCurva);
 
-  var cHeat = el('<div class="card s4"><h3>Quando o Parque vende</h3><div class="why">vendas por dia do mês — últimos 6 meses · traço = fronteira dos blocos da meta</div><div id="psHeat"></div><div id="psHeatNota" style="font-size:11.5px;color:var(--ink2);margin-top:10px"></div></div>');
+  var cHeat = el('<div class="card s4"><h3>Quando o Parque vende</h3><div class="why">vendas por dia do mês — últimos 6 meses · traço = fronteira dos blocos da meta</div><div id="psHeat"></div><div id="psHeatNota" style="font-size:11.5px;color:var(--ink2);margin-top:10px"></div>' + quinzHTML + '</div>');
   g.appendChild(cHeat);
 
   var cMeses = el('<div class="card s4"><h3>Meses — realizado × meta</h3><div class="why">últimos 4 meses' + (mesCorrente ? ' (atual em curso + projeção)' : '') + '</div><div id="psMeses"></div></div>');
