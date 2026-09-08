@@ -1158,19 +1158,19 @@ window.__renderPS = function (dados, ymSel) {
     });
     var max = 1; meses6.forEach(function (y) { porMes[y].forEach(function (v) { if (v > max) max = v; }); });
     var tam = BLOCOS.modo === 'sem' ? 7 : 10;
-    var cell = 11, gap = 1, x0 = 40, rowH = 17, w = x0 + 31 * (cell + gap), h = 14 + NM * rowH + 2, svg = S(w, h);
+    var cell = 11, gap = 1, x0 = 40, rowH = 23, w = x0 + 31 * (cell + gap), h = 14 + NM * rowH + 2, svg = S(w, h);
     for (var d = 1; d <= 31; d++) if (d === 1 || d % 5 === 0) T(x0 + (d - 1) * (cell + gap) + cell / 2, 10, String(d), 'axis-t', 'middle', svg);
     var tot = 0, totUlt = 0, diasTot = 0, diasUlt = 0;
     meses6.forEach(function (y, r) {
       var nd = diasNoMes(y), ate = (y === ymHoje) ? Math.min(hoje.getDate(), nd) : nd;
       var yy = 14 + r * rowH;
-      T(x0 - 6, yy + 11, ymLabel(y), 'axis-t', 'end', svg);
+      T(x0 - 6, yy + 13, ymLabel(y), 'axis-t', 'end', svg);
       var bs = faixasBlocos(nd, tam), ultB = bs[bs.length - 1];
       for (var dd = 1; dd <= nd; dd++) {
         var v = porMes[y][dd], x = x0 + (dd - 1) * (cell + gap);
-        if (dd > ate) { N('rect', { x: x, y: yy, width: cell, height: rowH - 3, rx: 2, fill: C.heat[0], opacity: 0.35 }, svg); continue; }
+        if (dd > ate) { N('rect', { x: x, y: yy, width: cell, height: rowH - 4, rx: 2, fill: C.heat[0], opacity: 0.35 }, svg); continue; }
         var nvl = v === 0 ? 0 : Math.max(1, Math.ceil(v / max * 4));
-        var rc = N('rect', { x: x, y: yy, width: cell, height: rowH - 3, rx: 2, fill: C.heat[nvl] }, svg);
+        var rc = N('rect', { x: x, y: yy, width: cell, height: rowH - 4, rx: 2, fill: C.heat[nvl] }, svg);
         rc.dataset.tip = '<b>' + dd + '/' + esc(ymLabel(y)) + '</b><br><span>' + fN(v) + ' venda' + (v === 1 ? '' : 's') + '</span>';
         tot += v; if (dd >= ultB.a) totUlt += v;
       }
@@ -1178,7 +1178,7 @@ window.__renderPS = function (dados, ymSel) {
       bs.forEach(function (b, k) {
         if (k === bs.length - 1) return;
         var xl = x0 + b.b * (cell + gap) - gap / 2;
-        N('line', { x1: xl, x2: xl, y1: yy - 1, y2: yy + rowH - 2, stroke: C.ink2, 'stroke-width': 1, opacity: 0.8 }, svg);
+        N('line', { x1: xl, x2: xl, y1: yy - 1, y2: yy + rowH - 3, stroke: C.ink2, 'stroke-width': 1, opacity: 0.8 }, svg);
       });
     });
     alvo.appendChild(svg); bindTips(svg);
