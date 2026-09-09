@@ -1986,6 +1986,15 @@ let _rtps; window.addEventListener('resize', ()=>{ clearTimeout(_rtps); _rtps=se
   #selo .fora{text-decoration:underline dotted;text-underline-offset:3px;cursor:help}
   #selo.velho{background:rgba(69,26,3,.96);color:#fbbf24;border-top-color:rgba(245,158,11,.4)}
   #selo.velho b{color:#fcd34d}
+  /* O TERCEIRO ESTADO (09/09, item 6 do plano de sanidade): a rodada do Cofre
+     terminou sem erro e o dado que ela gravou reprovou no contrato
+     (Sanidade.gs). Espelha o .velho com a paleta crit. */
+  #selo.ruim{background:rgba(69,3,3,.96);color:var(--crit);border-top-color:rgba(248,113,113,.4)}
+  #selo.ruim b{color:#fca5a5}
+  #selo .schip{margin-left:6px;padding:1px 8px;font-size:11px;vertical-align:1px;cursor:help}
+  /* No vermelho os VALORES dos KPI escurecem — não somem. Esconder faz o
+     gestor procurar o número em outro lugar; escurecer faz ele perguntar. */
+  body.dado-suspeito .kpi .vl{opacity:.4;cursor:help}
   body.tem-selo{padding-bottom:34px}
   @media(max-width:640px){body.tem-selo{padding-bottom:96px}
     #selo{bottom:62px}
@@ -2043,15 +2052,74 @@ let _rtps; window.addEventListener('resize', ()=>{ clearTimeout(_rtps); _rtps=se
     }, falta);
   }
 
-  function selo(texto, velho) {
+  /* `estado`: falsy = normal · true/'velho' = âmbar · 'ruim' = vermelho (09/09) */
+  function selo(texto, estado) {
     var el = document.getElementById('selo');
     if (!el) { el = document.createElement('div'); el.id = 'selo'; document.body.appendChild(el); }
-    el.className = velho ? 'velho' : '';
+    el.className = estado === 'ruim' ? 'ruim' : (estado ? 'velho' : '');
     el.innerHTML = texto;
     document.body.classList.add('tem-selo');
   }
 
-  var CARIMBO = { eu: '', ps: '', copia: false, psFora: 0, psForaTitulo: '' };
+  var CARIMBO = { eu: '', ps: '', copia: false, psFora: 0, psForaTitulo: '', psSaude: '', psSaudeTexto: '' };
+
+  /* O SEMÁFORO DO DADO (09/09). `saude` vem no envelope da rota do Parque —
+     { cor, texto, medido_em } do veredito que a última rodada do Cofre gravou
+     (Sanidade.gs). Vermelho = a rodada terminou sem erro e gravou dado que
+     reprovou no contrato; amarelo = reprovou, mas coberto por exceção datada
+     na Config, ou volta completa em andamento. */
+  function lerSaude(ps) {
+    var s = (ps && ps.saude) || {};
+    CARIMBO.psSaude = String(s.cor || '');
+    CARIMBO.psSaudeTexto = String(s.texto || '') + (s.medido_em ? ' (medido em ' + s.medido_em + ')' : '');
+  }
+  function saudeRuim() { return CARIMBO.psSaude === 'vermelho'; }
+  function marcarDadoSuspeito(ligado) {
+    document.body.classList.toggle('dado-suspeito', !!ligado);
+    var t = ligado ? 'Dado sob suspeita — ' + CARIMBO.psSaudeTexto : '';
+    document.querySelectorAll('.kpi .vl').forEach(function (el) {
+      if (ligado) el.title = t; else el.removeAttribute('title');
+    });
+    marcarMolduraPS(!!ligado);
+  }
+  /* Os números que o gestor VÊ no Parque moram na moldura do Executivo
+     (docs/v2/, iframe de mesma origem) — os .kpi desta página estão inertes
+     desde 01/09. A moldura não conhece a saúde: quem sabe é esta página, e ela
+     injeta o escurecimento lá dentro (uma tag <style> e o title no hover), sem
+     mexer no v2. Roda de novo quando a moldura monta, porque ela nasce tarde. */
+  function marcarMolduraPS(ligado) {
+    var f = document.getElementById('fExecPS'), doc = null;
+    try { doc = f && f.contentDocument; } catch (e) { return; }
+    if (!doc || !doc.head) return;
+    var st = doc.getElementById('dadoSuspeitoPai');
+    if (!ligado) { if (st) st.remove(); return; }
+    if (!st) {
+      st = doc.createElement('style'); st.id = 'dadoSuspeitoPai';
+      st.textContent = '.card .val{opacity:.4;cursor:help}';
+      doc.head.appendChild(st);
+    }
+    if (!doc.__suspeitaOuvinte) {
+      doc.__suspeitaOuvinte = true;
+      doc.addEventListener('mouseover', function (ev) {
+        if (!doc.getElementById('dadoSuspeitoPai')) return;
+        var v = ev.target && ev.target.closest ? ev.target.closest('.card .val') : null;
+        if (v && !v.title) v.title = 'Dado sob suspeita — ' + CARIMBO.psSaudeTexto;
+      });
+    }
+  }
+  (function () {
+    var f = document.getElementById('fExecPS');
+    if (f) f.addEventListener('load', function () {
+      marcarMolduraPS(document.body.classList.contains('dado-suspeito'));
+    });
+  })();
+  /* Os KPI são refeitos a cada troca de filtro, depois do selo: o title vai
+     junto no hover, para não depender de quem redesenhou. */
+  document.addEventListener('mouseover', function (ev) {
+    if (!document.body.classList.contains('dado-suspeito')) return;
+    var vl = ev.target && ev.target.closest ? ev.target.closest('.kpi .vl') : null;
+    if (vl && !vl.title) vl.title = 'Dado sob suspeita — ' + CARIMBO.psSaudeTexto;
+  });
 
   // A data de atualização fica SEMPRE na tela, e é a do cofre da empresa
   // ABERTA — foi a falta dela que deixou o cofre do Parque oito dias
@@ -2080,8 +2148,19 @@ let _rtps; window.addEventListener('resize', ()=>{ clearTimeout(_rtps); _rtps=se
            (CARIMBO.psFalha ? ' em <b>' + CARIMBO.psFalha + '</b>' : '') + ': ' +
            String(CARIMBO.psErro).replace(/[<>&]/g, '') +
            ' · os números são os da importação de <b>' + quando + '</b>, que deu certo.', true);
+    } else if (ps && saudeRuim()) {
+      /* Precedência: cópia local > falha da rodada > saúde vermelha > normal.
+         "Os números não são de agora" é problema maior que "os números não
+         prestam" — e a rodada que falhou não gravou nada para julgar. */
+      selo('⛔ <b>O dado do Parque reprovou na sanidade</b>: ' +
+           String(CARIMBO.psSaudeTexto).replace(/[<>&]/g, '') +
+           ' · importação de <b>' + quando + '</b>. Os números abaixo estão sob suspeita.', 'ruim');
     } else {
       var ms = ps ? CARIMBO.msPs : CARIMBO.msEu;
+      var amarelo = ps && CARIMBO.psSaude === 'amarelo';
+      var chipTxt = !amarelo ? '' :
+        /volta completa/i.test(CARIMBO.psSaudeTexto) ? 'volta completa em andamento' :
+        /não conseguiu medir/i.test(CARIMBO.psSaudeTexto) ? 'sanidade sem medida' : 'exceção vigente';
       selo('Cofre — ' + nome + ' · atualizado em <b>' + quando + '</b>' +
            (ms ? ' · resposta em ' + (ms / 1000).toFixed(1) + 's' : '') +
            // "N fora da regra" ao lado do carimbo (Diário, decisão 44): o que o
@@ -2089,8 +2168,16 @@ let _rtps; window.addEventListener('resize', ()=>{ clearTimeout(_rtps); _rtps=se
            (ps && CARIMBO.psFora > 0
              ? ' · <span class="fora" title="' + CARIMBO.psForaTitulo + '"><b>' +
                CARIMBO.psFora + '</b> fora da regra</span>'
+             : '') +
+           /* Amarelo NÃO muda a barra: vira uma pílula ao lado do carimbo, com
+              o motivo no title. Amarelo que pinta a tela inteira vira ruído em
+              uma semana. */
+           (amarelo
+             ? ' · <span class="schip warn" title="' +
+               String(CARIMBO.psSaudeTexto).replace(/[<>&"]/g, '') + '">' + chipTxt + '</span>'
              : ''));
     }
+    marcarDadoSuspeito(ps && !CARIMBO.copia && !CARIMBO.psErro && saudeRuim());
   }
 
   /* O contador do fora-da-regra (decisão 44). Leitura pura da rota
@@ -2241,6 +2328,7 @@ let _rtps; window.addEventListener('resize', ()=>{ clearTimeout(_rtps); _rtps=se
        pior que carimbo velho: o velho pelo menos chama atenção. */
     CARIMBO.psErro  = (dados.ps && dados.ps.sync_erro) || '';
     CARIMBO.psFalha = (dados.ps && dados.ps.sync_ultima_falha) || '';
+    lerSaude(dados.ps);   // o semáforo do dado (09/09)
 
     var pPS = document.getElementById('empPS'), pEU = document.getElementById('empEU');
     if (pPS) pPS.onclick = function () { trocarEmpresa('ps'); };
@@ -2555,6 +2643,7 @@ let _rtps; window.addEventListener('resize', ()=>{ clearTimeout(_rtps); _rtps=se
           CARIMBO.msEu = j.ms || 0; CARIMBO.msPs = (j.ps && j.ps.ms) || 0;
           CARIMBO.psErro  = (j.ps && j.ps.sync_erro) || '';
           CARIMBO.psFalha = (j.ps && j.ps.sync_ultima_falha) || '';
+          lerSaude(j.ps);
           if (!document.getElementById('verNovo')) {
             atualizarSelo(document.body.classList.contains('emp-ps') ? 'ps' : 'eu');
           }
