@@ -530,9 +530,58 @@ window.__renderPS = function (dados, ymSel) {
   var total = doMes.length;
 
   var vgvMes = soma(doMes, function (v) { return v.venda; });
-  var tm = total ? vgvMes / total : 0;
-  var faceMes = soma(doMes, function (v) { return v.face; });
-  var descPond = faceMes > 0 ? (1 - vgvMes / faceMes) * 100 : null; // %
+
+  /* ===== A BASE DO TICKET MÉDIO E DO DESCONTO NÃO É O MÊS INTEIRO (11/09/26)
+     Pedido do Ricardo, e a medição deu razão a ele antes de uma linha ser
+     escrita. Duas coisas entravam na conta e não são preço negociado:
+
+     · TEMPORÁRIO. Ele sai por 20% da tabela — 80% de "desconto" que é PREÇO
+       DE TABELA, não concessão de ninguém. Em set/26 o card mostrava 9,6% de
+       desconto médio com TRÊS vendas temporárias dentro; sem elas o desconto
+       real do mês é 0,3%. Os nove pontos eram a tabela do temporário
+       disfarçada de vendedor dando desconto.
+     · DOAÇÃO. Jazigo perpétuo que sai por R$ 0,01 (dois casos: M-19-063 em
+       ago/26, M-19-067 em mai/26). Vira 100% de desconto e um ticket de um
+       centavo na média.
+
+     O CORTE DA DOAÇÃO É POR VALOR, e não por razão ou por percentual de
+     desconto, por decisão do Ricardo em 11/09: a razão do temporário JÁ ANDOU
+     uma vez (0,300 em julho, 0,200 de agosto em diante) e qualquer limiar de
+     razão volta a errar sozinho na próxima mexida de tabela. R$ 100 não anda.
+
+     ⛔ O QUE NÃO MUDA, e é de propósito: o VGV do mês e a CONTAGEM de vendas
+     seguem com tudo dentro. O dinheiro entrou e a venda aconteceu — quem
+     precisa de base limpa é a MÉDIA, porque média é o único número aqui que
+     um caso extremo consegue mover sozinho.
+
+     ⚠️ E perpétuo com desconto grande de verdade FICA (M-19-251, jul/26, 70%
+     de desconto com tabela Perpétuo). Concessão grande é exatamente o que
+     este KPI existe para mostrar; tirá-la seria esconder o que se quer medir.
+     ================================================================== */
+  var DOACAO_ATE = 100;   // R$ — abaixo disso não é venda, é doação/permuta
+  var ehDoacao = function (v) { return Number(v.venda || 0) <= DOACAO_ATE; };
+  var ehTemp = function (v) { return v.modalidade === 'Temporário'; };
+
+  var baseTM = doMes.filter(function (v) { return !ehTemp(v) && !ehDoacao(v); });
+  var nTemp = doMes.filter(ehTemp).length;
+  var nDoacao = doMes.filter(function (v) { return !ehTemp(v) && ehDoacao(v); }).length;
+
+  var vgvBase = soma(baseTM, function (v) { return v.venda; });
+  var tm = baseTM.length ? vgvBase / baseTM.length : 0;
+  var faceMes = soma(baseTM, function (v) { return v.face; });
+  var descPond = faceMes > 0 ? (1 - vgvBase / faceMes) * 100 : null; // %
+
+  /* A linha que diz de onde saiu o número. Card que muda de base sem avisar é
+     card que vira pergunta em reunião — e a resposta certa ("tiramos o
+     temporário") chega tarde demais para valer alguma coisa. */
+  var notaBase = (function () {
+    var fora = [];
+    if (nTemp) fora.push(fN(nTemp) + ' temporári' + (nTemp > 1 ? 'as' : 'a'));
+    if (nDoacao) fora.push(fN(nDoacao) + ' doaç' + (nDoacao > 1 ? 'ões' : 'ão'));
+    if (!fora.length) return 'sobre as ' + fN(baseTM.length) + ' vendas do mês';
+    return 'sobre ' + fN(baseTM.length) + ' de ' + fN(total) + ' vendas · fora: ' +
+      fora.join(' e ') + ' (preço de tabela, não desconto concedido)';
+  })();
   var vgvAntMesmoDia = soma(doAnt.filter(function (v) { return Number(String(v.data).slice(8, 10)) <= diaRef; }), function (v) { return v.venda; });
 
   /* ================== ritmos e projeção — só no mês corrente ==============
@@ -706,10 +755,12 @@ window.__renderPS = function (dados, ymSel) {
       (vgvAntMesmoDia > 0 ? ((vgvMes >= vgvAntMesmoDia ? '▲ ' : '▼ ') + fPct(Math.abs(vgvMes / vgvAntMesmoDia - 1) * 100, 0)) : '—') +
       ' <span class="vs">vs ' + esc(ymLabel(ymAnt)) + (mesCorrente ? ' (mesmo dia)' : '') + '</span></div>' : '') + '</div>' +
     '<div class="card tile"><h3>Ticket médio · Desconto</h3>' +
+    '<div class="why" style="margin:-2px 0 10px">só perpétuo, sem doação</div>' +
     '<div style="display:flex;gap:26px;align-items:baseline;flex-wrap:wrap">' +
     '<div><div class="val" style="font-size:26px">' + fBRL(tm) + '</div><div class="delta flat">ticket médio</div></div>' +
     '<div><div class="val" style="font-size:26px">' + (descPond === null ? '–' : fN(descPond, 1) + '<small>%</small>') + '</div>' +
-    '<div class="delta flat">desconto pond. <span class="vs">(face × venda)</span></div></div></div></div></div>'));
+    '<div class="delta flat">desconto pond. <span class="vs">(face × venda)</span></div></div></div>' +
+    '<div class="why" style="margin:10px 0 0">' + esc(notaBase) + '</div></div></div>'));
 
   /* -------- ritmo -------- */
   g.appendChild(el('<div class="sect"><h2>Ritmo do mês</h2><div class="ln"></div><span class="tag">calculado da aba Vendas do Cofre</span></div>'));
@@ -758,7 +809,7 @@ window.__renderPS = function (dados, ymSel) {
   /* -------- mix -------- */
   g.appendChild(el('<div class="sect"><h2>Mix da venda — ' + esc(ymLabel(ym)) + '</h2><div class="ln"></div><span class="tag">canal · modalidade · pagamento</span></div>'));
   var cCanal = el('<div class="card s4"><h3>Canal de venda</h3><div class="why">participação nas ' + fN(total) + ' vendas do mês</div><div id="psCanal"></div></div>');
-  var cModal = el('<div class="card s4"><h3>Modalidade</h3><div class="why">uso perpétuo × temporário — o temporário derruba o ticket médio</div><div id="psModal"></div></div>');
+  var cModal = el('<div class="card s4"><h3>Modalidade</h3><div class="why">uso perpétuo × temporário · a modalidade vem do nome da tabela de vendas do CRM</div><div id="psModal"></div></div>');
   var cPag = el('<div class="card s4"><h3>Pagamento</h3><div class="why">condição e forma</div><div id="psCond"></div><div id="psForma" style="margin-top:6px"></div></div>');
   g.appendChild(cCanal); g.appendChild(cModal); g.appendChild(cPag);
 
