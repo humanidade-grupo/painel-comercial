@@ -2823,8 +2823,18 @@ let _rtps; window.addEventListener('resize', ()=>{ clearTimeout(_rtps); _rtps=se
   function mandarDados(win) {
     if (!win) return;
     try { win.postMessage({ tipo: 'v2:dados', dados: window.__DADOS__ || null,
-                            ymPS: window.__psYmAtivo || null, ymEU: window.__euYmAtivo || null }, ORIGEM); } catch (e) {}
+                            ymPS: window.__psYmAtivo || null, ymEU: window.__euYmAtivo || null,
+                            historico: window.__HIST_EU__ || null }, ORIGEM); } catch (e) {}
   }
+  /* O histórico da Estrela (17/09) chega DEPOIS, quando a aba Histórico abre.
+     Moldura já montada recebe pelo mesmo canal; moldura que ainda não nasceu
+     recebe em mandarDados, quando avisar que está pronta. */
+  window.__v2Historico = function (h) {
+    var f = document.getElementById('fExecEU');
+    if (f && f.getAttribute('src') && f.contentWindow) {
+      try { f.contentWindow.postMessage({ tipo: 'v2:historico', historico: h }, ORIGEM); } catch (e) {}
+    }
+  };
   document.addEventListener('click', function (ev) {
     var b = (ev.target && ev.target.closest) ? ev.target.closest('[data-p]') : null;
     if (!b) return;
@@ -2958,8 +2968,17 @@ let _rtps; window.addEventListener('resize', ()=>{ clearTimeout(_rtps); _rtps=se
         var j;
         try { j = JSON.parse(txt); } catch (e) { throw new Error('o Cofre devolveu algo que não é JSON'); }
         if (!j || !j.ok) throw new Error((j && j.error) || 'resposta sem ok');
-        desenhar(j);
+        var k = desenhar(j);
         estado = 'pronto';
+        /* Os dois cartões do Executivo (série e taxa de distrato) leem ESTAS
+           contas — a moldura v2 não vai ao Cofre. Viaja só o resumo, e sai
+           daqui para lá pelo canal de sempre (window.__v2Historico). */
+        var status = ['QUITACAO', 'ATIVO', 'DISTRATO', 'INADIMPLENTE'].filter(function (c) { return k.status[c]; })
+          .concat(Object.keys(k.status).filter(function (c) { return ['QUITACAO', 'ATIVO', 'DISTRATO', 'INADIMPLENTE'].indexOf(c) < 0; }))
+          .map(function (c) { return [k.statusNome[c], k.status[c]]; });
+        window.__HIST_EU__ = { contratos: k.contratos, contratado: k.contratado, vivo: k.vivo, distratados: k.distratados,
+                               status: status, safra: k.safra, corte: j.corte || '' };
+        if (window.__v2Historico) { try { window.__v2Historico(window.__HIST_EU__); } catch (e) {} }
       })
       .catch(function (e) {
         estado = 'erro';
@@ -2996,8 +3015,8 @@ let _rtps; window.addEventListener('resize', ()=>{ clearTimeout(_rtps); _rtps=se
       if (o.data && (!k.dataMin || o.data < k.dataMin)) k.dataMin = o.data;
       if (o.data && o.data > k.dataMax) k.dataMax = o.data;
       var ano = o.data.slice(0, 4) || '—';
-      var s = k.safra[ano] = k.safra[ano] || { n: 0, dis: 0, vgv: 0 };
-      s.n++; s.vgv += o.venda; if (dis) s.dis++;
+      var s = k.safra[ano] = k.safra[ano] || { n: 0, dis: 0, vgv: 0, vgvDis: 0 };
+      s.n++; s.vgv += o.venda; if (dis) { s.dis++; s.vgvDis += o.venda; }
       if (o.uid === '' || o.uid === null || o.uid === undefined || !Number(o.uid)) {
         var gk = o.emp + ' · ' + o.grupo;
         k.semUid[gk] = (k.semUid[gk] || 0) + 1;
@@ -3044,6 +3063,7 @@ let _rtps; window.addEventListener('resize', ()=>{ clearTimeout(_rtps); _rtps=se
     posicaoHtml(j, k);
     conflitosHtml(j);
     notasHtml(k);
+    return k;
   }
 
   function safraSvg(k) {

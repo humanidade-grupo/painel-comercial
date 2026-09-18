@@ -1,6 +1,11 @@
 /* Painel Comercial — Parque da Saudade + Estrela Urbanidade
    Service worker: instalação PWA + reserva offline.
-   Atualizado em: 07/09/2026 (noite) — O REGISTRO VOLTOU. Desde da2464f
+   Atualizado em: 17/09/2026 (noite, 2ª) — os cartões "série histórica" e
+   "taxa de distrato" do Executivo da Estrela (v2/) deixaram o cadeado de
+   18/08 e leem o histórico congelado, pelo postMessage de sempre.
+   Antes, 17/09/2026 (noite) — ABA HISTÓRICO na metade da Estrela, pela rota
+   ?app=estrela&fn=historico, carregada só quando a aba abre.
+   Antes, 07/09/2026 (noite) — O REGISTRO VOLTOU. Desde da2464f
    (17/08) nenhum HTML chamava navigator.serviceWorker.register: este arquivo
    foi bumpado por 20 sessões sem estar instalado em navegador algum. O
    index.html volta a registrá-lo no load. Rede primeiro segue valendo: a
@@ -149,7 +154,7 @@
    links dos arquivos são drive.google.com, externos, e NÃO entram no cache).
    Estratégia: rede primeiro (pega versão nova quando online), cache como
    reserva offline. A cada deploy, bumpar a versão em CACHE. */
-const CACHE = 'painel-comercial-260917-1';
+const CACHE = 'painel-comercial-260917-2';
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(['./'])).then(() => self.skipWaiting()));

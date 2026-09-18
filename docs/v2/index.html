@@ -1572,22 +1572,46 @@ window.__renderEU = function (dados, ymSel) {
   g.appendChild(el('<div class="card s4"><h3>Canal — 12 meses</h3><div class="why">quem está vendendo a Estrela</div><div id="euCanal"></div>' +
     '<div style="margin-top:12px;border-top:1px solid var(--grid);padding-top:10px"><h3 style="margin-bottom:6px">Mix de prazo — por ano</h3><div id="euPrazo"></div></div></div>'));
 
-  /* -------- Mega -------- */
-  g.appendChild(el('<div class="sect"><h2>Próximos números — carga do histórico Mega</h2><div class="ln"></div>' +
-    '<span class="lockchip">🔒 análise pronta (18/08) · aguarda extração corrigida + conciliação</span></div>'));
-  g.appendChild(el('<div class="card s5 lock"><h3>Série histórica 2020–2026</h3>' +
-    '<div class="why">1.036 contratos · VGV líquido R$ 165,4 mi — o painel ganha 5 anos de contexto</div>' +
-    '<div class="body" id="euSerie"></div><div class="need">2020–2024 vale para acumulado e mix, não para ritmo (63% é carga em massa)</div></div>'));
-  g.appendChild(el('<div class="card s3 lock"><h3>Taxa de distrato</h3>' +
-    '<div class="body"><div class="tile"><div class="val">17,7<small>%</small></div>' +
-    '<div class="delta flat">183 contratos · <b style="color:var(--ink)">R$ 33,9 mi</b></div></div>' +
-    '<div style="font-size:11.5px;color:var(--ink2);margin-top:8px">Hoje toda venda conta como venda para sempre — o VGV está superestimado.</div></div>' +
-    '<div class="need">precisa: coluna STATUS_CONTRATO no Cofre</div></div>'));
+  /* -------- histórico de contratos (17/09) --------
+     Até 17/09 esta seção era "Próximos números — carga do histórico Mega", com
+     três cartões de números escritos à mão numa análise de 18/08 e o cadeado
+     "precisa: STATUS_CONTRATO". A espera acabou: o Cofre tem os contratos com
+     status (Vendas_Historico_EU) e a aba Histórico os lê. Os números agora vêm
+     de LÁ, pelo mesmo postMessage do resto do dado (`v2:dados` / `v2:historico`):
+     esta página continua sem ir ao Cofre por conta própria.
+     O histórico só existe depois que a aba Histórico é aberta. Até lá os
+     cartões ficam trancados e SEM número — nenhum valor padrão, nenhum número
+     antigo de reserva: meia verdade aqui é pior que cadeado. */
+  var H = window.__HIST_EU || null;
+  var brl = function (x) { return 'R$ ' + fN(Math.round(x)); };
+  var corteH = H && H.corte ? H.corte.split('-').reverse().join('/') : '';
+  var anosH = H ? Object.keys(H.safra || {}).filter(function (a) { return /^\d{4}$/.test(a); }).sort() : [];
+  g.appendChild(el('<div class="sect"><h2>Histórico de contratos</h2><div class="ln"></div>' +
+    '<span class="lockchip">' + (H
+      ? 'histórico congelado' + (corteH ? ' em ' + corteH : '') + ' · o desconto real segue trancado'
+      : '🔒 aguarda o histórico — ele chega quando a aba Histórico é aberta') + '</span></div>'));
+  g.appendChild(el(H
+    ? '<div class="card s5"><h3>Série histórica ' + (anosH.length ? anosH[0] + '–' + anosH[anosH.length - 1] : '') + '</h3>' +
+      '<div class="why">' + fN(H.contratos) + ' contratos · contratado <b style="color:var(--ink)">' + brl(H.contratado) + '</b>' +
+      ' · vivo <b style="color:var(--ink)">' + brl(H.vivo) + '</b></div>' +
+      '<div class="body" id="euSerie"></div>' +
+      '<div class="legend"><span><i style="background:' + C.accent + '"></i>VGV vivo</span><span><i style="background:' + C.mag + '"></i>VGV distratado</span></div>' +
+      '<div style="font-size:11px;color:var(--ink2);margin-top:6px">por ano de assinatura — a data do distrato não existe no histórico · detalhe na aba Histórico</div></div>'
+    : '<div class="card s5 lock"><h3>Série histórica</h3><div class="why">contratos e VGV desde o primeiro contrato da Estrela</div>' +
+      '<div class="body" id="euSerie"></div><div class="need">aguarda: o histórico congelado chega quando a aba Histórico é aberta</div></div>'));
+  g.appendChild(el(H
+    ? '<div class="card s3"><h3>Taxa de distrato</h3>' +
+      '<div class="body"><div class="tile"><div class="val">' + fN(H.contratos ? H.distratados / H.contratos * 100 : 0, 1) + '<small>%</small></div>' +
+      '<div class="delta flat">' + fN(H.distratados) + ' contratos · <b style="color:var(--ink)">' + brl(H.contratado - H.vivo) + '</b></div></div>' +
+      '<div style="font-size:11.5px;color:var(--ink2);margin-top:8px">status: ' + (H.status || []).map(function (s) {
+        return esc(s[0]) + ' ' + fN(s[1]); }).join(' · ') + '</div></div></div>'
+    : '<div class="card s3 lock"><h3>Taxa de distrato</h3>' +
+      '<div class="body"><div style="font-size:11.5px;color:var(--ink2)">quanto do que foi vendido terminou em distrato, e quanto de VGV voltou</div></div>' +
+      '<div class="need">aguarda: o histórico congelado chega quando a aba Histórico é aberta</div></div>'));
+  /* O terceiro continua trancado com H ou sem: o que falta não é o histórico. */
   g.appendChild(el('<div class="card s4 lock"><h3>Desconto real — contra a tabela da época</h3>' +
-    '<div class="body"><div class="tile"><div class="val">10,49<small>%</small></div>' +
-    '<div class="delta flat">ponderado · 837 contratos com tabela vigente na data</div></div>' +
-    '<div style="font-size:11.5px;color:var(--ink2);margin-top:10px">status: Ativo 52% · Quitado 26% · Distrato 18% · Inad. 4%</div></div>' +
-    '<div class="need">precisa: VALOR_TABELA_VIGENTE + nº do contrato como chave</div></div>'));
+    '<div class="body"><div style="font-size:11.5px;color:var(--ink2)">desconto ponderado de cada contrato contra a tabela de preço vigente na data dele</div></div>' +
+    '<div class="need">o nº do contrato já é chave — o histórico o tem, único em cada contrato. Falta só a tabela de preço histórica: o preço vigente na data de cada venda não existe em lugar nenhum</div></div>'));
 
   /* ================= desenhos ================= */
 
@@ -1823,17 +1847,25 @@ window.__renderEU = function (dados, ymSel) {
     $('#euPrazo').appendChild(svg); bindTips(svg);
   })();
 
-  /* série Mega (estática — números da análise de 18/08) */
+  /* série histórica — VGV por ano de assinatura, vivo embaixo e distratado em
+     cima, lida do histórico congelado. Sem histórico, o cartão fica trancado e
+     vazio: este bloco não desenha nada. */
   (function () {
-    var d = [{ a: '2020', v: 52.4, m: 1 }, { a: '2021', v: 2.3, m: 0 }, { a: '2022', v: 19.8, m: 1 }, { a: '2023', v: 47.6, m: 1 },
-             { a: '2024', v: 59.2, m: 1 }, { a: '2025', v: 14.6, m: 0 }, { a: '2026', v: 3.7, m: 0 }];
+    if (!H || !anosH.length) return;
+    var d = anosH.map(function (a) {
+      var s = H.safra[a];
+      return { a: a, n: s.n, dis: s.dis, vivo: (s.vgv - s.vgvDis) / 1e6, disV: s.vgvDis / 1e6 };
+    });
+    var topo = Math.max.apply(null, d.map(function (o) { return o.vivo + o.disV; }).concat([1]));
     var w = 430, h = 150, pb = 24, svg = S(w, h);
-    var slot = (w - 46) / 7, y = function (v) { return h - pb - (v / 62) * (h - 16 - pb); };
-    d.forEach(function (o, i) {
-      var cx = 40 + i * slot + slot / 2, bw = 24;
-      var r = N('rect', { x: cx - bw / 2, y: y(o.v), width: bw, height: y(0) - y(o.v), fill: o.m ? C.gray : C.accent, opacity: o.m ? .6 : 1 }, svg);
-      r.dataset.tip = '<b>' + o.a + ': R$ ' + String(o.v).replace('.', ',') + ' mi</b><br><span>' + (o.m ? 'contém carga em massa — não vale como ritmo' : 'série confiável') + '</span>';
-      T(cx, y(o.v) - 5, String(o.v).replace('.', ','), 'axis-t', 'middle', svg);
+    var slot = (w - 46) / d.length, y = function (v) { return h - pb - (v / topo) * (h - 16 - pb); };
+    d.forEach(function (o) {
+      var i = d.indexOf(o), cx = 40 + i * slot + slot / 2, bw = Math.min(24, slot * 0.6), tot = o.vivo + o.disV;
+      var tip = '<b>' + o.a + ': R$ ' + fN(tot, 1) + ' mi · ' + fN(o.n) + ' contratos</b><br><span>vivo R$ ' + fN(o.vivo, 1) +
+                ' mi · distratado R$ ' + fN(o.disV, 1) + ' mi (' + fN(o.dis) + ' contratos)</span>';
+      if (o.vivo > 0) N('rect', { x: cx - bw / 2, y: y(o.vivo), width: bw, height: y(0) - y(o.vivo), fill: C.accent }, svg).dataset.tip = tip;
+      if (o.disV > 0) N('rect', { x: cx - bw / 2, y: y(tot), width: bw, height: y(o.vivo) - y(tot), fill: C.mag }, svg).dataset.tip = tip;
+      T(cx, y(tot) - 5, fN(tot, 1), 'axis-t', 'middle', svg);
       T(cx, h - 8, o.a, 'axis-t', 'middle', svg);
     });
     $('#euSerie').appendChild(svg); bindTips(svg);
@@ -2218,8 +2250,17 @@ window.__renderEU = function (dados, ymSel) {
         }
         return;
       }
+      /* O histórico congelado da Estrela (17/09) vem da página de fora, que o
+         busca quando a aba Histórico abre. Pode chegar depois do dado — aí
+         redesenha a Estrela, como na troca de mês. Mesmo canal, nenhum fetch. */
+      if (d.tipo === 'v2:historico') {
+        window.__HIST_EU = d.historico || null;
+        if (DADOS && document.body.classList.contains('emp-eu')) { try { window.__renderEU(DADOS, YM_EU); } catch (e) { console.error(e); } }
+        return;
+      }
       if (atendida || d.tipo !== 'v2:dados' || !d.dados) return;
       atendida = true;
+      if (d.historico) window.__HIST_EU = d.historico;
       subir(d.dados, false, d.ymPS, d.ymEU);
     });
     try { parent.postMessage({ tipo: 'v2:pronto' }, location.origin); } catch (e) {}
