@@ -103,6 +103,9 @@ z-index:50;display:none;min-width:150px;color:var(--text-1)}
 .notes{font-size:12px;color:var(--text-2);background:var(--card);border:1px solid var(--edge);
 border-radius:16px;padding:12px 16px}
 .notes li{margin-bottom:4px}
+.notes.defs{margin-top:14px}
+.notes.defs summary{cursor:pointer;font-weight:600;color:var(--text-1,inherit)}
+.notes.defs p{margin:8px 0 0;line-height:1.55}
 .gridS{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(330px,100%),1fr));gap:12px}
 .grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(430px,100%),1fr));gap:14px;margin-bottom:14px}
 .grid2 .card{margin-bottom:0}
@@ -551,6 +554,14 @@ align-items:center;gap:3px;cursor:pointer;min-width:0}
 <section class="panel on" id="pEUX">
   <div class="chips" id="euMesesX" style="margin:0 0 14px"></div>
   <iframe id="fExecEU" title="Visão executiva — Estrela Urbanidade" loading="lazy" style="width:100%;border:0;display:block;min-height:70vh"></iframe>
+  <!-- 18/09: o glossário do Painel. Texto vem do Cofre (DATA.notas.sintese), o MESMO
+       do #notaSin da aba Vendas × Estoque — uma fonte, dois lugares. Não fica no
+       HTML porque cita sócios nominalmente e o HTML é público no GitHub Pages.
+       Recolhido por padrão; quando a Vendas × Estoque for aposentada, é aqui que ele fica. -->
+  <details class="notes defs" id="defsEU">
+    <summary>Como estes números são calculados</summary>
+    <p id="notaSinX"></p>
+  </details>
 </section>
 
 <!-- ================= HISTÓRICO (Estrela) — 17/09/2026 =================
@@ -1638,6 +1649,8 @@ function renderDash(){
 function renderNotas(){
   const n = DATA.notas || {};
   const p = $('#notaSin'); if (p) p.innerHTML = n.sintese || '';
+  // a mesma fonte no rodapé do Executivo (18/09) — ver o comentário do #defsEU
+  const px = $('#notaSinX'); if (px) px.innerHTML = n.sintese || 'As definições chegam com os dados do Cofre.';
   const ul = $('#premissas');
   if (ul) { ul.innerHTML=''; (n.premissas||[]).forEach(t=>{
     const li=document.createElement('li'); li.innerHTML=t; ul.appendChild(li); }); }
