@@ -461,6 +461,18 @@ align-items:center;gap:3px;cursor:pointer;min-width:0}
       <div id="chProp"></div>
     </div>
   </div>
+  <!-- 18/09: o histograma de desconto ganha casa no Estoque (mapa das seis abas do
+       Painel E/U, aprovado pelo Ricardo). Por ora é CÓPIA — o da aba Vendas continua
+       lá até ela ser aposentada, decisão dele. Aqui ele não obedece aos filtros do
+       estoque (propriedade, fase, base de valor não existem na venda): mostra todas. -->
+  <div class="card">
+    <h3>Descontos — nº de vendas por faixa</h3>
+    <p class="note">Todas as vendas da planilha (jan/25–jun/26) — os filtros acima são do estoque e não se aplicam aqui.
+      Faixas do % de desconto da col. H. "Não informado" = vendas sem o campo (jan–abr/25 e lotes gêmeos).</p>
+    <div class="legend"><span><span class="k" style="background:var(--s1)"></span>2025</span>
+      <span><span class="k" style="background:var(--s2)"></span>2026</span></div>
+    <div id="chDescFEst"></div>
+  </div>
   <div class="card">
     <h3>Terrenos em estoque <span class="muted" id="nEstTbl"></span></h3>
     <div class="tblbox"><table id="tEst"></table></div>
@@ -1135,6 +1147,7 @@ function renderEst(){
   $('#chEstNote').textContent=`Base: ${fe.base[0]}. Segmentos por uso; barras seguem os filtros.`;
   drawEstChart(L);
   drawPropChart(L);
+  drawDescFaixas(V,'#chDescFEst');   // todas as vendas: o filtro do estoque não vale para venda
   drawEstTable(L);
 }
 
@@ -1317,7 +1330,7 @@ function drawDescChart(L){
   box.appendChild(svg);
 }
 
-function drawDescFaixas(L){
+function drawDescFaixas(L,sel){
   const {c1,c2}=cores();
   const faixas=[
     ['0%',v=>v.desc===0],
@@ -1332,7 +1345,7 @@ function drawDescFaixas(L){
     return {label:nm,
       vals:[g.filter(v=>v.ano===2025).length,g.filter(v=>v.ano===2026).length],
       extra:[['VGV',fR$(g.reduce((a,v)=>a+v.vgv,0))]]};});
-  hbars('#chDescF',rows,[{nm:'2025',cor:c1},{nm:'2026',cor:c2}],v=>fN(v)+(v===1?' venda':' vendas'),{W:520,padL:110,padR:70});
+  hbars(sel||'#chDescF',rows,[{nm:'2025',cor:c1},{nm:'2026',cor:c2}],v=>fN(v)+(v===1?' venda':' vendas'),{W:520,padL:110,padR:70});
 }
 
 function drawModChart(L){
