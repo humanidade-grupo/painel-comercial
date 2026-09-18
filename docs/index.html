@@ -156,8 +156,9 @@ display:none;grid-template-columns:repeat(4,1fr)}
    desktop (a barra so aparece no celular): o botao a mais cai numa segunda fila
    e o rodape dobra de altura. Somou ou tirou aba? acerte a contagem NAS DUAS.
    A do Parque tem DUAS FILAS DE PROPOSITO desde 01/09 (6 itens em 3 colunas) —
-   e por isso o padding-bottom do body na media query e maior na emp-ps. */
-#bnav{grid-template-columns:repeat(5,1fr)}
+   e por isso o padding-bottom do body na media query e maior na emp-ps.
+   A da Estrela passou de 5 para 6 em 17/09 (aba Histórico) — ainda uma fila so. */
+#bnav{grid-template-columns:repeat(6,1fr)}
 .bnav button,.bnav a{border:none;background:none;color:var(--text-3);font:inherit;cursor:pointer;
 text-decoration:none;
 display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 2px;border-radius:10px}
@@ -323,6 +324,23 @@ align-items:center;gap:3px;cursor:pointer;min-width:0}
 .hist>div[aria-selected="true"] b{color:var(--text-1)}
 @media(max-width:640px){.brk .nm{width:96px}.brk .qt{width:70px}
 .dus{gap:12px}.hist{height:74px;gap:3px}}
+
+/* aba Histórico da Estrela (17/09) — tudo preso ao #pEUHist, para nenhuma das
+   cinco abas de cima mudar; cores, raios e sombras são os tokens desta página. */
+#pEUHist .grid2{grid-template-columns:minmax(0,1.6fr) minmax(0,1fr)}
+@media(max-width:820px){#pEUHist .grid2{grid-template-columns:1fr}}
+#pEUHist .hi-chart{width:100%;overflow-x:auto}
+#pEUHist .hi-chart svg{display:block;width:100%;height:auto;min-width:520px}
+#pEUHist .sint h3{margin:0 0 4px;font-size:14px}
+#pEUHist .bar{height:7px;border-radius:4px;background:rgba(255,255,255,.06);overflow:hidden;margin:3px 0 5px}
+#pEUHist .bar i{display:block;height:100%;border-radius:4px}
+#pEUHist .schip{font-size:11.5px;padding:2px 9px;white-space:nowrap}
+#pEUHist .schip.mut{background:var(--chip-bg);color:var(--text-3);border:1px solid var(--edge)}
+#pEUHist .sub{font-size:11px;color:var(--text-3);font-weight:400}
+#pEUHist .tipos{font-size:10.5px;color:var(--text-3);margin-top:2px}
+#pEUHist tr.tot td{border-bottom:none;border-top:1px solid var(--edge2);font-weight:800}
+#pEUHist #hiPos,#pEUHist #hiConf{min-width:640px}
+#pEUHist .notes ul{margin:7px 0 0;padding-left:17px}
 </style>
 </head>
 <body>
@@ -384,6 +402,7 @@ align-items:center;gap:3px;cursor:pointer;min-width:0}
   <button class="tab" role="tab" aria-selected="false" data-p="pVen" type="button">Vendas</button>
   <button class="tab" role="tab" aria-selected="false" data-p="pSin" type="button">Vendas × Estoque</button>
   <button class="tab" role="tab" aria-selected="true" data-p="pEUX" type="button">Executivo</button>
+  <button class="tab" role="tab" aria-selected="false" data-p="pEUHist" type="button">Histórico</button>
 </div>
 
 <!-- ================= DASHBOARD ================= -->
@@ -520,6 +539,49 @@ align-items:center;gap:3px;cursor:pointer;min-width:0}
 <section class="panel on" id="pEUX">
   <div class="chips" id="euMesesX" style="margin:0 0 14px"></div>
   <iframe id="fExecEU" title="Visão executiva — Estrela Urbanidade" loading="lazy" style="width:100%;border:0;display:block;min-height:70vh"></iframe>
+</section>
+
+<!-- ================= HISTÓRICO (Estrela) — 17/09/2026 =================
+     Seis anos de contratos, do registro congelado no Cofre (Vendas_Historico_EU),
+     pela rota PRÓPRIA ?app=estrela&fn=historico — carregada só quando a aba abre,
+     para não pesar nas cinco de cima. Layout aprovado no artefato 5bU3Zuw9 (que
+     virou registro: os números de lá são de 17/09; os daqui são calculados).
+     Nada neste painel escreve, e nada nele lê cliente, telefone ou e-mail: a
+     aba _Pessoal não tem rota. Script isolado no fim da página. -->
+<section class="panel" id="pEUHist">
+  <p class="dashsub" id="hiSub">Abra a aba para ler o histórico no Cofre.</p>
+  <div class="kpis" id="hiKpis"></div>
+  <div class="grid2">
+    <div class="card">
+      <h3>Safra de contratos — quantos seguem de pé</h3>
+      <p class="note">Por <b>ano do contrato</b>. A fatia escura é o que terminou em distrato, não importa quando ele
+        ocorreu — o histórico não guarda a data do distrato.</p>
+      <div class="legend"><span><span class="k" style="background:var(--s1)"></span>Vivo hoje</span>
+        <span><span class="k" style="background:var(--s2)"></span>Distratado</span>
+        <span class="muted">acima da barra = contratos da safra · abaixo do ano = taxa de distrato e VGV</span></div>
+      <div class="hi-chart" id="hiSafra"></div>
+    </div>
+    <div class="card sint" id="hiStatus"></div>
+  </div>
+  <div class="card">
+    <h3>Posição por empreendimento — o universo físico inteiro</h3>
+    <p class="note">Cada unidade que o CRM conhece cai em uma coluna só: vendida (contrato vivo no histórico) · à venda
+      (disponível ou reservada no CRM) · de terceiro · sem origem (fora da venda no CRM e sem venda viva no histórico).
+      A soma é o universo. O que não fecha está nomeado na coluna da direita e na tabela de baixo.</p>
+    <div class="tblbox"><table id="hiPos"></table></div>
+    <p class="note" id="hiPosAviso" style="margin:8px 0 0"></p>
+  </div>
+  <div class="card">
+    <h3>O que o histórico e o CRM dizem diferente</h3>
+    <p class="note" id="hiConfNota">A tela mostra o conflito; não escolhe um lado. Cada linha some sozinha quando o
+      CRM, a planilha ou o histórico mudarem.</p>
+    <div class="tblbox"><table id="hiConf"></table></div>
+    <p class="note" id="hiOutras" style="margin:8px 0 0"></p>
+  </div>
+  <div class="notes">
+    <b>O que esta tela não sabe, e por quê</b>
+    <ul id="hiNotas"></ul>
+  </div>
 </section>
 
 <!-- ================= PARQUE DA SAUDADE ================= -->
@@ -886,6 +948,9 @@ border-radius:5px;border:1px solid rgba(251,191,36,.45);color:var(--warn)}
   <button type="button" data-p="pEUX" aria-selected="true">
     <svg viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/></svg>
     <span>Executivo</span></button>
+  <button type="button" data-p="pEUHist" aria-selected="false">
+    <svg viewBox="0 0 24 24"><path d="M3.5 12a8.5 8.5 0 1 0 2.6-6.1"/><path d="M3 4.5V9h4.5"/><path d="M12 7.5V12l3 2"/></svg>
+    <span>Histórico</span></button>
 </nav>
 <div class="tooltip" id="tip"></div>
 
@@ -2827,6 +2892,291 @@ let _rtps; window.addEventListener('resize', ()=>{ clearTimeout(_rtps); _rtps=se
       try { localStorage.setItem(CHAVE, JSON.stringify(d)); } catch(e){}
     })
     .catch(function(){});                        // sem rede: fica o cache, ou fica escondida
+})();
+</script>
+<script>
+/* ABA HISTÓRICO DA ESTRELA (17/09/2026).
+   Script isolado, como a barra da M-19: um defeito aqui não derruba o painel.
+   Busca ?app=estrela&fn=historico SÓ quando a aba abre (a rota é própria para
+   não pesar nas cinco abas de cima) e uma vez por carga da página.
+
+   O QUE É CALCULADO AQUI e o que vem pronto do Cofre:
+   · daqui — KPIs, safra e "onde estão os contratos": somas sobre os 1.054
+     contratos, que chegam em lista fechada de colunas comerciais;
+   · do Cofre — a posição por empreendimento e os conflitos, que cruzam o
+     histórico com o espelho do CRM e a conferência das 4h pela chave com grupo
+     (HistoricoEU.gs). Montar isso aqui seria ter a mesma regra em dois lugares.
+
+   REGRA DE VENDA VIVA: unidade cujo contrato MAIS RECENTE não é Distrato. A
+   unidade é Empreendimento + Grupo + Lote — sem o Grupo, o lote residencial 5
+   do Lago vira o mesmo que o de uso misto 5.
+
+   A ÚNICA DATA do histórico é a de assinatura. Por isso o gráfico é de SAFRA
+   (de cada colheita, quanto caiu) e nunca "distratos por ano": essa data não
+   existe, e esta tela não a deriva, não estima e não interpola. */
+(function () {
+  var API = 'https://script.google.com/macros/s/AKfycbydLmUEX3g6FeojFGAcVHfNKoPsr4d9oTBUdi7GtcfsirQL6xHJM0BELVGcCrcqrICY/exec';
+  var CHAVE_TOKEN = 'hub_token_gestao';
+  var PRAZO_MS = 90000;   // a primeira montagem no Cofre leva ~11 s; do cache, ~2 s
+  var painel = document.getElementById('pEUHist');
+  if (!painel) return;
+  var estado = 'novo';    // novo · carregando · pronto · erro
+
+  var MZ = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+  var ORDEM = ['Estrela do Bosque', 'Estrela do Vale', 'Estrela do Lago', 'Estrela do Parque', 'Estrela Alta Business'];
+  var COR_STATUS = { 'QUITACAO': 'var(--ok)', 'ATIVO': 'var(--s1)', 'DISTRATO': 'var(--s2)', 'INADIMPLENTE': 'var(--warn)' };
+  var ORDEM_STATUS = ['QUITACAO', 'ATIVO', 'DISTRATO', 'INADIMPLENTE'];
+
+  var $ = function (id) { return document.getElementById(id); };
+  var fN = function (n, d) { return Number(n).toLocaleString('pt-BR', { minimumFractionDigits: d || 0, maximumFractionDigits: d || 0 }); };
+  var fR = function (n) { return 'R$ ' + fN(Math.round(n)); };
+  var fMi = function (n) { return fN(n / 1e6, 1) + ' mi'; };
+  var fPct = function (x) { return fN(x * 100, 1) + '%'; };
+  var esc = function (s) { return String(s === null || s === undefined ? '' : s).replace(/[&<>"]/g, function (c) {
+    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); };
+  var norm = function (s) { return String(s || '').trim().toUpperCase().normalize('NFD').replace(/[̀-ͯ]/g, ''); };
+  /* o mesmo _feuNormLote do Cofre: caixa, espaço e zero à esquerda do trecho numérico */
+  var normLote = function (v) {
+    var s = String(v === null || v === undefined ? '' : v).trim().toUpperCase().replace(/\s+/g, '');
+    var m = s.match(/^([A-Z]*)0*(\d+)([A-Z]*)$/);
+    return m ? m[1] + m[2] + m[3] : s;
+  };
+  var mesAno = function (iso) { var m = String(iso || '').match(/^(\d{4})-(\d{2})/); return m ? MZ[+m[2] - 1] + '/' + m[1] : ''; };
+  var curto = function (emp) { return String(emp || '').replace(/^Estrela (do |da |de )?/, ''); };
+  function sub(html) { $('hiSub').innerHTML = html; }
+
+  function carregar() {
+    if (estado === 'carregando' || estado === 'pronto') return;
+    var tk = null;
+    try { tk = localStorage.getItem(CHAVE_TOKEN); } catch (e) {}
+    if (!tk) { estado = 'erro'; sub('Sem o token de gestão neste aparelho — entre pelo portão de token do Painel.'); return; }
+    estado = 'carregando';
+    sub('Lendo o histórico no Cofre…');
+    var prazo = new Promise(function (_, rej) { setTimeout(function () { rej(new Error('o Cofre não respondeu em ' + (PRAZO_MS / 1000) + ' s')); }, PRAZO_MS); });
+    Promise.race([fetch(API + '?app=estrela&fn=historico&token=' + encodeURIComponent(tk)).then(function (r) { return r.text(); }), prazo])
+      .then(function (txt) {
+        var j;
+        try { j = JSON.parse(txt); } catch (e) { throw new Error('o Cofre devolveu algo que não é JSON'); }
+        if (!j || !j.ok) throw new Error((j && j.error) || 'resposta sem ok');
+        desenhar(j);
+        estado = 'pronto';
+      })
+      .catch(function (e) {
+        estado = 'erro';
+        sub('Não consegui ler o histórico: ' + esc(e.message || e) + '. Toque na aba de novo para tentar outra vez.');
+      });
+  }
+  document.addEventListener('click', function (ev) {
+    var b = (ev.target && ev.target.closest) ? ev.target.closest('[data-p]') : null;
+    if (b && b.dataset.p === 'pEUHist') carregar();
+  });
+
+  // ------------------------------------------------------------------ as contas
+
+  function contar(j) {
+    var col = {};
+    j.historico.colunas.forEach(function (c, i) { col[c] = i; });
+    var L = j.historico.linhas.map(function (r) {
+      return { contrato: String(r[col['Contrato']]), emp: String(r[col['Empreendimento']] || '').trim(),
+               grupo: String(r[col['Grupo']] || '').trim(), lote: r[col['Lote']], uid: r[col['unity_id']],
+               tipo: String(r[col['Tipo']] || '').trim(), status: String(r[col['Status']] || '').trim(),
+               data: String(r[col['Data']] || '').slice(0, 10), venda: Number(r[col['Valor da Venda']]) || 0 };
+    });
+
+    var k = { contratos: L.length, contratado: 0, vivo: 0, distratados: 0, permutas: 0, status: {}, statusNome: {},
+              safra: {}, dataMin: '', dataMax: '', semUid: {} };
+    var un = {};
+    L.forEach(function (o) {
+      var st = norm(o.status), dis = st === 'DISTRATO';
+      k.contratado += o.venda;
+      if (!dis) k.vivo += o.venda; else k.distratados++;
+      if (norm(o.tipo) === 'PERMUTA') k.permutas++;
+      k.status[st] = (k.status[st] || 0) + 1;
+      k.statusNome[st] = o.status;
+      if (o.data && (!k.dataMin || o.data < k.dataMin)) k.dataMin = o.data;
+      if (o.data && o.data > k.dataMax) k.dataMax = o.data;
+      var ano = o.data.slice(0, 4) || '—';
+      var s = k.safra[ano] = k.safra[ano] || { n: 0, dis: 0, vgv: 0 };
+      s.n++; s.vgv += o.venda; if (dis) s.dis++;
+      if (o.uid === '' || o.uid === null || o.uid === undefined || !Number(o.uid)) {
+        var gk = o.emp + ' · ' + o.grupo;
+        k.semUid[gk] = (k.semUid[gk] || 0) + 1;
+      }
+      // a unidade física: Empreendimento + Grupo + Lote
+      var ku = norm(o.emp) + '|' + norm(o.grupo) + '|' + normLote(o.lote);
+      var u = un[ku] = un[ku] || { n: 0, ult: null };
+      u.n++;
+      var chave = o.data + '|' + ('0000000000' + o.contrato).slice(-10);
+      if (!u.ult || chave > u.ult.chave) u.ult = { chave: chave, dis: dis };
+    });
+    k.unidades = 0; k.vivas = 0; k.revendidas = 0;
+    Object.keys(un).forEach(function (ku) {
+      k.unidades++;
+      if (!un[ku].ult.dis) k.vivas++;
+      if (un[ku].n > 1) k.revendidas++;
+    });
+    return k;
+  }
+
+  // ------------------------------------------------------------------ o desenho
+
+  function desenhar(j) {
+    var k = contar(j);
+    var corte = j.corte ? j.corte.split('-').reverse().join('/') : '';
+    var div = String(j.divergencias_em || '');
+    var divTxt = div ? div.slice(8, 10) + '/' + div.slice(5, 7) + ' às ' + div.slice(11, 16) : '';
+    sub('Histórico congelado' + (corte ? ' em <b>' + corte + '</b>' : '') + ' · ' + fN(k.contratos) + ' contratos · ' +
+        mesAno(k.dataMin) + ' a ' + mesAno(k.dataMax) +
+        (divTxt ? ' · conflitos com o CRM lidos na conferência de ' + divTxt : ''));
+
+    // KPIs
+    var kpi = function (lb, vl, dt) { return '<div class="kpi"><div class="lb">' + lb + '</div><div class="vl">' + vl +
+                                              '</div><div class="dt">' + dt + '</div></div>'; };
+    $('hiKpis').innerHTML =
+      kpi('Contratos', fN(k.contratos), mesAno(k.dataMin) + ' a ' + mesAno(k.dataMax)) +
+      kpi('Unidades com história', fN(k.unidades), fN(k.revendidas) + ' com mais de um contrato') +
+      kpi('Unidades vendidas hoje', fN(k.vivas), fN(k.unidades - k.vivas) + ' voltaram ao estoque') +
+      kpi('VGV vivo', 'R$ ' + fMi(k.vivo), 'contratado no total: R$ ' + fMi(k.contratado)) +
+      kpi('Contratos distratados', fN(k.distratados), fPct(k.contratos ? k.distratados / k.contratos : 0) + ' de tudo que foi vendido');
+
+    $('hiSafra').innerHTML = safraSvg(k);
+    $('hiStatus').innerHTML = statusHtml(k);
+    posicaoHtml(j, k);
+    conflitosHtml(j);
+    notasHtml(k);
+  }
+
+  function safraSvg(k) {
+    var anos = Object.keys(k.safra).filter(function (a) { return /^\d{4}$/.test(a); }).sort();
+    if (!anos.length) return '<p class="note">Sem contratos com data.</p>';
+    var W = 640, x0 = 46, x1 = 626, yT = 16, yB = 210;
+    var max = Math.max.apply(null, anos.map(function (a) { return k.safra[a].n; }));
+    var bruto = max / 3, mag = Math.pow(10, Math.floor(Math.log(bruto) / Math.LN10)), passo = mag;
+    [1, 2, 2.5, 5, 10].some(function (f) { if (f * mag >= bruto) { passo = f * mag; return true; } return false; });
+    var topo = Math.ceil(max / passo) * passo;
+    var y = function (v) { return yB - v / topo * (yB - yT); };
+    var slot = (x1 - x0) / anos.length, bw = Math.min(44, slot * 0.6);
+    var ff = 'font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;';
+    var s = '<svg viewBox="0 0 ' + W + ' 268" role="img" aria-label="Contratos por ano de assinatura, com a parcela que terminou em distrato">';
+    for (var t = 0; t <= topo + 1e-9; t += passo) {
+      s += '<line x1="' + x0 + '" y1="' + y(t).toFixed(1) + '" x2="' + x1 + '" y2="' + y(t).toFixed(1) + '" style="stroke:var(--grid);stroke-width:1"/>' +
+           '<text x="40" y="' + (y(t) + 3.5).toFixed(1) + '" text-anchor="end" style="' + ff + 'font-size:10px;fill:var(--text-3)">' + fN(t) + '</text>';
+    }
+    anos.forEach(function (a, i) {
+      var d = k.safra[a], vivos = d.n - d.dis;
+      var x = x0 + slot * i + (slot - bw) / 2, cx = x + bw / 2;
+      var hv = yB - y(vivos), hd = y(vivos) - y(d.n);
+      if (hv > 0) s += '<rect x="' + x.toFixed(1) + '" y="' + y(vivos).toFixed(1) + '" width="' + bw.toFixed(1) + '" height="' + hv.toFixed(1) + '" rx="' + (hv > 3 ? 3 : 1) + '" style="fill:var(--s1)"><title>' + a + ': ' + fN(vivos) + ' vivos</title></rect>';
+      if (hd > 0) s += '<rect x="' + x.toFixed(1) + '" y="' + y(d.n).toFixed(1) + '" width="' + bw.toFixed(1) + '" height="' + hd.toFixed(1) + '" rx="' + (hd > 3 ? 3 : 1) + '" style="fill:var(--s2)"><title>' + a + ': ' + fN(d.dis) + ' distratados</title></rect>';
+      s += '<text x="' + cx.toFixed(1) + '" y="' + (y(d.n) - 5).toFixed(1) + '" text-anchor="middle" class="vlab">' + fN(d.n) + '</text>' +
+           '<text x="' + cx.toFixed(1) + '" y="235" text-anchor="middle" style="' + ff + 'font-size:9.5px;font-weight:700;fill:var(--s2)">' + fPct(d.n ? d.dis / d.n : 0) + '</text>' +
+           '<text x="' + cx.toFixed(1) + '" y="252" text-anchor="middle" style="' + ff + 'font-size:11px;fill:var(--text-2)">' + a + '</text>' +
+           '<text x="' + cx.toFixed(1) + '" y="265" text-anchor="middle" style="' + ff + 'font-size:9.5px;fill:var(--text-3)">' + (i === 0 ? 'R$ ' + fMi(d.vgv) : fN(d.vgv / 1e6, 1)) + '</text>';
+    });
+    return s + '</svg>';
+  }
+
+  function statusHtml(k) {
+    var chaves = ORDEM_STATUS.filter(function (c) { return k.status[c]; })
+      .concat(Object.keys(k.status).filter(function (c) { return ORDEM_STATUS.indexOf(c) < 0; }));
+    var h = '<h3>Onde estão os ' + fN(k.contratos) + ' hoje</h3><p class="note">Estado atual de cada contrato, não do ano em que foi assinado.</p>';
+    chaves.forEach(function (c) {
+      var n = k.status[c];
+      h += '<div class="rw"><span>' + esc(k.statusNome[c]) + '</span><b>' + fN(n) + '</b></div>' +
+           '<div class="bar"><i style="width:' + (k.contratos ? n / k.contratos * 100 : 0).toFixed(1) + '%;background:' + (COR_STATUS[c] || 'var(--text-3)') + '"></i></div>';
+    });
+    h += '<hr><div class="rw"><span>VGV vivo</span><b>' + fR(k.vivo) + '</b></div>' +
+         '<div class="rw"><span>VGV que voltou pelo distrato</span><b>' + fR(k.contratado - k.vivo) + '</b></div>' +
+         '<hr><div class="rw"><span>Permutas no período</span><b>' + fN(k.permutas) + ' contrato' + (k.permutas === 1 ? '' : 's') + '</b></div>' +
+         '<div class="rw"><span>Unidade com mais de um contrato</span><b>' + fN(k.revendidas) + '</b></div>';
+    return h;
+  }
+
+  function posicaoHtml(j, k) {
+    var ordem = function (p) { var i = ORDEM.indexOf(p.emp); return (p.crm ? 0 : 100) + (i < 0 ? 50 : i); };
+    var P = (j.posicao || []).slice().sort(function (a, b) { return ordem(a) - ordem(b); });
+    var num = function (v) { return (v === null || v === undefined || v === 0) ? '<td class="num muted">—</td>' : '<td class="num">' + fN(v) + '</td>'; };
+    var tot = { vendido: 0, a_venda: 0, terceiro: 0, sem_origem: 0, universo: 0, vgv: 0 };
+    var h = '<thead><tr><th>Empreendimento</th><th class="num">Vendido</th><th class="num">À venda</th><th class="num">De terceiro</th>' +
+            '<th class="num">Sem origem</th><th class="num">Universo</th><th class="num">VGV vivo</th><th>Fecha?</th></tr></thead><tbody>';
+    P.forEach(function (p) {
+      tot.vendido += p.vendido || 0; tot.a_venda += p.a_venda || 0; tot.terceiro += p.terceiro || 0;
+      tot.sem_origem += p.sem_origem || 0; tot.universo += p.universo || 0; tot.vgv += p.vgv_vivo || 0;
+      var nome = p.crm ? esc(p.emp)
+        : (p.grupo && p.grupo !== '*' ? esc(curto(p.emp)) + ' — Uso ' + esc(p.grupo) : esc(p.emp)) + ' <span class="sub">sem cadastro no CRM</span>';
+      var chip;
+      if (!p.crm) chip = '<span class="schip mut" title="' + esc(p.nota || '') + '">fora do CRM</span>';
+      else {
+        var partes = [];
+        if (p.fantasmas) partes.push(p.fantasmas + ' fantasma' + (p.fantasmas > 1 ? 's' : ''));
+        if (p.sem_contrato) partes.push(p.sem_contrato + ' sem origem');
+        if (p.conflitos) partes.push(p.conflitos + ' conflito' + (p.conflitos > 1 ? 's' : ''));
+        if (p.vivas_historico !== undefined && p.vivas_historico !== p.vendido) partes.push('venda viva sem carimbo');
+        chip = partes.length ? '<span class="schip warn">' + partes.join(' · ') + '</span>' : '<span class="schip ok">na unidade</span>';
+      }
+      h += '<tr><td>' + nome + '</td>' + num(p.vendido) + num(p.a_venda) + num(p.terceiro) + num(p.sem_origem) +
+           (p.universo === null || p.universo === undefined ? '<td class="num muted">—</td>' : '<td class="num">' + fN(p.universo) + '</td>') +
+           '<td class="num">R$ ' + fMi(p.vgv_vivo || 0) + '</td><td>' + chip + '</td></tr>';
+    });
+    h += '<tr class="tot"><td>Total</td><td class="num">' + fN(tot.vendido) + '</td><td class="num">' + fN(tot.a_venda) + '</td>' +
+         '<td class="num">' + fN(tot.terceiro) + '</td><td class="num">' + fN(tot.sem_origem) + '</td><td class="num">' + fN(tot.universo) +
+         '</td><td class="num">R$ ' + fMi(tot.vgv) + '</td><td></td></tr></tbody>';
+    $('hiPos').innerHTML = h;
+    // a identidade que a tarefa pediu: a posição e o histórico têm que contar as mesmas vendidas
+    $('hiPosAviso').innerHTML = tot.vendido === k.vivas ? ''
+      : '⚠ A posição soma ' + fN(tot.vendido) + ' unidades vendidas e o histórico, ' + fN(k.vivas) +
+        ' — há unidade contada duas vezes ou venda viva sem unity_id.';
+  }
+
+  function conflitosHtml(j) {
+    var C = j.conflitos || [];
+    var h = '<thead><tr><th>Unidade</th><th>O histórico diz</th><th>O CRM diz</th><th class="num">Tabela</th><th>Estado</th></tr></thead><tbody>';
+    if (!C.length) h += '<tr><td colspan="5" class="muted">Nenhum conflito entre o histórico e o CRM hoje.</td></tr>';
+    C.forEach(function (c) {
+      var und = c.grupo_n ? esc(curto(c.emp)) + ' <b>' + fN(c.grupo_n) + ' lotes</b>' : esc(curto(c.emp)) + ' <b>' + esc(c.lote) + '</b>';
+      var titulo = c.lotes ? ' title="' + esc(c.lotes.join(', ')) + '"' : '';
+      var tipos = c.tipos && c.tipos.length ? '<div class="tipos">' + c.tipos.map(esc).join(' · ') + '</div>' : '';
+      var tabela = (c.tabela === null || c.tabela === undefined) ? '<td class="num muted">—</td>'
+        : '<td class="num">' + (c.grupo_n ? '~R$ ' + fMi(c.tabela) : fR(c.tabela)) + '</td>';
+      h += '<tr><td' + titulo + '>' + und + tipos + '</td><td>' + esc(c.historico) + '</td><td>' + esc(c.crm) +
+           (c.planilha ? '<div class="sub">' + esc(c.planilha) + '</div>' : '') + '</td>' + tabela +
+           '<td><span class="schip ' + (c.grave ? 'crit' : 'warn') + '">Aberta</span></td></tr>';
+    });
+    $('hiConf').innerHTML = h + '</tbody>';
+    var o = j.outras || {}, ks = Object.keys(o).sort();
+    $('hiOutras').innerHTML = ks.length
+      ? 'Da conferência de estoque, ficam fora desta tabela — o histórico não tem o que dizer sobre eles — e vão crus: ' +
+        ks.map(function (t) { return '<code>' + esc(t) + '</code> ' + fN(o[t]); }).join(' · ') + '.'
+      : '';
+  }
+
+  function notasHtml(k) {
+    var anos = Object.keys(k.safra).filter(function (a) { return /^\d{4}$/.test(a); }).sort();
+    var taxa = function (a) { var d = k.safra[a]; return d.n ? d.dis / d.n : 0; };
+    var grandes = anos.filter(function (a) { return k.safra[a].n >= 100; });
+    var pequenas = anos.filter(function (a) { return k.safra[a].n < 100; });
+    var faixa = '';
+    if (grandes.length) {
+      var ts = grandes.map(taxa), mn = Math.min.apply(null, ts), mx = Math.max.apply(null, ts);
+      faixa = '<li><b>A taxa de distrato por safra</b> vai de ' + fPct(mn) + ' a ' + fPct(mx) + ' nas safras com 100 contratos ou mais (' +
+              grandes.join(', ') + ').' + (pequenas.length ? ' As outras — ' + pequenas.map(function (a) {
+                return a + ', ' + fN(k.safra[a].n) + ' contratos, ' + fPct(taxa(a)); }).join('; ') +
+              ' — são pouco volume para ler tendência, e as mais novas ainda têm tempo de cair.' : '') + '</li>';
+    }
+    var sem = Object.keys(k.semUid).sort(), nSem = 0;
+    sem.forEach(function (g) { nSem += k.semUid[g]; });
+    var uid = nSem ? '<li><b>' + fN(nSem) + ' contratos não têm <code>unity_id</code></b> — ' +
+      sem.map(function (g) { return esc(g) + ' (' + fN(k.semUid[g]) + ')'; }).join(', ') +
+      '. Nos grupos que o Facilita não tem — os "fora do CRM" da posição —, carimbar exige cadastrá-los no CRM por inteiro, ' +
+      'com as unidades já vendidas: cadastrar só as que estão à venda não carimba os contratos antigos.</li>' : '';
+    $('hiNotas').innerHTML =
+      '<li><b>Não há "distratos por ano".</b> O histórico guarda uma data por contrato, e ela é a da assinatura — a data do ' +
+      'distrato não existe em lugar nenhum. Por isso a safra mostra <i>quantos da colheita de cada ano caíram</i>, e não ' +
+      'quantos caíram em cada ano. O número anual de distratos continua vindo do <b>Detalhamento</b>.</li>' +
+      faixa + uid +
+      '<li><b>O histórico é registro, não fonte.</b> Escrito uma vez no Cofre, sem gatilho, fora da sincronização. ' +
+      'Correção nele se faz por linha nova — nunca reescrevendo a semente.</li>';
+  }
 })();
 </script>
 <script>
