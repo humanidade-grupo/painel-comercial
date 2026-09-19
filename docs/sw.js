@@ -1,6 +1,8 @@
 /* Painel Comercial — Parque da Saudade + Estrela Urbanidade
    Service worker: instalação PWA + reserva offline.
-   Atualizado em: 19/09/2026 (noite, 3ª) — PONTEAPP, A BANCADA: o detalhe da
+   Atualizado em: 19/09/2026 (noite, 4ª) — PONTEAPP: o "não copiou" do botão
+   copiar volta sozinho para "copiar" (ficava preso).
+   Antes, 19/09/2026 (noite, 3ª) — PONTEAPP, A BANCADA: o detalhe da
    venda ganha o bloco de pagamento (valor · plano · vencimentos · contrato)
    com "copiar" por campo e a SUGESTÃO de com/sem juros. Rota @76.
    Antes, 19/09/2026 (noite, 2ª) — PONTEAPP: campo "Ref. Ivertex" ao
@@ -193,7 +195,7 @@
    links dos arquivos são drive.google.com, externos, e NÃO entram no cache).
    Estratégia: rede primeiro (pega versão nova quando online), cache como
    reserva offline. A cada deploy, bumpar a versão em CACHE. */
-const CACHE = 'painel-comercial-260919-7';
+const CACHE = 'painel-comercial-260919-8';
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(['./'])).then(() => self.skipWaiting()));

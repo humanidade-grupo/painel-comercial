@@ -1312,14 +1312,14 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
   /* "copiar", por campo. Sem área de transferência (http, permissão negada): cai para o
      textarea + execCommand. Nada fica guardado — é a área de transferência do sistema. */
   function copiar(txt, bt) {
-    var feito = function () { bt.textContent = 'copiado'; bt.classList.add('ok');
-      setTimeout(function () { bt.textContent = 'copiar'; bt.classList.remove('ok'); }, 1400); };
+    var volta = function () { bt.textContent = 'copiar'; bt.classList.remove('ok'); };
+    var feito = function () { bt.textContent = 'copiado'; bt.classList.add('ok'); setTimeout(volta, 1400); };
     var plano = function () {
       var t = document.createElement('textarea'); t.value = txt; t.setAttribute('readonly', '');
       t.style.position = 'fixed'; t.style.opacity = '0'; document.body.appendChild(t); t.select();
       var ok = false; try { ok = document.execCommand('copy'); } catch (e) {}
       document.body.removeChild(t);
-      if (ok) feito(); else bt.textContent = 'não copiou';
+      if (ok) feito(); else { bt.textContent = 'não copiou'; setTimeout(volta, 2500); }
     };
     if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(txt).then(feito, plano);
     else plano();
