@@ -103,9 +103,10 @@
     color:var(--accent);margin:0 0 12px}
   .cpHead .tit{font-size:clamp(26px,4.4vw,38px);font-weight:800;line-height:1.12;
     letter-spacing:-.01em;margin:0 0 14px;text-wrap:balance}
-  .cpHead .deck{font-size:15px;line-height:1.6;color:var(--ink2);max-width:64ch;margin:0 0 18px}
+  .cpHead .deck{font-size:15px;line-height:1.6;color:var(--ink2);margin:0 0 18px}
   .cpHead .deck b{color:var(--ink);font-weight:700}
-  .cpHead .escopo{font-size:12.5px;line-height:1.55;color:var(--muted);max-width:72ch;margin:0 0 14px}
+  .cpHead .escopo{font-size:12.5px;line-height:1.55;color:var(--muted);margin:0}
+  .cpHead .seg{margin:0 0 16px;width:max-content;max-width:100%;flex-wrap:wrap}
   .cpHead .escopo b{color:var(--ink2);font-weight:700}
   /* o rodapé de notas ocupa a faixa inteira: sem isto ele cai numa coluna do
      grid de 12 e o texto sai quebrado letra a letra (visto em 19/09) */
@@ -1571,6 +1572,7 @@ function secaoComoPaga(g, dados, ym) {
      aqui não há baixa de pagamento nenhuma. Dizer isso depois dos gráficos
      seria dizer tarde. */
   g.appendChild(el('<div class="cpHead">' +
+    '<div class="seg" id="psCpSeg" role="group" aria-label="Período"></div>' +
     '<p class="eyebrow" id="psCpOlho">Parque da Saudade · Receita contratada</p>' +
     '<h2 class="tit">Como o cliente paga</h2>' +
     '<p class="deck" id="psCpDeck"></p>' +
@@ -1578,8 +1580,7 @@ function secaoComoPaga(g, dados, ym) {
     '<b>contratado</b> e em que mês cada parcela vence ou fica disponível — e nada além disso. ' +
     'O Cofre registra vencimento, <b>não registra baixa</b>: não há conciliação com o extrato, ' +
     'inadimplência, juros de atraso nem taxa de adquirência aqui. Quem fecha conta é a ' +
-    'controladoria, no ERP.</p>' +
-    '<div class="seg" id="psCpSeg" role="group" aria-label="Período"></div></div>'));
+    'controladoria, no ERP.</p></div>'));
   if (K.erro || !K.base) {
     g.appendChild(el('<div class="card s12"><h3>Como o cliente paga</h3><div class="vazio">' +
       esc(K.erro || 'O Cofre não devolveu o pacote desta aba.') + '</div></div>'));

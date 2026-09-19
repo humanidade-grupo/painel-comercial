@@ -65,6 +65,22 @@ backdrop-filter:blur(8px);padding:12px 14px;margin-bottom:14px}
 .fgroup{min-width:120px}
 .flabel{font-size:10.5px;text-transform:uppercase;letter-spacing:.08em;color:var(--text-3);
 margin-bottom:6px;font-weight:700}
+/* ABERTURA DA TELA — a MESMA régua das outras (19/09/26): Esteira, Perfil do
+   Cliente e Receita Contratada. Mexer aqui sem mexer nas outras três devolve o
+   problema que isto resolveu: cada aba com uma régua. */
+.telaHead{padding:18px 0 24px;border-bottom:1px solid var(--edge);margin:0 0 14px}
+.telaHead .eyebrow{font-size:10.5px;font-weight:700;letter-spacing:.10em;text-transform:uppercase;
+color:var(--s1b);margin:0 0 12px}
+.telaHead .tit{font-size:clamp(26px,4.4vw,38px);font-weight:800;line-height:1.12;
+letter-spacing:-.01em;margin:0 0 14px;text-wrap:balance;color:var(--text-1)}
+.telaHead .deck{font-size:15px;line-height:1.6;color:var(--text-2);margin:0}
+/* pílulas de período: o mesmo controle da Receita Contratada, no lugar dos
+   chips — um seletor só, e com a mesma cara nas duas abas */
+.segm{display:flex;flex-wrap:wrap;background:var(--chip-bg);border:1px solid var(--edge);
+border-radius:10px;padding:3px;width:max-content;max-width:100%;margin:0 0 16px}
+.segm button{border:0;background:transparent;padding:6px 14px;border-radius:8px;font-size:12.5px;
+color:var(--text-2);cursor:pointer;font-family:inherit}
+.segm button[aria-selected="true"]{background:var(--s1);color:#1a1302;font-weight:650}
 .chips{display:flex;flex-wrap:wrap;gap:6px}
 .chip{border:1px solid var(--edge);background:var(--chip-bg);color:var(--text-2);
 border-radius:999px;padding:4px 11px;font-size:12.5px;cursor:pointer;user-select:none}
@@ -705,7 +721,17 @@ align-items:center;gap:3px;cursor:pointer;min-width:0}
      ymAtivo): trocar o mês aqui troca lá, e vice-versa. A moldura recebe a
      escolha por postMessage. -->
 <section class="panel ps" id="pPSX">
-  <div class="chips" id="psMesesX" style="margin:0 0 14px"></div>
+  <!-- MESMA ABERTURA DA RECEITA CONTRATADA (19/09/26, decisão do Ricardo):
+       seletor de meses em pílulas no topo, depois sobrescrita, título e o
+       parágrafo que diz o que esta aba responde — e o que ela NÃO responde. -->
+  <div class="segm" id="psSegX" role="group" aria-label="Mês"></div>
+  <div class="telaHead">
+    <p class="eyebrow" id="psOlhoX">Parque da Saudade · Executivo</p>
+    <h2 class="tit">Como vai o mês</h2>
+    <p class="deck">Quantas vendas o mês já tem, em que ritmo elas entram e onde isso deve fechar
+      contra a meta. Aqui os números são de <b>venda</b> — o que foi assinado. Quanto disso vira
+      caixa, e em que mês, é a aba <b>Receita Contratada</b>.</p>
+  </div>
   <iframe id="fExecPS" title="Visão executiva — Parque da Saudade" loading="lazy" style="width:100%;border:0;display:block;min-height:70vh"></iframe>
 </section>
 
@@ -1841,16 +1867,24 @@ function trocarMes(ym){
 }
 const amDe = ym => String(ym).slice(0,4) + '-' + String(ym).slice(4);
 
-function montarChipsMes(el){
+function montarChipsMes(el, comoSeg){
   const box = $(el); if (!box) return;
   box.innerHTML = '';
   D.meses.forEach(m=>{
     const c = document.createElement('button');
-    c.type='button'; c.className='chip'; c.textContent = m.rotulo;
-    c.setAttribute('aria-pressed', m.ym===ymAtivo);
+    c.type='button'; c.textContent = m.rotulo;
+    /* mesma lista, duas roupas: .chip nos painéis antigos, pílula na abertura
+       do Executivo — que é a mesma da Receita Contratada */
+    if (comoSeg) c.setAttribute('aria-selected', m.ym===ymAtivo);
+    else { c.className='chip'; c.setAttribute('aria-pressed', m.ym===ymAtivo); }
     c.onclick = ()=>{ trocarMes(m.ym); };
     box.appendChild(c);
   });
+  const olho = $('#psOlhoX');
+  if (olho) {
+    const m = D.meses.filter(x=>x.ym===ymAtivo)[0];
+    olho.textContent = 'Parque da Saudade · Executivo' + (m ? ' · ' + m.rotulo : '');
+  }
 }
 
 function kpi(lb, vl, dt){
@@ -1889,7 +1923,7 @@ function render(){
   }
   if (D.erro) return;
 
-  montarChipsMes('#psMeses'); montarChipsMes('#psMeses2'); montarChipsMes('#psMesesX');
+  montarChipsMes('#psMeses'); montarChipsMes('#psMeses2'); montarChipsMes('#psSegX', true);
 
   const mes = D.meses.filter(m=>m.ym===ymAtivo)[0];
   const vendas = D.vendas.filter(v=>v.ym===ymAtivo);
