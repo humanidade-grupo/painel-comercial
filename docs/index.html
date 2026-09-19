@@ -406,7 +406,7 @@ align-items:center;gap:3px;cursor:pointer;min-width:0}
        `?vista=receita` — a página de dentro desenha só essa seção. Nada foi
        duplicado: os helpers de gráfico, as cores e o pacote do Cofre são os
        mesmos do Executivo. -->
-  <button class="tab" role="tab" aria-selected="false" data-p="pPSReceita" type="button">Receita Contratada</button>
+  <button class="tab" role="tab" aria-selected="false" data-p="pPSObraReceita" type="button">Receita Contratada</button>
   <!-- Retrospectiva e Perfil Cliente rodam DENTRO do Painel desde
        01/09 (2ª rodada do dia): molduras como a do Executivo, carregadas na
        primeira abertura e mantidas vivas — trocar de aba não recarrega nada,
@@ -755,6 +755,11 @@ align-items:center;gap:3px;cursor:pointer;min-width:0}
      nos endereços próprios; o que saiu foi a porta por aqui. Não há link no
      aviso de propósito: "provisoriamente não abre" é a regra, e um link
      discreto seria a mesma porta com outro nome. -->
+<section class="panel ps" id="pPSObraReceita">
+  <div class="card"><h3>Receita Contratada — em construção</h3>
+    <p class="ghost" style="border:0;padding:6px 0 0">Esta tela está em revisão e não abre por aqui
+    no momento.</p></div>
+</section>
 <section class="panel ps" id="pPSObraEsteira">
   <div class="card"><h3>Esteira do Funil — em construção</h3>
     <p class="ghost" style="border:0;padding:6px 0 0">Esta tela está em revisão e não abre por aqui
@@ -1011,7 +1016,7 @@ border-radius:5px;border:1px solid rgba(251,191,36,.45);color:var(--warn)}
   <button type="button" data-p="pPSX" aria-selected="true">
     <svg viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/></svg>
     <span>Executivo</span></button>
-  <button type="button" data-p="pPSReceita" aria-selected="false">
+  <button type="button" data-p="pPSObraReceita" aria-selected="false">
     <svg viewBox="0 0 24 24"><path d="M3 21h18"/><path d="M6 21V9"/><path d="M12 21V4"/><path d="M18 21v-7"/></svg>
     <span>Receita</span></button>
   <button type="button" data-p="pPSPerfil" aria-selected="false">
@@ -1831,6 +1836,9 @@ function irParaPS(pid){
   document.querySelectorAll('.panel.ps').forEach(p=>p.classList.toggle('on', p.id===pid));
   const alvo = document.getElementById(pid);
   if (alvo) ligarMoldura(alvo.querySelector('iframe[data-src]'));
+  /* enquanto a aba aponta para o aviso, a moldura não monta — e é isso que
+     mantém a tela fora do ar sem tirá-la do código. Religar: trocar o data-p
+     da aba (e do rodapé) de pPSObraReceita para pPSReceita. */
   if (pid === 'pPSReceita' && window.__v2MontarReceita) window.__v2MontarReceita();
   if (pid === 'pPSDocs' && window.__docsAbrir) window.__docsAbrir();   // a prateleira relê a pasta
   window.scrollTo({top:0});
