@@ -1398,7 +1398,7 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
                        : secao('Contrato na D4Sign', null)) +
           secao('Lançamento · Controle_ERP', r.controle) +
           ((r.avisos || []).length ? '<p class="ivmsg erro">' + esc(r.avisos.join(' · ')) + '</p>' : '') +
-          '<p class="mnota">Lido agora do Cofre. Fora, por decisão: ' + esc(r.fora || '') + '.</p>';
+          '<p class="mnota">Lido agora do Cofre. Fora, por decisão: RG e nascimento do cliente, e o carnê (parcela a parcela).</p>';
       })
       .catch(function (e) {
         if (meu !== PEDIDO_TUDO) return;
