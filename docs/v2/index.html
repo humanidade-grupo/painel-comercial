@@ -93,6 +93,20 @@
   .certeza{font-size:11px;margin-top:4px}
   .c-fato{color:#2fbf4f}.c-quase{color:var(--ink2)}.c-prev{color:var(--warn)}
   .dot{display:inline-block;width:9px;height:9px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+  /* ABERTURA DA ABA — o MESMO tamanho e o mesmo respiro da Esteira e do Perfil
+     do Cliente (19/09/26). As três telas abrem do mesmo jeito: sobrescrita em
+     caixa alta, título, um parágrafo que diz de onde o número vem, e só então
+     os cartões. Medidas iguais nos três arquivos, de propósito: tela de gestão
+     que muda de régua a cada aba faz o leitor reaprender a ler. */
+  .cpHead{grid-column:span 12;padding:18px 0 24px;border-bottom:1px solid var(--grid);margin-bottom:2px}
+  .cpHead .eyebrow{font-size:10.5px;font-weight:700;letter-spacing:.10em;text-transform:uppercase;
+    color:var(--accent);margin:0 0 12px}
+  .cpHead .tit{font-size:clamp(26px,4.4vw,38px);font-weight:800;line-height:1.12;
+    letter-spacing:-.01em;margin:0 0 14px;text-wrap:balance}
+  .cpHead .deck{font-size:15px;line-height:1.6;color:var(--ink2);max-width:64ch;margin:0 0 18px}
+  .cpHead .deck b{color:var(--ink);font-weight:700}
+  .cpHead .escopo{font-size:12.5px;line-height:1.55;color:var(--muted);max-width:72ch;margin:0 0 14px}
+  .cpHead .escopo b{color:var(--ink2);font-weight:700}
   .delta{font-size:12px;font-weight:600}
   .delta.up{color:#2fbf4f}.delta.down{color:#e46a6a}.delta.flat{color:var(--ink2)}
   .delta .vs{color:var(--muted);font-weight:400}
@@ -1540,11 +1554,21 @@ window.__renderPS = function (dados, ymSel) {
 function secaoComoPaga(g, dados, ym) {
   var K = dados && dados.como_paga;
   if (!K) return;
-  var cab = el('<div class="sect"><h2>Como o cliente paga</h2><div class="ln"></div>' +
-    '<span class="tag">recebimento na data de caixa · cartão parcelado +' +
-    fN((K.base && K.base.dias_cartao) || 30, 0) + ' dias</span>' +
-    '<div class="seg" id="psCpSeg" role="group" aria-label="Período"></div></div>');
-  g.appendChild(cab);
+  /* ABERTURA — o retrato de como o cliente compra hoje, e o que esta tela NÃO é.
+     O parágrafo do escopo é fixo e fica antes de qualquer número de propósito:
+     quem abre uma tela chamada Receita Contratada pensa em dinheiro na conta, e
+     aqui não há baixa de pagamento nenhuma. Dizer isso depois dos gráficos
+     seria dizer tarde. */
+  g.appendChild(el('<div class="cpHead">' +
+    '<p class="eyebrow" id="psCpOlho">Parque da Saudade · Receita contratada</p>' +
+    '<h2 class="tit">Como o cliente paga</h2>' +
+    '<p class="deck" id="psCpDeck"></p>' +
+    '<p class="escopo">Esta é uma visão <b>comercial</b>, não financeira. Ela mostra o que foi ' +
+    '<b>contratado</b> e em que mês cada parcela vence ou fica disponível — e nada além disso. ' +
+    'O Cofre registra vencimento, <b>não registra baixa</b>: não há conciliação com o extrato, ' +
+    'inadimplência, juros de atraso nem taxa de adquirência aqui. Quem fecha conta é a ' +
+    'controladoria, no ERP.</p>' +
+    '<div class="seg" id="psCpSeg" role="group" aria-label="Período"></div></div>'));
   if (K.erro || !K.base) {
     g.appendChild(el('<div class="card s12"><h3>Como o cliente paga</h3><div class="vazio">' +
       esc(K.erro || 'O Cofre não devolveu o pacote desta aba.') + '</div></div>'));
@@ -1601,7 +1625,8 @@ function secaoComoPaga(g, dados, ym) {
      recebimento, e por isso ela mora num lugar só. */
   function somaPeriodo(chave) {
     var dentro = mesesDoPeriodo(chave);
-    var r = { vgv: 0, vendas: 0, a_vista: 0, cartao: 0, carne: 0, meses: dentro };
+    var r = { vgv: 0, vendas: 0, a_vista: 0, cartao: 0, carne: 0,
+              novo: 0, carteira: 0, a_receber: 0, meses: dentro };
     safra.forEach(function (x) {
       if (dentro.indexOf(x.ym) < 0) return;
       r.vgv += x.vgv; r.vendas += x.vendas;
@@ -1609,6 +1634,11 @@ function secaoComoPaga(g, dados, ym) {
     (K.recebimento.por_mes || []).forEach(function (m) {
       if (dentro.indexOf(m.ym) < 0) return;
       r.a_vista += m.a_vista; r.cartao += m.cartao; r.carne += m.carne;
+      r.novo += (m.novo || 0); r.carteira += (m.carteira || 0);
+    });
+    safra.forEach(function (x) {
+      if (dentro.indexOf(x.ym) < 0) return;
+      r.a_receber += (x.a_receber || 0);
     });
     r.total = r.a_vista + r.cartao + r.carne;
     r.rotulo = dentro.length === 1 ? ymLabel(ymN(dentro[0]))
@@ -1649,6 +1679,21 @@ function secaoComoPaga(g, dados, ym) {
     'venda no Parque sem pagamento no ato. Cartão debita sozinho. Carnê depende de o cliente ' +
     'pagar — o Cofre registra vencimento, não baixa.</div></div>');
   g.appendChild(cVend); g.appendChild(cNat);
+
+  /* DINHEIRO NOVO × CARTEIRA — o corte que o gestor pediu em 19/09.
+     O mês recebe de duas origens que não se parecem: venda fechada agora (o
+     comercial produziu) e parcela de venda antiga (a carteira paga sozinha).
+     Um mês pode cair de vendas e subir de caixa, ou o contrário, e o número
+     somado esconde as duas coisas. O terceiro bloco é a outra ponta da mesma
+     conta: o que as vendas do período ainda vão trazer depois. */
+  g.appendChild(el('<div class="card s12"><h3>De onde vem o dinheiro do período</h3>' +
+    '<div class="why">venda fechada no período · carteira de vendas anteriores · e o que as ' +
+    'vendas do período ainda trazem</div>' +
+    '<div id="psCpFonte"></div>' +
+    '<div class="why rodape">Dinheiro novo é o que entrou de venda assinada no próprio período. ' +
+    'Carteira é parcela de venda antiga — ela chega sem ninguém vender de novo. A terceira ' +
+    'coluna não é caixa deste período: é o que as vendas dele ainda vão trazer, se todo mundo ' +
+    'pagar.</div></div>'));
 
   /* barra = VGV da safra · risca = o que ficou disponível naquele mês */
   (function () {
@@ -1758,9 +1803,34 @@ function secaoComoPaga(g, dados, ym) {
     var B = per[periodo] || { meio: [], prazo: [], momento: [], vendedores: [], vendas: 0 };
     pintaTiles(periodo);
 
+    /* a abertura fala do período escolhido, como o resto da tela */
+    var md = B.mediana || { ticket: 0, ato: 0, prazo: 0 };
+    var maisComum = B.meio.slice().sort(function (a, b) { return b.vendas - a.vendas; })[0];
+    var pr = somaPeriodo(periodo);
+    $('#psCpOlho').textContent = 'Parque da Saudade · Receita contratada · ' + pr.rotulo;
+    $('#psCpDeck').innerHTML = 'No período, o cliente do Parque contrata um jazigo de <b>' +
+      rs(md.ticket) + '</b>, paga <b>' + rs(md.ato) + '</b> na assinatura e divide o resto em <b>' +
+      vezes(md.prazo) + '</b> — são as medianas de ' + fN(B.vendas) + ' vendas.' +
+      (maisComum ? ' A forma mais usada é <b>' + esc(maisComum.nome.toLowerCase()) + '</b>, em ' +
+        fN(maisComum.vendas) + ' delas.' : '');
+
+    /* de onde vem o dinheiro: venda do próprio período × carteira, e a cauda */
+    var fonte = $('#psCpFonte');
+    fonte.innerHTML = '<div class="blocos">' +
+      '<div class="bloco"><div class="per">Dinheiro novo</div><div class="n">' + curto(pr.novo) +
+      '</div><div class="st">venda fechada no período · ' +
+      fPct(pr.total ? pr.novo / pr.total * 100 : 0, 0) + ' do que entrou</div></div>' +
+      '<div class="bloco"><div class="per">Carteira</div><div class="n">' + curto(pr.carteira) +
+      '</div><div class="st">parcela de venda anterior · ' +
+      fPct(pr.total ? pr.carteira / pr.total * 100 : 0, 0) + ' do que entrou</div></div>' +
+      '<div class="bloco"><div class="per">Ainda vem</div><div class="n">' + curto(pr.a_receber) +
+      '</div><div class="st">das vendas deste período, nos próximos meses</div></div></div>';
+    quebraCard(fonte, [{ n: 'Dinheiro novo', v: pr.novo }, { n: 'Carteira', v: pr.carteira }],
+      pr.total, 'em caixa', [C.accent, C.gray]);
+
     /* a barra de naturezas é a mesma conta dos tiles, desenhada — segue o
        período junto com eles, senão as duas brigam na mesma tela */
-    var pr0 = somaPeriodo(periodo), nat = $('#psCpNat'); nat.innerHTML = '';
+    var pr0 = pr, nat = $('#psCpNat'); nat.innerHTML = '';
     quebraCard(nat, [{ n: 'À vista', v: pr0.a_vista }, { n: 'Cartão', v: pr0.cartao },
       { n: 'Carnê', v: pr0.carne }], pr0.total, 'em caixa',
       [CN.a_vista, CN.cartao, CN.carne]);

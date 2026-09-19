@@ -75,12 +75,17 @@ font:14px/1.5 -apple-system,"Segoe UI",Roboto,Arial,sans-serif;
 .wrap{max-width:1180px;margin:0 auto;padding:22px 16px 60px}
 
 /* ---------- header ---------- */
-.masthead{padding:10px 0 24px;border-bottom:1px solid var(--edge)}
-.eyebrow{font-size:10.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;
-color:var(--text-3);margin:0 0 14px}
+/* MESMA RÉGUA DE ABERTURA NAS TRÊS TELAS (19/09/26): Esteira, Perfil do
+   Cliente e Receita Contratada abrem com sobrescrita dourada, título e um
+   parágrafo, nas MESMAS medidas. Mudar aqui sem mudar nas outras duas
+   devolve o problema que isto resolveu: cada aba com uma régua, e o leitor
+   reaprendendo a ler a cada clique. */
+.masthead{padding:18px 0 24px;border-bottom:1px solid var(--edge)}
+.eyebrow{font-size:10.5px;font-weight:700;letter-spacing:.10em;text-transform:uppercase;
+color:var(--s1b);margin:0 0 12px}
 h1{font-size:clamp(26px,4.4vw,38px);font-weight:800;line-height:1.12;letter-spacing:-.01em;
-margin:0 0 16px;text-wrap:balance;color:var(--text-1)}
-.deck{font-size:15px;line-height:1.6;color:var(--text-2);max-width:64ch;margin:0 0 20px}
+margin:0 0 14px;text-wrap:balance;color:var(--text-1)}
+.deck{font-size:15px;line-height:1.6;color:var(--text-2);max-width:64ch;margin:0 0 18px}
 .deck b{color:var(--text-1);font-weight:700}
 
 .tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
