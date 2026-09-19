@@ -1,6 +1,9 @@
 /* Painel Comercial — Parque da Saudade + Estrela Urbanidade
    Service worker: instalação PWA + reserva offline.
-   Atualizado em: 18/09/2026 (noite) — COPIAR CARD COMO IMAGEM: todo card
+   Atualizado em: 18/09/2026 (noite, 2ª) — o card "Meses — realizado ×
+   meta" do Parque ganha folga no topo: os rótulos da barra mais alta
+   (realizado + proj.) saíam cortados, e agora sobem acima da risca da meta.
+   Antes, 18/09/2026 (noite) — COPIAR CARD COMO IMAGEM: todo card
    do Executivo (v2/, Parque e Estrela) ganha, ao lado do expandir, um botão
    que põe o card em PNG na área de transferência (html-to-image baixado do
    jsDelivr NO CLIQUE, cross-origin, não cacheado aqui; sem área de
@@ -159,7 +162,7 @@
    links dos arquivos são drive.google.com, externos, e NÃO entram no cache).
    Estratégia: rede primeiro (pega versão nova quando online), cache como
    reserva offline. A cada deploy, bumpar a versão em CACHE. */
-const CACHE = 'painel-comercial-260918-5';
+const CACHE = 'painel-comercial-260918-6';
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(['./'])).then(() => self.skipWaiting()));

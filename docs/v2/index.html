@@ -1306,7 +1306,9 @@ window.__renderPS = function (dados, ymSel) {
       return { ym: y2, m: ymLabel(y2), v: cont[y2] || 0, meta: mt, proj: (y2 === ym && mesCorrente) ? prov : null };
     });
     var topo = Math.max.apply(null, dat.map(function (o) { return Math.max(o.v, o.meta || 0, o.proj || 0); }).concat([10]));
-    var w = 300, h = 176, pb = 24, py = 14, svg = S(w, h);
+    /* py = folga no topo para os rótulos (18/09): com 14 o "realizado" e a
+       "proj." do mês em curso (duas linhas, ~30 px) saíam cortados no alto */
+    var w = 300, h = 196, pb = 24, py = 36, svg = S(w, h);
     var bw = 24, slot = (w - 44) / 4;
     var y = function (v) { return h - pb - (v / topo) * (h - py - pb); };
     [0, Math.round(topo / 2), topo].forEach(function (v) {
@@ -1314,16 +1316,21 @@ window.__renderPS = function (dados, ymSel) {
     });
     dat.forEach(function (o, i) {
       var cx = 44 + i * slot + slot / 2;
-      if (o.proj && o.proj > o.v) {
+      var temProj = o.proj && o.proj > o.v;
+      /* base dos rótulos: topo da barra (ou da projeção); se a risca da meta
+         cair na faixa do texto logo acima, o texto sobe para cima da risca */
+      var yRot = y(temProj ? o.proj : o.v);
+      if (o.meta && y(o.meta) < yRot && y(o.meta) > yRot - (temProj ? 30 : 18)) yRot = y(o.meta) - 2;
+      if (temProj) {
         var rp = N('rect', { x: cx - bw / 2, y: y(o.proj), width: bw, height: y(o.v) - y(o.proj), rx: 4, fill: C.accent, opacity: .28 }, svg);
         rp.dataset.tip = '<b>Projeção: ' + fN(o.proj) + '</b><br><span>ritmo corrido — mesma conta do card Projeção de fechamento</span>';
-        T(cx, y(o.proj) - 5, 'proj. ' + fN(o.proj), 'axis-t', 'middle', svg);
+        T(cx, yRot - 5, 'proj. ' + fN(o.proj), 'axis-t', 'middle', svg);
       }
       var b = N('rect', { x: cx - bw / 2, y: y(o.v), width: bw, height: Math.max(y(0) - y(o.v), 2), fill: C.accent }, svg);
       N('rect', { x: cx - bw / 2, y: y(o.v), width: bw, height: 5, rx: 2.5, fill: C.accent }, svg);
       b.dataset.tip = '<b>' + o.m + ': ' + fN(o.v) + ' jazigos</b>' + (o.meta ? '<br><span>meta ' + o.meta + '</span>' : '');
       if (o.meta) N('line', { x1: cx - bw / 2 - 5, y1: y(o.meta), x2: cx + bw / 2 + 5, y2: y(o.meta), stroke: C.ink2, 'stroke-width': 2 }, svg);
-      T(cx, y(Math.max(o.v, o.proj || 0)) - (o.proj && o.proj > o.v ? 16 : 6), fN(o.v), 'val-t', 'middle', svg);
+      T(cx, yRot - (temProj ? 18 : 6), fN(o.v), 'val-t', 'middle', svg);
       T(cx, h - 8, o.m.split('/')[0], 'axis-t', 'middle', svg);
     });
     $('#psMeses').appendChild(svg); bindTips(svg);
