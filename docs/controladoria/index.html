@@ -41,6 +41,17 @@
   O único item no localStorage é o token (`hub_token_controladoria`) —
   PRÓPRIO, nunca o `hub_token_gestao`, que é um só para três pessoas.
 
+  (19/09, tarde) CORTE DA D4SIGN E FILA INTEIRA — decisão do Ricardo, opção (a):
+   - venda ANTERIOR ao `corte_d4sign` (Config d4sign.corte, hoje 2026-08-12, quando começa o
+     cofre da D4Sign) está FORA DO ALCANCE DO ESPELHO: pílula neutra, fora do balde "sem
+     contrato", fora do "em aberto" do Comercial e do KPI "lançadas sem contrato assinado".
+     Antes do corte, a tela não tem opinião sobre contrato.
+   - "Competência é para dinheiro; fila é para hoje": a trilha de contrato, o cartão
+     "Aguardando assinatura", a perna enviado→assinado e as pílulas "Aguardando" e "Sem
+     contrato" contam a FILA INTEIRA (a partir do corte), e a tela diz isso onde o número
+     aparece. Vendas no recorte, a lançar, lançadas, perna Comercial e perna Controladoria
+     continuam obedecendo à competência. As vendas da fila fora do recorte vêm SEM dado pessoal.
+
   AS TRÊS DEFESAS:
    1. o carimbo exibido é o DA FOTO (`facilita.ultima_importacao` para as vendas,
       `d4sign.ultima_passada` para os contratos), nunca a hora do fetch — com tarja quando
@@ -119,6 +130,9 @@ select{font:inherit;font-size:12.5px;padding:5px 9px;border-radius:8px;
 /* como o dado se atualiza — discreto, no topo */
 .ritmo{margin:10px 0 0;font-size:11px;line-height:1.5;color:var(--ink-3)}
 .ritmo b{font-weight:500;color:var(--ink-2)}
+/* o número que ignora a competência diz isso onde aparece */
+.escopo{font-size:10.5px;color:var(--ink-3);font-style:italic;margin-top:2px}
+#escopoTab{margin:24px 0 -16px}
 button:focus-visible,select:focus-visible,.row-head:focus-visible,input:focus-visible{outline:2px solid var(--accent);
   outline-offset:2px}
 
@@ -377,6 +391,7 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
       <div class="k">Aguardando assinatura</div>
       <div class="v" id="k-assin">0</div>
       <div class="f warn" id="k-assinold">—</div>
+      <div class="escopo">fila inteira, fora da competência</div>
     </div>
     <div class="kpi">
       <div class="k">Lançadas sem contrato assinado</div>
@@ -397,6 +412,7 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
       <div class="leg">
         <div class="who">Cliente e casa</div>
         <div class="what">Contrato enviado → assinado</div>
+        <div class="escopo">fila inteira, fora da competência</div>
         <div class="med" id="t2">—</div>
         <div class="note" id="t2n">—</div>
       </div>
@@ -415,11 +431,12 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
       <div class="steps" id="trilha-iv"></div>
     </div>
     <div class="track">
-      <div class="secttl">Contrato <em>não trava o lançamento</em></div>
+      <div class="secttl" id="ttl-ct">Contrato <em>não trava o lançamento</em> <em>fila inteira, fora da competência</em></div>
       <div id="trilha-ct"></div>
     </div>
   </section>
 
+  <p class="escopo" id="escopoTab" hidden>Mostrando a fila inteira de contrato, fora da competência — vendas de outros meses entram aqui sem dado de cadastro do cliente.</p>
   <div class="tablewrap">
     <div class="scroller">
       <div class="thead">
@@ -512,6 +529,8 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
   var R = null;             // a resposta da rota
   var VENDAS = [];          // linhas montadas
   var D4OK = false;         // o espelho da D4Sign foi lido
+  var CORTE = '';           // d4sign.corte: antes disso a D4Sign não tem documento
+  var FILA_FORA = [];       // vendas da fila de contrato FORA da competência (sem dado pessoal)
   var F = { mes: null, sit: 'tudo', vend: 'tudo', mod: 'tudo' };
   /* Os meses já abertos, SÓ em memória: morrem com a aba. Nunca localStorage/IndexedDB. */
   var MEMO = {};
@@ -624,6 +643,9 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
     $('#st-lido').textContent = r._lido ? String(r._lido.getHours()).padStart(2, '0') + ':' + String(r._lido.getMinutes()).padStart(2, '0') : '—';
     var d4 = r.d4sign || {};
     D4OK = d4.estado === 'ok';
+    CORTE = /^\d{4}-\d{2}-\d{2}$/.test(String(r.corte_d4sign || '')) ? String(r.corte_d4sign) : '';
+    $('#ttl-ct').title = CORTE ? 'Conta toda venda a partir de ' + dbr(CORTE) + '/' + CORTE.slice(0, 4) +
+      ', quando começa o cofre da D4Sign — de qualquer competência.' : '';
 
     // ---- carimbos DA FOTO, nunca a hora do fetch
     var hV = horasDesde(r.carimbo_vendas), hD = horasDesde(d4.carimbo);
@@ -653,6 +675,10 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
         'do Ricardo, e só com ele ligado e a sessão da D4Sign aberta. Os estados de contrato abaixo são ' +
         '<b>daquele instante</b>' + (d4.ultimo_erro ? ' — último erro: ' + esc(d4.ultimo_erro) : '') + '.</p>', true);
     }
+    if (D4OK && !CORTE) {
+      aviso('Sem data de corte da D4Sign.', '<p>A Config do Cofre não tem <code>d4sign.corte</code> (AAAA-MM-DD). ' +
+        'Sem ela, venda anterior ao início do cofre da D4Sign aparece como <b>sem contrato</b>, o que não é verdade.</p>', true);
+    }
     if ((r.lancadas_sem_venda || []).length) {
       aviso(plural(r.lancadas_sem_venda.length, 'lançamento no Ivertex sem venda viva', 'lançamentos no Ivertex sem venda viva') + '.',
         '<p>Marcados como lançados e ausentes da Vendas_Facilita — estorno no ERP? Deal ' +
@@ -669,7 +695,7 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
     (d4.contratos || []).forEach(function (c) { var k = Number(c['Deal ID']); (docs[k] = docs[k] || []).push(c); });
     (r.pessoal || []).forEach(function (p) { pes[Number(p['Deal ID'])] = p; });
 
-    VENDAS = (r.vendas || []).map(function (o) {
+    var umaVenda = function (o) {
       var id = Number(o['Deal ID']);
       var c = ctl[id];
       var lanc = !!c && /^(SIM|TRUE)$/i.test(String(c['lancado']));
@@ -690,17 +716,20 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
       };
       v.ct = estadoContrato(v);
       return v;
-    });
+    };
+    VENDAS = (r.vendas || []).map(umaVenda);
+    FILA_FORA = (r.fila || []).map(function (o) { var v = umaVenda(o); v.foraRecorte = true; return v; });
 
     // ---- filtros que dependem do recorte
     pintarMeses(r);
-    var selV = $('#f-vend'), vends = uniq(VENDAS.map(function (v) { return v.vend; }));
+    var TODAS = VENDAS.concat(FILA_FORA);
+    var selV = $('#f-vend'), vends = uniq(TODAS.map(function (v) { return v.vend; }));
     if (F.vend !== 'tudo' && vends.indexOf(F.vend) < 0) F.vend = 'tudo';
     selV.innerHTML = '<option value="tudo">Todos</option>' + vends.map(function (n) {
       return '<option' + (n === F.vend ? ' selected' : '') + '>' + esc(n) + '</option>';
     }).join('');
     var mods = ['Perpétuo', 'Temporário', 'Reserva'];
-    uniq(VENDAS.map(function (v) { return v.mod; })).forEach(function (m) { if (mods.indexOf(m) < 0) mods.push(m); });
+    uniq(TODAS.map(function (v) { return v.mod; })).forEach(function (m) { if (mods.indexOf(m) < 0) mods.push(m); });
     if (F.mod !== 'tudo' && mods.indexOf(F.mod) < 0) F.mod = 'tudo';
     $('#f-mod').innerHTML = '<option value="tudo">Todas</option>' + mods.map(function (m) {
       return '<option' + (m === F.mod ? ' selected' : '') + '>' + esc(m) + '</option>';
@@ -735,6 +764,7 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
   /* O documento que representa a venda: o mais adiantado. Os outros vão para o detalhe. */
   function estadoContrato(v) {
     if (!D4OK) return { k: 'semleitura' };
+    if (CORTE && v.data && v.data < CORTE) return { k: 'foracorte' };   // antes do corte: sem opinião
     if (!v.docs.length) return { k: 'nao_gerado' };
     var rep = v.docs.slice().sort(function (a, b) { return rank(b) - rank(a); })[0];
     var fase = String(rep['Fase'] || '').trim().toUpperCase();
@@ -761,6 +791,14 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
       return true;
     });
   }
+  /* A fila de contrato: toda venda a partir do corte, de QUALQUER competência. */
+  function baseFila() {
+    return VENDAS.concat(FILA_FORA).filter(function (v) {
+      if (F.vend !== 'tudo' && v.vend !== F.vend) return false;
+      if (F.mod !== 'tudo' && v.mod !== F.mod) return false;
+      return v.ct.k !== 'foracorte';
+    });
+  }
   function filtrar(B) {
     return B.filter(function (v) {
       var k = v.ct.k;
@@ -780,11 +818,13 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
     var T = function (id, txt) { $('#' + id).textContent = txt; };
     var fila = B.filter(function (v) { return !v.iv.lancado; });
     var lanc = B.filter(function (v) { return v.iv.lancado; });
-    var ass = B.filter(function (v) { return v.ct.k === 'aguardando'; });
-    var pend = B.filter(function (v) { return PEND.indexOf(v.ct.k) >= 0; });
-    var assd = B.filter(function (v) { return v.ct.k === 'assinado'; });
+    // a fila de contrato ignora a competência (e respeita o corte)
+    var BF = baseFila();
+    var ass = BF.filter(function (v) { return v.ct.k === 'aguardando'; });
+    var pend = BF.filter(function (v) { return PEND.indexOf(v.ct.k) >= 0; });
+    var assd = BF.filter(function (v) { return v.ct.k === 'assinado'; });
     var extras = {};
-    B.forEach(function (v) { if (v.ct.k === 'extra') (extras[v.ct.fase] = extras[v.ct.fase] || []).push(v); });
+    BF.forEach(function (v) { if (v.ct.k === 'extra') (extras[v.ct.fase] = extras[v.ct.fase] || []).push(v); });
 
     // ---- cartões
     T('k-tot', B.length); T('k-totv', brlc(soma(B)));
@@ -794,7 +834,7 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
     eo.textContent = fila.length ? (velho >= 0 ? 'a mais antiga vendida há ' + plural(velho, 'dia', 'dias') : 'sem data de venda') : 'fila zerada';
     eo.className = 'f' + (fila.length && velho >= DIAS_ALERTA ? ' alert' : '');
     T('k-lanc', lanc.length);
-    T('k-lancp', B.length ? Math.round(lanc.length / B.length * 100) + '%' : '0%');
+    T('k-lancp', '· ' + (B.length ? Math.round(lanc.length / B.length * 100) : 0) + '%');
     T('k-lancv', brlc(soma(lanc)));
 
     var ka = $('#k-assinold');
@@ -806,7 +846,7 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
       var av = Math.max.apply(null, [-1].concat(ass.map(function (v) { return idade(v.ct.cadastro); }).filter(function (n) { return n !== null; })));
       ka.textContent = ass.length ? 'o mais antigo parado há ' + plural(Math.max(0, av), 'dia', 'dias') : 'nenhum pendente';
       ka.className = 'f ' + (ass.length && av >= DIAS_ALERTA ? 'alert' : 'warn');
-      var risco = lanc.filter(function (v) { return v.ct.k !== 'assinado'; });
+      var risco = lanc.filter(function (v) { return v.ct.k !== 'assinado' && v.ct.k !== 'foracorte'; });
       T('k-risco', risco.length);
       T('k-riscotxt', risco.length ? 'hoje não trava nada — o número existe para o dia em que travar'
                                    : 'todas as lançadas estão com contrato assinado');
@@ -840,7 +880,7 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
       // Perna 1 — Comercial: Data da Venda -> primeiro Cadastro na D4Sign
       var p1 = B.filter(function (v) { return v.ct.primeiroEnvio; })
                 .map(function (v) { return Math.max(0, diasEntre(v.data, v.ct.primeiroEnvio)); });
-      var sem = B.filter(function (v) { return v.ct.k === 'nao_gerado' || (v.ct.k !== 'semleitura' && !v.ct.primeiroEnvio); });
+      var sem = B.filter(function (v) { return v.ct.k === 'nao_gerado' || (v.ct.k !== 'semleitura' && v.ct.k !== 'foracorte' && !v.ct.primeiroEnvio); });
       var a1 = abertoTxt(sem, function (v) { return v.data; }, ['sem contrato', 'sem contrato']);
       pintaPerna('t1', emDias(mediana(p1)),
         plural(p1.length, 'contrato enviado', 'contratos enviados') + (a1.txt ? ' · em aberto: ' + a1.txt : ' · nenhum em aberto'), a1.alerta);
@@ -855,8 +895,9 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
       var m2 = mediana(p2);
       var med2 = m2 === null ? null : m2 < 864e5 ? { txt: 'menos de 1 dia' }
         : (function (d) { return { n: d, u: d === 1 ? 'dia' : 'dias' }; })(Math.floor(m2 / 864e5));
-      var abertos2 = B.filter(function (v) { return v.ct.cadastro && v.ct.k !== 'assinado' && v.ct.k !== 'cancelado'; });
-      var a2 = abertoTxt(abertos2, function (v) { return v.ct.cadastro; }, ['em aberto', 'em aberto']);
+      // em aberto na perna 2 = aguardando assinatura, a mesma fila do cartão (sem signatário
+      // ainda não foi enviado a ninguém: está no balde "sem contrato ou signatário")
+      var a2 = abertoTxt(ass, function (v) { return v.ct.cadastro; }, ['em aberto', 'em aberto']);
       pintaPerna('t2', med2,
         plural(p2.length, 'assinado', 'assinados') + (a2.txt ? ' · ' + a2.txt : ' · nenhum em aberto'), a2.alerta);
     }
@@ -889,9 +930,9 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
         '</div>';
       // INVARIANTE: toda venda do recorte está em exatamente um degrau
       var fecha = pend.length + ass.length + assd.length + ext.reduce(function (s, k) { return s + extras[k].length; }, 0);
-      if (fecha !== B.length) {
+      if (fecha !== BF.length) {
         AVISOS.push({ t: 'As contagens da trilha de contrato não fecham.',
-          c: '<p>' + fecha + ' nos degraus contra ' + B.length + ' vendas no recorte. Algum estado de contrato ' +
+          c: '<p>' + fecha + ' nos degraus contra ' + BF.length + ' vendas na fila de contrato. Algum estado de contrato ' +
              'não foi classificado — os números da trilha estão errados até isso ser corrigido.</p>' });
       }
     }
@@ -903,7 +944,9 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
     T('n-lanc', lanc.length);
 
     // ---- tabela
-    var L = filtrar(B);
+    var daFila = F.sit === 'assinatura' || F.sit === 'semcontrato';
+    $('#escopoTab').hidden = !(daFila && FILA_FORA.length);
+    var L = filtrar(daFila ? BF : B);
     var box = $('#rows'); box.textContent = '';
     L.forEach(function (v) { box.appendChild(linha(v)); });
     $('#empty').hidden = L.length > 0;
@@ -914,6 +957,7 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
     var c = v.ct;
     switch (c.k) {
       case 'semleitura': return ['p-mute', 'Sem leitura da D4Sign'];
+      case 'foracorte': return ['p-mute', 'Fora do alcance do espelho'];
       case 'nao_gerado': return ['p-crit', 'Contrato não gerado'];
       case 'cancelado': return ['p-crit', 'Contrato cancelado'];
       case 'sem_signatario': return ['p-crit', 'Sem signatário'];
@@ -1052,7 +1096,7 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
                   'data_ivertex': r.data_ivertex || '', 'quem': r.quem || '', 'quando': r.quando || '' };
     Object.keys(MEMO).forEach(function (k) {
       var m = MEMO[k];
-      if (!(m.vendas || []).some(function (o) { return Number(o['Deal ID']) === deal; })) return;
+      if (!(m.vendas || []).concat(m.fila || []).some(function (o) { return Number(o['Deal ID']) === deal; })) return;
       m.controle = (m.controle || []).filter(function (c) { return Number(c['Deal ID']) !== deal; }).concat([linha]);
     });
   }
@@ -1060,7 +1104,8 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
   function detalhe(v) {
     var c = v.ct, p = v.pes;
     var cliente;
-    if (R.mes === 'tudo') cliente = '<p class="dim">Cadastro do cliente só aparece com a competência de um mês escolhida.</p>';
+    if (v.foraRecorte) cliente = '<p class="dim">Venda de outra competência (' + esc(dbr(v.data)) + '): o cadastro do cliente aparece no mês dela.</p>';
+    else if (R.mes === 'tudo') cliente = '<p class="dim">Cadastro do cliente só aparece com a competência de um mês escolhida.</p>';
     else if (!p) cliente = '<p class="dim">Sem cadastro na Vendas_Facilita_Pessoal para este deal.</p>';
     else {
       var end = [String(p['Logradouro'] || '').trim() + (p['Número'] ? ', ' + p['Número'] : '') + (p['Complemento'] ? ' ' + p['Complemento'] : ''),
@@ -1072,6 +1117,8 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
 
     var assin;
     if (c.k === 'semleitura') assin = '<p class="dim">Sem leitura da D4Sign nesta carga.</p>';
+    else if (c.k === 'foracorte') assin = '<p class="dim">Venda anterior a ' + esc(dbr(CORTE) + '/' + CORTE.slice(0, 4)) +
+      ', quando começa o cofre da D4Sign: fora do alcance do espelho. A tela não tem opinião sobre este contrato.</p>';
     else if (c.k === 'nao_gerado') assin = '<p class="dim">Nenhum documento na D4Sign casado com esta venda.</p>';
     else {
       assin = '<p>Fase <b>' + esc(c.fase.charAt(0) + c.fase.slice(1).toLowerCase()) + '</b></p>' +

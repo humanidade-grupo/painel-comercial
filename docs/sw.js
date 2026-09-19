@@ -1,6 +1,12 @@
 /* Painel Comercial — Parque da Saudade + Estrela Urbanidade
    Service worker: instalação PWA + reserva offline.
-   Atualizado em: 19/09/2026 (noite) — A CONTROLADORIA VIRA "PONTEAPP - Do
+   Atualizado em: 19/09/2026 (tarde, 3ª) — PONTEAPP: três correções que faziam
+   a tela dizer com precisão o que não é verdade. (1) venda anterior ao corte
+   da D4Sign (d4sign.corte = 12/08) fica "fora do alcance do espelho", não "sem
+   contrato"; (2) a fila de contrato ignora a competência — em set/26 ela mostra
+   os parados de agosto, e diz "fila inteira, fora da competência"; (3)
+   "Lançadas 0 · 0%" em vez de "00%". Rota @72.
+   Antes, 19/09/2026 (noite) — A CONTROLADORIA VIRA "PONTEAPP - Do
    Facilita ao Ivertex": tema só claro, meses abertos guardados na MEMÓRIA da
    página (nunca em disco) com botão Recarregar, lançamento com "Hoje" ou
    "Outro dia…" (data real, rota @71) e uma linha discreta dizendo o ritmo de
@@ -173,7 +179,7 @@
    links dos arquivos são drive.google.com, externos, e NÃO entram no cache).
    Estratégia: rede primeiro (pega versão nova quando online), cache como
    reserva offline. A cada deploy, bumpar a versão em CACHE. */
-const CACHE = 'painel-comercial-260919-2';
+const CACHE = 'painel-comercial-260919-3';
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(['./'])).then(() => self.skipWaiting()));
