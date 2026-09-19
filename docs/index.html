@@ -263,7 +263,7 @@ body.emp-ps #bnav,body.emp-ps #tabsEU{display:none !important}
 body.emp-ps .panel:not(.ps){display:none !important}
 body.emp-eu .panel.ps{display:none !important}
 /* 6 itens em 3 colunas = duas filas, de proposito (ver o comentario do .bnav) */
-#bnavPS{grid-template-columns:repeat(3,1fr)}
+#bnavPS{grid-template-columns:repeat(4,1fr)}   /* 8 itens em 4 colunas = duas filas (19/09/26) */
 
 /* Barra de estoque da M-19 — discreta, na linha do seletor, à direita junto
    do botão Atualizar (o margin-left:auto do .btnrec empurra os dois).
@@ -384,7 +384,14 @@ align-items:center;gap:3px;cursor:pointer;min-width:0}
        HTML, inertes: removê-los exigiria podar o render() em produção, e
        painel inalcançável é mais barato que regressão. -->
   <button class="tab" role="tab" aria-selected="true" data-p="pPSX" type="button">Executivo</button>
-  <!-- Esteira, Retrospectiva e Perfil Cliente rodam DENTRO do Painel desde
+  <!-- RECEITA CONTRATADA (19/09/26) é aba própria, não bloco do Executivo:
+       ela responde outra pergunta (como o cliente paga, e quando isso vira
+       caixa) e tem meia dúzia de blocos. Mora na MESMA moldura v2, com
+       `?vista=receita` — a página de dentro desenha só essa seção. Nada foi
+       duplicado: os helpers de gráfico, as cores e o pacote do Cofre são os
+       mesmos do Executivo. -->
+  <button class="tab" role="tab" aria-selected="false" data-p="pPSReceita" type="button">Receita Contratada</button>
+  <!-- Retrospectiva e Perfil Cliente rodam DENTRO do Painel desde
        01/09 (2ª rodada do dia): molduras como a do Executivo, carregadas na
        primeira abertura e mantidas vivas — trocar de aba não recarrega nada,
        e o cabeçalho do Painel é o "voltar" permanente. O claude.ai recusa
@@ -392,11 +399,20 @@ align-items:center;gap:3px;cursor:pointer;min-width:0}
        ./perfil-cliente/ — cópia da foto de 28/08; o artefato 2aa935f2 fica
        como o lugar onde o Perfil é REFEITO, não mais como a referência de
        leitura (regra 8). Só o Pocket abre fora: é outro app, outro PWA. -->
-  <button class="tab" role="tab" aria-selected="false" data-p="pPSEsteira" type="button">Esteira</button>
-  <button class="tab" role="tab" aria-selected="false" data-p="pPSRetro" type="button">Retrospectiva</button>
   <button class="tab" role="tab" aria-selected="false" data-p="pPSPerfil" type="button">Perfil Cliente</button>
+  <button class="tab" role="tab" aria-selected="false" data-p="pPSRetro" type="button">Retrospectiva</button>
+  <!-- ESTEIRA e PONTEAPP EM OBRAS (19/09/26, decisão do Ricardo): as telas
+       continuam existindo e no ar pelos endereços próprios (./esteira/ e
+       ./controladoria/) — o que saiu foi a porta por aqui. A aba abre um
+       aviso em vez da tela, de propósito: aba que some deixa quem usava sem
+       entender, e aba que abre tela em revisão espalha número que vai mudar.
+       Para religar: trocar o data-p de volta para pPSEsteira (a moldura
+       continua no HTML, com o data-src intacto) e, na PonteApp, voltar a
+       aba-link para ./controladoria/. -->
+  <button class="tab" role="tab" aria-selected="false" data-p="pPSObraEsteira" type="button">Esteira</button>
   <button class="tab" role="tab" aria-selected="false" data-p="pPSDocs" type="button">Docs</button>
   <a class="tab" href="https://humanidade-grupo.github.io/pocket-nps/#home" target="_blank" rel="noopener">Pocket<span class="ext">↗</span></a>
+  <button class="tab" role="tab" aria-selected="false" data-p="pPSObraPonte" type="button">PonteApp</button>
 </div>
 
 <div class="tabs" id="tabsEU" role="tablist">
@@ -693,6 +709,35 @@ align-items:center;gap:3px;cursor:pointer;min-width:0}
   <iframe id="fExecPS" title="Visão executiva — Parque da Saudade" loading="lazy" style="width:100%;border:0;display:block;min-height:70vh"></iframe>
 </section>
 
+<!-- ================= RECEITA CONTRATADA (Parque) — moldura v2, vista própria
+     A MESMA página do Executivo, com `?vista=receita`: lá dentro o render
+     desenha só a seção "Como o cliente paga". Duas molduras da mesma página
+     custam uma segunda montagem e nada mais — o dado vem do pai por
+     postMessage, como na outra, e o Cofre é chamado uma vez só.
+     Os chips de mês são os mesmos do Executivo (estado único `ymAtivo`): o
+     recebimento e o programado ignoram o mês, mas o momento da venda, o mix,
+     o prazo e o vendedor seguem o chip. -->
+<section class="panel ps" id="pPSReceita">
+  <div class="chips" id="psMesesR" style="margin:0 0 14px"></div>
+  <iframe id="fReceitaPS" title="Receita contratada — como o cliente paga" loading="lazy" style="width:100%;border:0;display:block;min-height:70vh"></iframe>
+</section>
+
+<!-- ============ EM OBRAS: Esteira e PonteApp (19/09/26) ============
+     Aviso no lugar da tela, por decisão do Ricardo. As telas continuam no ar
+     nos endereços próprios; o que saiu foi a porta por aqui. Não há link no
+     aviso de propósito: "provisoriamente não abre" é a regra, e um link
+     discreto seria a mesma porta com outro nome. -->
+<section class="panel ps" id="pPSObraEsteira">
+  <div class="card"><h3>Esteira do Funil — em construção</h3>
+    <p class="ghost" style="border:0;padding:6px 0 0">Esta tela está em revisão e não abre por aqui
+    no momento. Os números do funil voltam assim que a revisão terminar.</p></div>
+</section>
+<section class="panel ps" id="pPSObraPonte">
+  <div class="card"><h3>PonteApp — em construção</h3>
+    <p class="ghost" style="border:0;padding:6px 0 0">A ponte do Facilita para o Ivertex está em
+    revisão e não abre por aqui no momento.</p></div>
+</section>
+
 <!-- ============ ESTEIRA · RETROSPECTIVA · PERFIL (molduras) ============
      Mesmo desenho da moldura do Executivo: a tela vive numa página própria e
      entra aqui por iframe. O src só é atribuído na PRIMEIRA abertura da aba
@@ -938,21 +983,27 @@ border-radius:5px;border:1px solid rgba(251,191,36,.45);color:var(--warn)}
   <button type="button" data-p="pPSX" aria-selected="true">
     <svg viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/></svg>
     <span>Executivo</span></button>
-  <button type="button" data-p="pPSEsteira" aria-selected="false">
-    <svg viewBox="0 0 24 24"><path d="M3 4h18l-7 8v6l-4 2v-8L3 4z"/></svg>
-    <span>Esteira</span></button>
-  <button type="button" data-p="pPSRetro" aria-selected="false">
-    <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18"/><path d="M8 2v4"/><path d="M16 2v4"/></svg>
-    <span>Retrospectiva</span></button>
+  <button type="button" data-p="pPSReceita" aria-selected="false">
+    <svg viewBox="0 0 24 24"><path d="M3 21h18"/><path d="M6 21V9"/><path d="M12 21V4"/><path d="M18 21v-7"/></svg>
+    <span>Receita</span></button>
   <button type="button" data-p="pPSPerfil" aria-selected="false">
     <svg viewBox="0 0 24 24"><path d="M16 20v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2"/><circle cx="9.5" cy="7" r="3.5"/></svg>
     <span>Perfil</span></button>
+  <button type="button" data-p="pPSRetro" aria-selected="false">
+    <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18"/><path d="M8 2v4"/><path d="M16 2v4"/></svg>
+    <span>Retrospectiva</span></button>
+  <button type="button" data-p="pPSObraEsteira" aria-selected="false">
+    <svg viewBox="0 0 24 24"><path d="M3 4h18l-7 8v6l-4 2v-8L3 4z"/></svg>
+    <span>Esteira</span></button>
   <button type="button" data-p="pPSDocs" aria-selected="false">
     <svg viewBox="0 0 24 24"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9l-6-6z"/><path d="M14 3v6h6"/></svg>
     <span>Docs</span></button>
   <a href="https://humanidade-grupo.github.io/pocket-nps/#home" target="_blank" rel="noopener">
     <svg viewBox="0 0 24 24"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/></svg>
     <span>Pocket</span></a>
+  <button type="button" data-p="pPSObraPonte" aria-selected="false">
+    <svg viewBox="0 0 24 24"><path d="M3 15h18"/><path d="M5 15V9"/><path d="M19 15V9"/><path d="M9 15a3 3 0 0 1 6 0"/></svg>
+    <span>PonteApp</span></button>
 </nav>
 
 <nav class="bnav" id="bnav">
@@ -1752,6 +1803,7 @@ function irParaPS(pid){
   document.querySelectorAll('.panel.ps').forEach(p=>p.classList.toggle('on', p.id===pid));
   const alvo = document.getElementById(pid);
   if (alvo) ligarMoldura(alvo.querySelector('iframe[data-src]'));
+  if (pid === 'pPSReceita' && window.__v2MontarReceita) window.__v2MontarReceita();
   if (pid === 'pPSDocs' && window.__docsAbrir) window.__docsAbrir();   // a prateleira relê a pasta
   window.scrollTo({top:0});
 }
@@ -1835,7 +1887,7 @@ function render(){
   }
   if (D.erro) return;
 
-  montarChipsMes('#psMeses'); montarChipsMes('#psMeses2'); montarChipsMes('#psMesesX');
+  montarChipsMes('#psMeses'); montarChipsMes('#psMeses2'); montarChipsMes('#psMesesX'); montarChipsMes('#psMesesR');
 
   const mes = D.meses.filter(m=>m.ym===ymAtivo)[0];
   const vendas = D.vendas.filter(v=>v.ym===ymAtivo);
@@ -2829,14 +2881,27 @@ let _rtps; window.addEventListener('resize', ()=>{ clearTimeout(_rtps); _rtps=se
   }
   window.__v2Montar = montar;
 
+  /* A moldura da Receita Contratada (19/09/26) é a MESMA página v2, com
+     `vista=receita`: lá dentro o render desenha só a seção "Como o cliente
+     paga". Monta na primeira abertura da aba e depois fica viva, como as
+     outras. O dado chega pelo mesmo `v2:pronto` → `mandarDados`, que responde
+     a quem avisou — não precisou saber que existe uma segunda moldura. */
+  window.__v2MontarReceita = function () {
+    var f = document.getElementById('fReceitaPS');
+    if (f && !f.getAttribute('src')) f.setAttribute('src', 'v2/?embed=1&emp=ps&vista=receita');
+  };
+
   /* O mes escolhido nos chips (fora da moldura) vai para dentro pelo mesmo
      canal do dado e da altura. Moldura ainda nao montada nao precisa do aviso:
      o mes atual viaja junto do dado, em mandarDados. */
   window.__v2Mes = function (emp, ym) {
-    var f = document.getElementById(emp === 'ps' ? 'fExecPS' : 'fExecEU');
-    if (f && f.getAttribute('src') && f.contentWindow) {
-      try { f.contentWindow.postMessage({ tipo: 'v2:mes', emp: emp, ym: ym }, ORIGEM); } catch (e) {}
-    }
+    var ids = emp === 'ps' ? ['fExecPS', 'fReceitaPS'] : ['fExecEU'];
+    ids.forEach(function (id) {
+      var f = document.getElementById(id);
+      if (f && f.getAttribute('src') && f.contentWindow) {
+        try { f.contentWindow.postMessage({ tipo: 'v2:mes', emp: emp, ym: ym }, ORIGEM); } catch (e) {}
+      }
+    });
   };
 
   /* A MOLDURA NÃO VAI MAIS AO COFRE (24/08/2026).
@@ -2873,7 +2938,7 @@ let _rtps; window.addEventListener('resize', ()=>{ clearTimeout(_rtps); _rtps=se
     var d = ev.data;
     if (d && d.tipo === 'v2:pronto') { mandarDados(ev.source); return; }
     if (!d || d.tipo !== 'v2:altura') return;
-    ['fExecEU', 'fExecPS'].forEach(function (id) {
+    ['fExecEU', 'fExecPS', 'fReceitaPS'].forEach(function (id) {
       var x = document.getElementById(id);
       if (x && x.contentWindow === ev.source) x.style.height = Math.max(400, d.altura) + 'px';
     });

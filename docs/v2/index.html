@@ -517,9 +517,36 @@ function topN(m, n, peso) {
   return itens;
 }
 
+/* QUAL VISTA ESTA PAGINA DESENHA (19/09/2026).
+   A mesma página serve duas abas do Painel: o Executivo (padrão) e a Receita
+   Contratada (`?vista=receita`), que mostra só "Como o cliente paga". Uma
+   página, dois recortes — os helpers de gráfico, as cores e o dado do Cofre
+   são os mesmos, e nada foi duplicado para a aba nova. */
+var VISTA = (function () {
+  try { return new URLSearchParams(location.search).get('vista') || ''; }
+  catch (e) { return ''; }
+})();
+
 /* ============================================================ PS: render */
 window.__renderPS = function (dados, ymSel) {
   var C = CORES();
+  /* A vista "receita" sai aqui, antes de tudo: a tela do Executivo inteira
+     custaria uma montagem que ninguém veria. O mês continua vindo dos chips
+     do pai, porque o momento da venda, o mix, o prazo e o vendedor seguem o
+     mês — o recebimento e o programado é que não seguem. */
+  if (VISTA === 'receita') {
+    var gR = $('#gridPS'); gR.innerHTML = '';
+    var mesesR = (dados && dados.meses) || [];
+    var ymR = ymSel || (mesesR.length ? mesesR[0].ym : null);
+    if (!dados || !dados.como_paga) {
+      gR.appendChild(el('<div class="card s12"><h3>Receita contratada</h3><div class="vazio">' +
+        'O Cofre ainda não devolveu o pacote desta tela.</div></div>'));
+      return;
+    }
+    secaoComoPaga(gR, dados, ymR);
+    bindTips(gR);
+    return;
+  }
   var g = $('#gridPS'); g.innerHTML = '';
   if (!dados || !dados.vendas || !dados.vendas.length) {
     g.appendChild(el('<div class="card s12"><h3>Parque da Saudade</h3><div class="vazio">' +
@@ -1481,8 +1508,10 @@ window.__renderPS = function (dados, ymSel) {
     $('#psCac').appendChild(svg2);
   })();
 
-  /* -------- Como o cliente paga (19/09/26) -------- */
-  secaoComoPaga(g, dados, ym);
+  /* A seção "Como o cliente paga" saiu daqui em 19/09/26 (decisão do Ricardo,
+     no mesmo dia em que nasceu): virou a aba Receita Contratada, que é esta
+     mesma página com `?vista=receita`. O Executivo responde "como vai o mês";
+     ela responde "como o cliente paga" — e as duas juntas eram tela demais. */
 
   bindTips(g);
 };
