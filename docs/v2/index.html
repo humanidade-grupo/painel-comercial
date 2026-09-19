@@ -1540,9 +1540,11 @@ window.__renderPS = function (dados, ymSel) {
 function secaoComoPaga(g, dados, ym) {
   var K = dados && dados.como_paga;
   if (!K) return;
-  g.appendChild(el('<div class="sect"><h2>Como o cliente paga</h2><div class="ln"></div>' +
+  var cab = el('<div class="sect"><h2>Como o cliente paga</h2><div class="ln"></div>' +
     '<span class="tag">recebimento na data de caixa · cartão parcelado +' +
-    fN((K.base && K.base.dias_cartao) || 30, 0) + ' dias</span></div>'));
+    fN((K.base && K.base.dias_cartao) || 30, 0) + ' dias</span>' +
+    '<div class="seg" id="psCpSeg" role="group" aria-label="Período"></div></div>');
+  g.appendChild(cab);
   if (K.erro || !K.base) {
     g.appendChild(el('<div class="card s12"><h3>Como o cliente paga</h3><div class="vazio">' +
       esc(K.erro || 'O Cofre não devolveu o pacote desta aba.') + '</div></div>'));
@@ -1560,29 +1562,73 @@ function secaoComoPaga(g, dados, ym) {
   /* 14,5x é prazo mediano de quem tem número par de vendas — arredondar some com isso */
   function vezes(x) { return fN(x, x % 1 ? 1 : 0) + 'x'; }
 
-  var venc = K.recebimento.vencido;
-  var totVenc = venc.a_vista + venc.cartao + venc.carne;
   var safra = K.safra || [];
-  var periodoMes = safra.length ? ymLabel(ymN(safra[0].ym)) + ' a ' +
-    ymLabel(ymN(safra[safra.length - 1].ym)) : '';
 
-  /* -------- os quatro tiles: o recebido, por grau de certeza -------- */
-  g.appendChild(el('<div class="card s3 tile"><h3>Receita contratada</h3>' +
-    '<div class="why">' + fN(K.base.vendas) + ' vendas · ' + esc(periodoMes) + '</div>' +
-    '<div class="val">' + rs(K.base.vgv) + '</div>' +
-    '<div class="st">' + fN(K.base.cortesias) + ' cortesia(s) contam venda e ficam fora do valor</div></div>'));
-  [['Entrou de fato', 'a_vista', 'pago na assinatura da venda',
+  /* -------- os quatro tiles: o recebido, por grau de certeza --------
+     OS TILES SEGUEM O PERÍODO (19/09/26, 2ª rodada). No mockup eles eram fixos
+     no semestre, porque a seção morava dentro do Executivo e os chips de mês
+     estavam longe, governando outra coisa. Na aba própria os chips ficam logo
+     acima deles: número que não responde ao seletor que está colado nele não
+     parece "total do semestre", parece tela quebrada — foi exatamente assim que
+     o Ricardo leu. Agora o mês manda aqui também; só o Programado continua
+     fora, e por um motivo que se escreve: parcela a vencer não tem versão
+     retroativa. */
+  var CERTEZA = [['Entrou de fato', 'a_vista', 'pago na assinatura da venda',
     'c-fato', '● fato — não há venda sem pagamento no ato'],
    ['Cartão', 'cartao', 'parcelas já disponíveis, em débito automático',
     'c-quase', '● quase fato — debita sozinho'],
    ['Carnê', 'carne', 'boletos vencidos no período',
-    'c-prev', '● previsto — o Cofre não tem baixa']].forEach(function (t) {
+    'c-prev', '● previsto — o Cofre não tem baixa']];
+  g.appendChild(el('<div class="card s3 tile"><h3>Receita contratada</h3>' +
+    '<div class="why" id="psCpTWhy"></div><div class="val" id="psCpTVal"></div>' +
+    '<div class="st" id="psCpTSt"></div></div>'));
+  CERTEZA.forEach(function (t, i) {
     g.appendChild(el('<div class="card s3 tile"><h3>' + esc(t[0]) + '</h3>' +
       '<div class="why">' + esc(t[2]) + '</div>' +
-      '<div class="val">' + rs(venc[t[1]]) + ' <small>· ' +
-      fPct(totVenc ? venc[t[1]] / totVenc * 100 : 0, 0) + '</small></div>' +
+      '<div class="val" id="psCpN' + i + '"></div>' +
       '<div class="certeza ' + t[3] + '">' + esc(t[4]) + '</div></div>'));
   });
+
+  /* Quais meses entram no período escolhido. O mês vem do chip da moldura; o
+     semestre, da lista que o Cofre já mandou; "tudo", de todas as safras. */
+  function mesesDoPeriodo(chave) {
+    if (chave === 'tudo') return safra.map(function (x) { return x.ym; });
+    if (chave === 'sem') return (K.mix.semestre && K.mix.semestre.length)
+      ? K.mix.semestre.slice() : safra.map(function (x) { return x.ym; });
+    return [chave];
+  }
+  /* O período em números — a mesma conta serve os tiles e a composição do
+     recebimento, e por isso ela mora num lugar só. */
+  function somaPeriodo(chave) {
+    var dentro = mesesDoPeriodo(chave);
+    var r = { vgv: 0, vendas: 0, a_vista: 0, cartao: 0, carne: 0, meses: dentro };
+    safra.forEach(function (x) {
+      if (dentro.indexOf(x.ym) < 0) return;
+      r.vgv += x.vgv; r.vendas += x.vendas;
+    });
+    (K.recebimento.por_mes || []).forEach(function (m) {
+      if (dentro.indexOf(m.ym) < 0) return;
+      r.a_vista += m.a_vista; r.cartao += m.cartao; r.carne += m.carne;
+    });
+    r.total = r.a_vista + r.cartao + r.carne;
+    r.rotulo = dentro.length === 1 ? ymLabel(ymN(dentro[0]))
+             : (ymLabel(ymN(dentro[0])) + ' a ' + ymLabel(ymN(dentro[dentro.length - 1])));
+    return r;
+  }
+  function pintaTiles(chave) {
+    var p = somaPeriodo(chave);
+    var vgv = p.vgv, vendas = p.vendas, rec = p, tot = p.total, rotulo = p.rotulo;
+    $('#psCpTWhy').textContent = fN(vendas) + ' vendas · ' + rotulo;
+    $('#psCpTVal').textContent = rs(vgv);
+    /* a cortesia só aparece onde ela é contada: no total, não no mês */
+    $('#psCpTSt').textContent = (chave === 'tudo' && K.base.cortesias)
+      ? fN(K.base.cortesias) + ' cortesia(s) contam venda e ficam fora do valor'
+      : 'recebido no período: ' + rs(tot);
+    CERTEZA.forEach(function (t, i) {
+      $('#psCpN' + i).innerHTML = rs(rec[t[1]]) + ' <small>· ' +
+        fPct(tot ? rec[t[1]] / tot * 100 : 0, 0) + '</small>';
+    });
+  }
 
   /* -------- o que entra no mês -------- */
   g.appendChild(el('<div class="sect"><h2>O que entra no mês</h2><div class="ln"></div>' +
@@ -1636,9 +1682,6 @@ function secaoComoPaga(g, dados, ym) {
     $('#psCpVend').appendChild(svg); bindTips(svg);
   })();
 
-  quebraCard($('#psCpNat'), [{ n: 'À vista', v: venc.a_vista },
-    { n: 'Cartão', v: venc.cartao }, { n: 'Carnê', v: venc.carne }],
-    totVenc, 'em caixa', [CN.a_vista, CN.cartao, CN.carne]);
 
   (function () {
     var linhas = K.recebimento.por_mes || [];
@@ -1666,9 +1709,7 @@ function secaoComoPaga(g, dados, ym) {
   var per = K.mix.periodos || {};
   var periodo = per[chaveMes] ? chaveMes : (per['tudo'] ? 'tudo' : Object.keys(per)[0]);
 
-  var barraSeg = el('<div class="sect"><h2>Como fecha a venda</h2><div class="ln"></div>' +
-    '<div class="seg" role="group" aria-label="Período"></div></div>');
-  var seg = barraSeg.querySelector('.seg');
+  var seg = $('#psCpSeg');
   [[chaveMes, ymLabel(ym)], ['sem', 'Semestre'], ['tudo', 'Tudo']].forEach(function (o) {
     if (!per[o[0]]) return;
     var b = el('<button type="button">' + esc(o[1]) + '</button>');
@@ -1681,7 +1722,8 @@ function secaoComoPaga(g, dados, ym) {
     };
     seg.appendChild(b);
   });
-  g.appendChild(barraSeg);
+  g.appendChild(el('<div class="sect"><h2>Como fecha a venda</h2><div class="ln"></div>' +
+    '<span class="tag">momento · forma · prazo, no período escolhido</span></div>'));
 
   g.appendChild(el('<div class="card s4"><h3>Momento do pagamento</h3>' +
     '<div class="why">quando o cliente paga, lido no carnê</div>' +
@@ -1714,6 +1756,14 @@ function secaoComoPaga(g, dados, ym) {
 
   function pintaPeriodo() {
     var B = per[periodo] || { meio: [], prazo: [], momento: [], vendedores: [], vendas: 0 };
+    pintaTiles(periodo);
+
+    /* a barra de naturezas é a mesma conta dos tiles, desenhada — segue o
+       período junto com eles, senão as duas brigam na mesma tela */
+    var pr0 = somaPeriodo(periodo), nat = $('#psCpNat'); nat.innerHTML = '';
+    quebraCard(nat, [{ n: 'À vista', v: pr0.a_vista }, { n: 'Cartão', v: pr0.cartao },
+      { n: 'Carnê', v: pr0.carne }], pr0.total, 'em caixa',
+      [CN.a_vista, CN.cartao, CN.carne]);
 
     var mom = $('#psCpMom'); mom.innerHTML = '';
     quebraCard(mom, B.momento.map(function (x) { return { n: x.nome, v: x.vendas }; }),
