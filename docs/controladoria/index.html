@@ -53,6 +53,14 @@
      aparece. Vendas no recorte, a lançar, lançadas, perna Comercial e perna Controladoria
      continuam obedecendo à competência. As vendas da fila fora do recorte vêm SEM dado pessoal.
 
+  (19/09, noite) REFERÊNCIA IVERTEX NO CLIQUE: Facilita e Ivertex não se falam e não têm
+  identificador comum. O campo curto ao lado de "Hoje" / "Outro dia…" captura o nº do contrato
+  no ERP (P20444) e, pelo trabalho do dia, constrói a correspondência Facilita <-> Ivertex.
+  NÃO É OBRIGATÓRIO, de propósito: campo obrigatório faz a pessoa parar de clicar. Foco e
+  Enter para confirmar (o lançamento é repetitivo: depois de gravar, o foco vai para a
+  próxima venda); caixa alta automática; venda lançada sem referência mostra um aviso
+  discreto e deixa preencher sem desmarcar. Rodapé: "N de M lançamentos com referência".
+
   AS TRÊS DEFESAS:
    1. o carimbo exibido é o DA FOTO (`facilita.ultima_importacao` para as vendas,
       `d4sign.ultima_passada` para os contratos), nunca a hora do fetch — com tarja quando
@@ -265,6 +273,14 @@ button:focus-visible,select:focus-visible,.row-head:focus-visible,input:focus-vi
   border:1px solid var(--line-strong);background:var(--surface-2);color:var(--ink)}
 .ivmsg{font-size:10.5px;color:var(--ink-3)}
 .ivmsg.erro{color:var(--crit)}
+.ivmsg.aviso{color:var(--warn)}
+.ivbox input.ivref{font:inherit;font-size:12px;padding:3px 8px;border-radius:8px;width:100%;
+  text-transform:uppercase;letter-spacing:.04em;font-variant-numeric:tabular-nums;
+  border:1px solid var(--line-strong);background:var(--surface-2);color:var(--ink)}
+.ivbox input.ivref::placeholder{text-transform:none;letter-spacing:0;color:var(--ink-3)}
+.ivref-ok{font-size:11px;color:var(--ink-2);font-variant-numeric:tabular-nums;letter-spacing:.03em}
+.ivlinha{display:flex;gap:5px;width:100%;align-items:center}
+.ivlinha input.ivref{flex:1 1 auto;min-width:0}
 
 /* detalhe */
 .detail{padding:4px 14px 18px 46px;background:var(--surface-2);
@@ -535,6 +551,10 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
   var F = { mes: null, sit: 'tudo', vend: 'tudo', mod: 'tudo' };
   /* Os meses já abertos, SÓ em memória: morrem com a aba. Nunca localStorage/IndexedDB. */
   var MEMO = {};
+  /* Aviso da última gravação por venda (prefixo x modalidade, referência repetida): fica
+     na memória da página para sobreviver ao redesenho da tabela. Só texto, sem dado pessoal. */
+  var AVISO_IV = {};
+  var RODAPE_BASE = [];
 
   // ================================================================ portão
   function token() { try { return localStorage.getItem(CHAVE_TOKEN) || ''; } catch (e) { return ''; } }
@@ -712,7 +732,9 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
         etapa: String(o['Etapa'] || '').trim(),
         docs: docs[id] || [],
         iv: { lancado: lanc, data: lanc ? String(c['data_ivertex'] || '') : '',
-              quem: c ? String(c['quem'] || '') : '', quando: c ? String(c['quando'] || '') : '' },
+              quem: c ? String(c['quem'] || '') : '', quando: c ? String(c['quando'] || '') : '',
+              ref: lanc ? String(c['Referência Ivertex'] || '').trim().toUpperCase() : '',
+              fonte: c ? String(c['Fonte'] || '') : '' },
         pes: pes[id] || null
       };
       v.ct = estadoContrato(v);
@@ -753,11 +775,20 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
     var extra = [];
     if (D4OK && d4.sem_casar) extra.push(plural(d4.sem_casar, 'documento da D4Sign sem venda casada', 'documentos da D4Sign sem venda casada'));
     if (D4OK && repetidos) extra.push(plural(repetidos, 'documento repetido (venda já assinada, cópia sem signatário)', 'documentos repetidos (venda já assinada, cópia sem signatário)'));
-    $('#ft-extra').textContent = extra.length ? ' · ' + extra.join(' · ') : '';
+    RODAPE_BASE = extra;
+    pintarRodape();
 
     AVISOS_CARGA = AVISOS.slice();
     $('#conteudo').hidden = false;
     render();
+  }
+
+  /* Rodapé: os contadores da D4Sign + a medida da tabela de correspondência Facilita <-> Ivertex
+     (sobre TODO lançamento com venda viva, não só o recorte — vem pronto da rota). */
+  function pintarRodape() {
+    var x = RODAPE_BASE.slice(), rf = R && R.referencias;
+    if (rf && rf.lancados) x.push(rf.com_referencia + ' de ' + plural(rf.lancados, 'lançamento', 'lançamentos') + ' com referência Ivertex');
+    $('#ft-extra').textContent = x.length ? ' · ' + x.join(' · ') : '';
   }
 
   function uniq(a) { return a.filter(function (x, i) { return a.indexOf(x) === i; }).sort(function (x, y) { return x.localeCompare(y, 'pt-BR'); }); }
@@ -1015,56 +1046,97 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
       '<div class="detail" hidden></div>';
 
     /* Ivertex: "Hoje" grava a data de hoje; "Outro dia…" pede a data REAL do lançamento
-       (muita venda já estava no Ivertex antes da tela). Lançado: o clique abre a correção
-       da data e o Desmarcar. Nunca no futuro, nunca antes da venda — o servidor confere. */
+       (muita venda já estava no Ivertex antes da tela). O campo curto é a Referência Ivertex
+       (P20444): opcional, caixa alta, Enter confirma. Lançado: o clique abre a correção da
+       data e da referência, e o Desmarcar; sem referência, dá para preencher sem desmarcar.
+       Nunca no futuro, nunca antes da venda — o servidor confere tudo de novo. */
     var cel = el.querySelector('.ivc');
+    el.dataset.deal = v.id;
     cel.addEventListener('click', function (e) { e.stopPropagation(); });
     cel.addEventListener('keydown', function (e) { e.stopPropagation(); });
-    var pintarIv = function (modo, erro) {
-      var msg = erro ? '<span class="ivmsg erro">' + esc(erro) + '</span>' : '';
+    var campoRef = function (valor, rot) {
+      return '<input class="ivref" type="text" inputmode="text" autocomplete="off" spellcheck="false" maxlength="6" ' +
+        'placeholder="' + (rot || 'Ref. Ivertex') + '" aria-label="Referência do contrato no Ivertex (opcional), ex.: P20444" value="' + esc(valor || '') + '">';
+    };
+    var pintarIv = function (modo, erro, refDigitada) {
+      var av = AVISO_IV[v.id];
+      var msg = erro ? '<span class="ivmsg erro">' + esc(erro) + '</span>'
+              : av ? '<span class="ivmsg aviso">' + esc(av) + '</span>' : '';
       if (modo === 'data' || modo === 'editar') {
         var val = v.iv.lancado && v.iv.data ? v.iv.data : hojeISO();
+        var ref0 = refDigitada != null ? refDigitada : v.iv.ref;
         cel.innerHTML = '<div class="ivbox">' +
           '<input type="date" aria-label="Data do lançamento no Ivertex" value="' + esc(val) + '"' +
             (/^\d{4}-\d{2}-\d{2}$/.test(v.data) ? ' min="' + esc(v.data) + '"' : '') + ' max="' + hojeISO() + '">' +
+          campoRef(ref0) +
           '<div class="ivrow"><button type="button" class="ivb pri" data-a="gravar">Gravar</button>' +
             (modo === 'editar' ? '<button type="button" class="ivb del" data-a="desmarcar">Desmarcar</button>' : '') +
             '<button type="button" class="ivb" data-a="cancelar" aria-label="Cancelar">×</button></div>' + msg + '</div>';
-        var inp = cel.querySelector('input');
-        inp.focus();
-        inp.addEventListener('keydown', function (e) {
-          if (e.key === 'Enter') cel.querySelector('[data-a="gravar"]').click();
-          if (e.key === 'Escape') pintarIv();
-        });
+        cel.querySelector(modo === 'data' ? 'input[type=date]' : 'input.ivref').focus();
       } else if (v.iv.lancado) {
         cel.innerHTML = '<div class="ivbox"><button type="button" class="tog" aria-pressed="true" data-a="editar" ' +
-          'title="Corrigir a data ou desmarcar"><span class="sw"></span><span>Lançado<small>' +
-          esc(dbr(v.iv.data) + ' · ' + v.iv.quem) + '</small></span></button>' + msg + '</div>';
+          'title="Corrigir a data, a referência, ou desmarcar"><span class="sw"></span><span>Lançado<small>' +
+          esc(dbr(v.iv.data) + ' · ' + v.iv.quem) + '</small></span></button>' +
+          (v.iv.ref ? '<span class="ivref-ok" title="Referência do contrato no Ivertex">Ivertex ' + esc(v.iv.ref) + '</span>'
+                    : '<div class="ivlinha">' + campoRef('', 'sem referência') +
+                      '<button type="button" class="ivb" data-a="ref" aria-label="Gravar a referência">ok</button></div>') +
+          msg + '</div>';
       } else {
-        cel.innerHTML = '<div class="ivbox"><div class="ivrow">' +
-          '<button type="button" class="ivb pri" data-a="hoje" title="Lançado hoje no Ivertex">Hoje</button>' +
+        cel.innerHTML = '<div class="ivbox">' + campoRef(refDigitada) +
+          '<div class="ivrow">' +
+          '<button type="button" class="ivb pri" data-a="hoje" title="Lançado hoje no Ivertex (Enter no campo)">Hoje</button>' +
           '<button type="button" class="ivb" data-a="data" title="Lançado em outro dia: escolha a data real">Outro dia…</button>' +
           '</div>' + msg + '</div>';
       }
+      [].forEach.call(cel.querySelectorAll('input.ivref'), function (inp) {
+        inp.addEventListener('input', function () {
+          var p0 = inp.selectionStart, novo = inp.value.toUpperCase().replace(/\s+/g, '');
+          if (novo !== inp.value) { inp.value = novo; try { inp.setSelectionRange(p0, p0); } catch (e) {} }
+        });
+      });
+      [].forEach.call(cel.querySelectorAll('input'), function (inp) {
+        inp.addEventListener('keydown', function (e) {
+          if (e.key === 'Escape') { pintarIv(); return; }
+          if (e.key !== 'Enter') return;
+          e.preventDefault();
+          var alvo = cel.querySelector('[data-a="gravar"]') || cel.querySelector('[data-a="ref"]') || cel.querySelector('[data-a="hoje"]');
+          if (alvo) alvo.click();
+        });
+      });
     };
+    var lerRef = function () {
+      var inp = cel.querySelector('input.ivref');
+      return inp ? inp.value.trim().toUpperCase() : '';
+    };
+    var refValida = function (r) { return !r || /^[A-Z]\d{5}$/.test(r); };
+    var ERRO_REF = 'uma letra e 5 dígitos (ex.: P20444)';
     cel.addEventListener('click', function (e) {
       var bt = e.target.closest('button[data-a]'); if (!bt) return;
-      var acao = bt.dataset.a;
+      var acao = bt.dataset.a, ref = lerRef();
       var voltar = v.iv.lancado ? 'editar' : 'data';
-      if (acao === 'hoje') marcar(v, true, '', cel, pintarIv);
-      else if (acao === 'data') pintarIv('data');
+      if (acao === 'hoje') {
+        if (!refValida(ref)) { pintarIv(undefined, ERRO_REF, ref); return; }
+        marcar(v, true, '', ref, cel, pintarIv);
+      }
+      else if (acao === 'data') pintarIv('data', '', ref);
       else if (acao === 'editar') pintarIv('editar');
       else if (acao === 'cancelar') pintarIv();
+      else if (acao === 'ref') {   // lançada sem referência: preenche sem desmarcar nem mexer na data
+        if (!ref) { pintarIv(undefined, 'digite a referência'); return; }
+        if (!refValida(ref)) { pintarIv(undefined, ERRO_REF); return; }
+        marcar(v, true, '', ref, cel, pintarIv);
+      }
       else if (acao === 'gravar') {
-        var d = cel.querySelector('input').value;
-        if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) { pintarIv(voltar, 'escolha a data'); return; }
-        if (d > hojeISO()) { pintarIv(voltar, 'data no futuro'); return; }
-        if (v.data && d < v.data) { pintarIv(voltar, 'antes da venda (' + dbr(v.data) + ')'); return; }
-        marcar(v, true, d, cel, pintarIv);
+        var d = cel.querySelector('input[type=date]').value;
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) { pintarIv(voltar, 'escolha a data', ref); return; }
+        if (d > hojeISO()) { pintarIv(voltar, 'data no futuro', ref); return; }
+        if (v.data && d < v.data) { pintarIv(voltar, 'antes da venda (' + dbr(v.data) + ')', ref); return; }
+        if (!refValida(ref)) { pintarIv(voltar, ERRO_REF, ref); return; }
+        marcar(v, true, d, ref, cel, pintarIv);
       } else if (acao === 'desmarcar') {
         if (!confirm('Desmarcar o lançamento do deal ' + v.id + ' (' + v.jaz + ')?\n\n' +
-            'Só faça isso se ele NÃO está lançado no Ivertex. A data do lançamento é apagada; o registro guarda quem desmarcou e quando.')) return;
-        marcar(v, false, '', cel, pintarIv);
+            'Só faça isso se ele NÃO está lançado no Ivertex. A data e a referência do lançamento são apagadas; o registro guarda quem desmarcou e quando.')) return;
+        marcar(v, false, '', '', cel, pintarIv);
       }
     });
     pintarIv();
@@ -1084,35 +1156,66 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
     return el;
   }
 
-  function marcar(v, quer, data, cel, pintarIv) {
+  function marcar(v, quer, data, ref, cel, pintarIv) {
     var tk = token();
     if (!tk) { abrirPortao(''); return; }
     var modo = !quer ? 'editar' : data ? (v.iv.lancado ? 'editar' : 'data') : undefined;
+    // o próximo da fila, capturado ANTES de redesenhar: é para lá que o foco vai depois
+    var depois = [], vi = false;
+    [].forEach.call(document.querySelectorAll('#rows .row'), function (r) {
+      if (vi) depois.push(r.dataset.deal);
+      if (r.dataset.deal === String(v.id)) vi = true;
+    });
     [].forEach.call(cel.querySelectorAll('button, input'), function (x) { x.disabled = true; });
     var gr = document.createElement('span'); gr.className = 'ivmsg'; gr.textContent = 'gravando…';
     cel.querySelector('.ivbox').appendChild(gr);
     var corpo = { token: tk, deal: v.id, lancado: quer };
     if (quer && data) corpo.data_ivertex = data;
+    if (quer && ref) corpo.referencia = ref;
     comPrazo(API + '?app=controladoria&fn=marcar', {
       method: 'POST', cache: 'no-store', credentials: 'omit',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },   // sem preflight de CORS
       body: JSON.stringify(corpo)
     }, 45000).then(function (r) {
       if (recusado(r)) { try { localStorage.removeItem(CHAVE_TOKEN); } catch (e) {} abrirPortao('Token recusado ao gravar. Digite de novo.'); return; }
-      if (!r || r.ok !== true) { pintarIv(modo, 'não gravou: ' + ((r && r.error) || '?')); return; }
-      v.iv = { lancado: r.lancado, data: r.data_ivertex || '', quem: r.quem || '', quando: r.quando || '' };
+      if (!r || r.ok !== true) { pintarIv(modo, 'não gravou: ' + ((r && r.error) || '?'), ref); return; }
+      contarReferencia(v.iv, r);
+      v.iv = { lancado: r.lancado, data: r.data_ivertex || '', quem: r.quem || '', quando: r.quando || '',
+               ref: r.lancado ? String(r.referencia || '').toUpperCase() : '', fonte: r.fonte || '' };
+      if (r.avisos && r.avisos.length) AVISO_IV[v.id] = r.avisos.join(' · '); else delete AVISO_IV[v.id];
       lembrarMarcacao(v.id, r);
       render();
+      pintarRodape();
+      // lançamento é repetitivo: o foco segue para o campo da próxima venda da lista
+      if (quer && !data) {
+        for (var i = 0; i < depois.length; i++) {
+          var prox = document.querySelector('#rows .row[data-deal="' + depois[i] + '"] input.ivref');
+          if (prox) { prox.focus(); break; }
+        }
+      }
     }).catch(function (e) {
-      pintarIv(modo, 'não gravou: ' + (e.message || e));
+      pintarIv(modo, 'não gravou: ' + (e.message || e), ref);
     });
+  }
+
+  /* O contador do rodapé anda junto com o clique, em todos os meses guardados na memória. */
+  function contarReferencia(antes, r) {
+    var dL = (r.lancado ? 1 : 0) - (antes.lancado ? 1 : 0);
+    var dR = (r.lancado && r.referencia ? 1 : 0) - (antes.lancado && antes.ref ? 1 : 0);
+    var ajusta = function (m) {
+      if (!m || !m.referencias) return;
+      m.referencias.lancados += dL; m.referencias.com_referencia += dR;
+    };
+    Object.keys(MEMO).forEach(function (k) { ajusta(MEMO[k]); });
+    if (R && !MEMO[R.mes]) ajusta(R);
   }
 
   /* A marcação vale para todo mês guardado na memória que contém o deal (o dele e o "Tudo"):
      voltar a um mês já aberto não pode mostrar a marcação desfeita. */
   function lembrarMarcacao(deal, r) {
     var linha = { 'Deal ID': String(deal), 'lancado': r.lancado ? 'SIM' : 'NÃO',
-                  'data_ivertex': r.data_ivertex || '', 'quem': r.quem || '', 'quando': r.quando || '' };
+                  'data_ivertex': r.data_ivertex || '', 'quem': r.quem || '', 'quando': r.quando || '',
+                  'Referência Ivertex': r.lancado ? (r.referencia || '') : '', 'Fonte': r.fonte || '' };
     Object.keys(MEMO).forEach(function (k) {
       var m = MEMO[k];
       if (!(m.vendas || []).concat(m.fila || []).some(function (o) { return Number(o['Deal ID']) === deal; })) return;
@@ -1163,7 +1266,9 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
         '<p>Valor <b>' + esc(brl(v.valor)) + '</b></p><p>Vendedor <b>' + esc(v.vend) + '</b></p></div>' +
       '<div class="dblk"><h4>Assinaturas</h4>' + assin + '</div>' +
       '<div class="dblk"><h4>Ivertex</h4>' +
-        (v.iv.lancado ? '<p>Lançado em <b>' + esc(dbr(v.iv.data)) + '</b> por <b>' + esc(v.iv.quem) + '</b></p>'
+        (v.iv.lancado ? '<p>Lançado em <b>' + esc(dbr(v.iv.data)) + '</b> por <b>' + esc(v.iv.quem) + '</b></p>' +
+                        (v.iv.ref ? '<p>Referência <b>' + esc(v.iv.ref) + '</b>' + (v.iv.fonte === 'relatorio' ? ' <span class="dim">(do relatório)</span>' : '') + '</p>'
+                                  : '<p class="dim">Sem referência Ivertex — dá para preencher na coluna, sem desmarcar.</p>')
                       : '<p>Ainda não lançado</p>' + (v.iv.quem ? '<p class="dim">desmarcado por ' + esc(v.iv.quem) + ' em ' + esc(fmtCarimbo(v.iv.quando)) + '</p>' : '')) +
       '</div>' +
     '</div>';
