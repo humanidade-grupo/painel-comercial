@@ -1829,11 +1829,29 @@ function secaoComoPaga(g, dados, ym) {
     var maisComum = B.meio.slice().sort(function (a, b) { return b.vendas - a.vendas; })[0];
     var pr = somaPeriodo(periodo);
     $('#psCpOlho').textContent = 'Parque da Saudade · Receita contratada · ' + pr.rotulo;
-    $('#psCpDeck').innerHTML = 'No período, o cliente do Parque contrata um jazigo de <b>' +
-      rs(md.ticket) + '</b>, paga <b>' + rs(md.ato) + '</b> na assinatura e divide o resto em <b>' +
-      vezes(md.prazo) + '</b> — são as medianas de ' + fN(B.vendas) + ' vendas.' +
-      (maisComum ? ' A forma mais usada é <b>' + esc(maisComum.nome.toLowerCase()) + '</b>, em ' +
-        fN(maisComum.vendas) + ' delas.' : '');
+    /* DOIS MONTES, DUAS FRASES (19/09/26). A mediana da assinatura do conjunto
+       inteiro cai no vale entre quem paga tudo e quem paga a 1ª parcela: em
+       set/26 deu R$ 838 num mês cuja média foi R$ 6.075. Número certo,
+       retrato de ninguém. O parágrafo passa a separar os dois mundos. */
+    function pega(nome) {
+      return (B.momento || []).filter(function (x) { return x.nome === nome; })[0]
+             || { vendas: 0, ato_mediano: 0 };
+    }
+    var mVista = pega('À vista'), mEnt = pega('Entrada + parcelas'), mPar = pega('Parcelado');
+    var txt = 'No período, o cliente do Parque contrata um jazigo de <b>' + rs(md.ticket) +
+      '</b> e divide em <b>' + vezes(md.prazo) + '</b> — medianas de ' + fN(B.vendas) + ' vendas.';
+    /* cada número é a mediana do SEU grupo. Juntar os três num só devolveria o
+       problema que esta frase corrige — e média de medianas não é mediana. */
+    if (mVista.vendas) txt += ' Na assinatura há mundos diferentes: <b>' + fN(mVista.vendas) +
+      '</b> pagaram o jazigo inteiro (mediana <b>' + rs(mVista.ato_mediano) + '</b>)';
+    if (mEnt.vendas) txt += (mVista.vendas ? ', ' : ' Na assinatura, ') + '<b>' + fN(mEnt.vendas) +
+      '</b> deram entrada (mediana <b>' + rs(mEnt.ato_mediano) + '</b>)';
+    if (mPar.vendas) txt += (mVista.vendas || mEnt.vendas ? ' e ' : ' ') + '<b>' + fN(mPar.vendas) +
+      '</b> pagaram só a primeira parcela (mediana <b>' + rs(mPar.ato_mediano) + '</b>)';
+    if (mVista.vendas || mEnt.vendas || mPar.vendas) txt += '.';
+    if (maisComum) txt += ' A forma mais usada é <b>' + esc(maisComum.nome.toLowerCase()) +
+      '</b>, em ' + fN(maisComum.vendas) + ' delas.';
+    $('#psCpDeck').innerHTML = txt;
 
     /* de onde vem o dinheiro: venda do próprio período × carteira, e a cauda */
     var fonte = $('#psCpFonte');
@@ -1862,10 +1880,12 @@ function secaoComoPaga(g, dados, ym) {
       B.vendas, 'vendas', [C.accent, C.blue, C.mag]);
     var atoTot = 0; B.momento.forEach(function (x) { atoTot += x.ato; });
     var tab = '<table class="placar" style="margin-top:10px"><tr><th>Momento</th>' +
-      '<th class="num">Vendas</th><th class="num">Na assinatura</th><th class="num">% do ato</th></tr>';
+      '<th class="num">Vendas</th><th class="num">Mediana</th><th class="num">Na assinatura</th>' +
+      '<th class="num">% do ato</th></tr>';
     B.momento.forEach(function (x, i) {
       tab += '<tr><td><i class="dot" style="background:' + [C.accent, C.blue, C.mag][i] + '"></i>' +
         esc(x.nome) + '</td><td class="num">' + fN(x.vendas) + '</td><td class="num">' +
+        (x.vendas ? fN(x.ato_mediano || 0, 0) : '–') + '</td><td class="num">' +
         fN(x.ato, 0) + '</td><td class="num">' + fPct(atoTot ? x.ato / atoTot * 100 : 0, 0) +
         '</td></tr>';
     });
