@@ -737,8 +737,23 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
     }).join('');
 
     $('#ft-voce').textContent = 'Você: ' + (r.voce || '?') + ' ·';
-    $('#ft-extra').textContent = D4OK && d4.sem_casar
-      ? ' · ' + plural(d4.sem_casar, 'documento da D4Sign sem venda casada', 'documentos da D4Sign sem venda casada') : '';
+    /* DOCUMENTOS REPETIDOS (19/09): venda com um FINALIZADO e outro documento AGUARDANDO
+       SIGNATÁRIOS — o contrato está assinado, o outro é duplicata parada na D4Sign. A rota traz
+       todo documento casado (recorte + fila inteira), então a conta vale em qualquer mês.
+       O contador some no zero: ele existe para morrer. */
+    var fasesDoDeal = {};
+    (d4.contratos || []).forEach(function (c) {
+      var k = Number(c['Deal ID']); (fasesDoDeal[k] = fasesDoDeal[k] || []).push(String(c['Fase'] || '').trim().toUpperCase());
+    });
+    var repetidos = 0;
+    Object.keys(fasesDoDeal).forEach(function (k) {
+      var f = fasesDoDeal[k];
+      if (f.indexOf('FINALIZADO') >= 0) repetidos += f.filter(function (x) { return x === 'AGUARDANDO SIGNATÁRIOS'; }).length;
+    });
+    var extra = [];
+    if (D4OK && d4.sem_casar) extra.push(plural(d4.sem_casar, 'documento da D4Sign sem venda casada', 'documentos da D4Sign sem venda casada'));
+    if (D4OK && repetidos) extra.push(plural(repetidos, 'documento repetido (venda já assinada, cópia sem signatário)', 'documentos repetidos (venda já assinada, cópia sem signatário)'));
+    $('#ft-extra').textContent = extra.length ? ' · ' + extra.join(' · ') : '';
 
     AVISOS_CARGA = AVISOS.slice();
     $('#conteudo').hidden = false;
