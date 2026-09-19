@@ -61,6 +61,13 @@
   próxima venda); caixa alta automática; venda lançada sem referência mostra um aviso
   discreto e deixa preencher sem desmarcar. Rodapé: "N de M lançamentos com referência".
 
+  (19/09, noite) A BANCADA — bloco de pagamento no detalhe da venda: valor · plano ·
+  vencimentos · contrato, com "copiar" POR CAMPO (formulário de ERP se preenche campo a campo).
+  O carnê (_Parcelas) continua fora. A linha de juros é SUGESTÃO, nunca afirmação: a regra do
+  Parque (COM JUROS = 22 a 72x) acerta 87% contra o relatório do Ivertex (268 de 308), e no ERP
+  isso é o PRODUTO escolhido no cadastro. `Nº Parcelas` é o "Nx" do produto e SOMA todos os
+  planos (entrada e ato incluídos) — por isso plano composto ganha um "confira".
+
   AS TRÊS DEFESAS:
    1. o carimbo exibido é o DA FOTO (`facilita.ultima_importacao` para as vendas,
       `d4sign.ultima_passada` para os contratos), nunca a hora do fetch — com tarja quando
@@ -281,6 +288,25 @@ button:focus-visible,select:focus-visible,.row-head:focus-visible,input:focus-vi
 .ivref-ok{font-size:11px;color:var(--ink-2);font-variant-numeric:tabular-nums;letter-spacing:.03em}
 .ivlinha{display:flex;gap:5px;width:100%;align-items:center}
 .ivlinha input.ivref{flex:1 1 auto;min-width:0}
+
+/* a bancada: pagamento, campo a campo, com copiar */
+.pgto{margin-top:16px;border-top:1px dashed var(--line-strong);padding-top:12px}
+.pgto h4{margin:0 0 8px;font-family:var(--mono);font-size:10.5px;text-transform:uppercase;
+  letter-spacing:.07em;color:var(--ink-3);font-weight:500}
+.pgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(196px,1fr));gap:12px 22px}
+.pgrupo h5{margin:0 0 4px;font-size:11px;font-weight:500;color:var(--ink-2)}
+.pcampo{display:flex;align-items:baseline;gap:6px;font-size:12.5px;padding:2px 0}
+.pcampo .pk{color:var(--ink-3);flex:0 0 auto}
+.pcampo .pv{color:var(--ink);font-weight:500;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.pcampo .pv.vazio{color:var(--ink-3);font-weight:400}
+.cp{font:inherit;font-size:10.5px;padding:1px 7px;border-radius:999px;cursor:pointer;margin-left:auto;flex:none;
+  border:1px solid var(--line-strong);background:transparent;color:var(--ink-3)}
+.cp:hover{border-color:var(--accent);color:var(--ink)}
+.cp.ok{border-color:var(--ok);color:var(--ok)}
+.juros{margin-top:10px;font-size:12px;color:var(--ink-2);background:var(--surface);border:1px solid var(--line);
+  border-radius:8px;padding:7px 10px}
+.juros b{font-weight:600}
+.juros small{display:block;color:var(--ink-3);font-size:11px;margin-top:2px}
 
 /* detalhe */
 .detail{padding:4px 14px 18px 46px;background:var(--surface-2);
@@ -735,7 +761,8 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
               quem: c ? String(c['quem'] || '') : '', quando: c ? String(c['quando'] || '') : '',
               ref: lanc ? String(c['Referência Ivertex'] || '').trim().toUpperCase() : '',
               fonte: c ? String(c['Fonte'] || '') : '' },
-        pes: pes[id] || null
+        pes: pes[id] || null,
+        pg: o   // o bloco de pagamento: lista fechada da rota, sem dado pessoal
       };
       v.ct = estadoContrato(v);
       return v;
@@ -1223,6 +1250,87 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
     });
   }
 
+  /* ---------- a bancada: o pagamento, campo a campo ----------
+     O que se COPIA é o que se digita no ERP: número sem separador de milhar e com vírgula
+     (20249,23), data dd/mm/aaaa, percentual sem o símbolo. O que se MOSTRA é o legível. */
+  var MODELO = { 5: 'Reserva', 6: 'Temporário', 9: 'Perpétuo', 10: 'Perpétuo - Retomada' };
+  function num2(x) { var n = Number(x); return isFinite(n) && String(x) !== '' ? Math.round(n * 100) / 100 : null; }
+  function copiaNum(n) { return n === null ? '' : n.toFixed(2).replace('.', ','); }
+  function dataBR(s) { s = String(s || ''); return /^\d{4}-\d{2}-\d{2}/.test(s) ? s.slice(8, 10) + '/' + s.slice(5, 7) + '/' + s.slice(0, 4) : ''; }
+  function campo(rotulo, mostra, copia) {
+    var vazio = mostra === '' || mostra == null;
+    return '<div class="pcampo"><span class="pk">' + esc(rotulo) + '</span>' +
+      '<span class="pv' + (vazio ? ' vazio' : '') + '">' + (vazio ? '—' : esc(mostra)) + '</span>' +
+      (vazio ? '' : '<button type="button" class="cp" data-copiar="' + esc(copia != null ? copia : mostra) +
+        '" aria-label="Copiar ' + esc(rotulo) + '">copiar</button>') + '</div>';
+  }
+  function sugestaoJuros(o) {
+    var n = Number(o['Nº Parcelas']);
+    if (!n || !isFinite(n)) return '<div class="juros">Sem nº de parcelas no Facilita — sem sugestão de juros.</div>';
+    var com = n >= 22 && n <= 72;
+    var forma = String(o['Forma Pagamento'] || '').trim();
+    var composto = forma.indexOf('+') >= 0;
+    return '<div class="juros">Sugestão pela regra do Parque: <b>' + (com ? 'COM JUROS' : 'SEM JUROS') + '</b> (' +
+      (n === 1 ? 'à vista' : n + 'x') + ')' +
+      '<small>É sugestão, não o produto do Ivertex: a regra (com juros = 22 a 72x) acerta 87% contra o relatório do ERP. ' +
+      (composto ? '<b>Plano composto (' + esc(forma) + '): o nº soma entrada/ato e os outros planos — confira.</b> ' : '') +
+      'Nº de parcelas conta a entrada.</small></div>';
+  }
+  function pagamento(v) {
+    var o = v.pg || {};
+    var face = num2(o['Valor Face']), venda = num2(v.valor), desc = num2(o['Desconto %']);
+    var ent = num2(o['Entrada']), parc = num2(o['Valor Parcela']);
+    var n = String(o['Nº Parcelas'] == null ? '' : o['Nº Parcelas']);
+    var mod = String(o['Modelo de Contrato'] == null ? '' : o['Modelo de Contrato']).trim();
+    var modTxt = mod ? mod + (MODELO[Number(mod)] ? ' · ' + MODELO[Number(mod)] : ' · modelo desconhecido') : '';
+    var dia = String(o['Dia Vencimento'] == null ? '' : o['Dia Vencimento']);
+    return '<div class="pgto"><h4>Pagamento</h4><div class="pgrid">' +
+      '<div class="pgrupo"><h5>Valor</h5>' +
+        campo('Valor de face', face === null ? '' : brl(face), copiaNum(face)) +
+        campo('Desconto', desc === null ? '' : String(desc).replace('.', ',') + '%', desc === null ? '' : String(desc).replace('.', ',')) +
+        campo('Valor da venda', venda === null ? '' : brl(venda), copiaNum(venda)) +
+      '</div>' +
+      '<div class="pgrupo"><h5>Plano</h5>' +
+        campo('Tabela', String(o['Tabela de Vendas'] || '').trim()) +
+        campo('Fluxo', String(o['Fluxo de Pagamento'] || '').trim()) +
+        campo('Forma', String(o['Forma Pagamento'] || '').trim()) +
+        campo('Nº parcelas', n) +
+        campo('Entrada', ent === null ? '' : brl(ent), copiaNum(ent)) +
+        campo('Valor da parcela', parc === null ? '' : brl(parc), copiaNum(parc)) +
+      '</div>' +
+      '<div class="pgrupo"><h5>Vencimentos</h5>' +
+        campo('1º vencimento', dataBR(o['1º Vencimento'])) +
+        campo('Último vencimento', dataBR(o['Último Vencimento'])) +
+        campo('Dia do vencimento', dia) +
+      '</div>' +
+      '<div class="pgrupo"><h5>Contrato</h5>' +
+        campo('Modelo no Facilita', modTxt, mod) +
+      '</div>' +
+      '</div>' + sugestaoJuros(o) + '</div>';
+  }
+
+  /* "copiar", por campo. Sem área de transferência (http, permissão negada): cai para o
+     textarea + execCommand. Nada fica guardado — é a área de transferência do sistema. */
+  function copiar(txt, bt) {
+    var feito = function () { bt.textContent = 'copiado'; bt.classList.add('ok');
+      setTimeout(function () { bt.textContent = 'copiar'; bt.classList.remove('ok'); }, 1400); };
+    var plano = function () {
+      var t = document.createElement('textarea'); t.value = txt; t.setAttribute('readonly', '');
+      t.style.position = 'fixed'; t.style.opacity = '0'; document.body.appendChild(t); t.select();
+      var ok = false; try { ok = document.execCommand('copy'); } catch (e) {}
+      document.body.removeChild(t);
+      if (ok) feito(); else bt.textContent = 'não copiou';
+    };
+    if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(txt).then(feito, plano);
+    else plano();
+  }
+  document.addEventListener('click', function (e) {
+    var bt = e.target.closest && e.target.closest('button.cp[data-copiar]');
+    if (!bt) return;
+    e.stopPropagation();
+    copiar(bt.getAttribute('data-copiar'), bt);
+  });
+
   function detalhe(v) {
     var c = v.ct, p = v.pes;
     var cliente;
@@ -1271,7 +1379,7 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
                                   : '<p class="dim">Sem referência Ivertex — dá para preencher na coluna, sem desmarcar.</p>')
                       : '<p>Ainda não lançado</p>' + (v.iv.quem ? '<p class="dim">desmarcado por ' + esc(v.iv.quem) + ' em ' + esc(fmtCarimbo(v.iv.quando)) + '</p>' : '')) +
       '</div>' +
-    '</div>';
+    '</div>' + pagamento(v);
   }
 
   // ================================================================ eventos
