@@ -1,6 +1,10 @@
 /* Painel Comercial — Parque da Saudade + Estrela Urbanidade
    Service worker: instalação PWA + reserva offline.
-   Atualizado em: 19/09/2026 (tarde, 3ª) — PONTEAPP: três correções que faziam
+   Atualizado em: 19/09/2026 (tarde, 4ª) — PONTEAPP: o corte da D4Sign governa
+   só a conclusão NEGATIVA. Venda com documento casado mostra o estado real,
+   qualquer que seja a data; só a sem documento e anterior a 12/08 fica "fora
+   do alcance". A regra anterior escondia 22 documentos reais. Rota @74.
+   Antes, 19/09/2026 (tarde, 3ª) — PONTEAPP: três correções que faziam
    a tela dizer com precisão o que não é verdade. (1) venda anterior ao corte
    da D4Sign (d4sign.corte = 12/08) fica "fora do alcance do espelho", não "sem
    contrato"; (2) a fila de contrato ignora a competência — em set/26 ela mostra
@@ -179,7 +183,7 @@
    links dos arquivos são drive.google.com, externos, e NÃO entram no cache).
    Estratégia: rede primeiro (pega versão nova quando online), cache como
    reserva offline. A cada deploy, bumpar a versão em CACHE. */
-const CACHE = 'painel-comercial-260919-3';
+const CACHE = 'painel-comercial-260919-4';
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(['./'])).then(() => self.skipWaiting()));

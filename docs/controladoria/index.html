@@ -42,10 +42,11 @@
   PRÓPRIO, nunca o `hub_token_gestao`, que é um só para três pessoas.
 
   (19/09, tarde) CORTE DA D4SIGN E FILA INTEIRA — decisão do Ricardo, opção (a):
-   - venda ANTERIOR ao `corte_d4sign` (Config d4sign.corte, hoje 2026-08-12, quando começa o
-     cofre da D4Sign) está FORA DO ALCANCE DO ESPELHO: pílula neutra, fora do balde "sem
-     contrato", fora do "em aberto" do Comercial e do KPI "lançadas sem contrato assinado".
-     Antes do corte, a tela não tem opinião sobre contrato.
+   - venda SEM DOCUMENTO CASADO e ANTERIOR ao `corte_d4sign` (Config d4sign.corte, hoje
+     2026-08-12, quando começa o cofre da D4Sign) está FORA DO ALCANCE DO ESPELHO: pílula
+     neutra, fora do balde "sem contrato", fora do "em aberto" do Comercial e do KPI
+     "lançadas sem contrato assinado". Venda COM documento casado mostra o estado real,
+     qualquer que seja a data — o corte governa só a conclusão negativa.
    - "Competência é para dinheiro; fila é para hoje": a trilha de contrato, o cartão
      "Aguardando assinatura", a perna enviado→assinado e as pílulas "Aguardando" e "Sem
      contrato" contam a FILA INTEIRA (a partir do corte), e a tela diz isso onde o número
@@ -764,8 +765,11 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
   /* O documento que representa a venda: o mais adiantado. Os outros vão para o detalhe. */
   function estadoContrato(v) {
     if (!D4OK) return { k: 'semleitura' };
-    if (CORTE && v.data && v.data < CORTE) return { k: 'foracorte' };   // antes do corte: sem opinião
-    if (!v.docs.length) return { k: 'nao_gerado' };
+    /* O CORTE GOVERNA SÓ A CONCLUSÃO NEGATIVA (19/09, correção da @73): com documento casado,
+       vale o estado real, qualquer que seja a data. Sem documento: do corte em diante é
+       pendência ("não gerado"); antes dele, não sabemos ("fora do alcance"). A regra anterior
+       cortava tudo que era pré-corte e escondia 22 documentos reais. */
+    if (!v.docs.length) return { k: CORTE && v.data && v.data < CORTE ? 'foracorte' : 'nao_gerado' };
     var rep = v.docs.slice().sort(function (a, b) { return rank(b) - rank(a); })[0];
     var fase = String(rep['Fase'] || '').trim().toUpperCase();
     var f = FASE[fase];
@@ -1118,7 +1122,7 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
     var assin;
     if (c.k === 'semleitura') assin = '<p class="dim">Sem leitura da D4Sign nesta carga.</p>';
     else if (c.k === 'foracorte') assin = '<p class="dim">Venda anterior a ' + esc(dbr(CORTE) + '/' + CORTE.slice(0, 4)) +
-      ', quando começa o cofre da D4Sign: fora do alcance do espelho. A tela não tem opinião sobre este contrato.</p>';
+      ', quando começa o cofre da D4Sign, e sem documento casado: fora do alcance do espelho. A tela não tem opinião sobre este contrato.</p>';
     else if (c.k === 'nao_gerado') assin = '<p class="dim">Nenhum documento na D4Sign casado com esta venda.</p>';
     else {
       assin = '<p>Fase <b>' + esc(c.fase.charAt(0) + c.fase.slice(1).toLowerCase()) + '</b></p>' +
