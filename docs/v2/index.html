@@ -131,19 +131,30 @@
      DOM. Clonar o SVG teria perdido os listeners; mover, teria quebrado a
      volta. z-index 65 e deliberado: acima do selo (60) e ABAIXO do tooltip
      (70), senao a dica sumiria atras do proprio grafico expandido. */
-  .btexp{position:absolute;top:9px;right:10px;z-index:2;display:inline-flex;align-items:center;
+  /* copiar como imagem (18/09): mora na mesma barrinha (.btacoes) que o
+     expandir, mas vale para TODO card do grid, com gráfico ou não. A barrinha
+     fica de fora da foto (filtro em copiarCard). */
+  .btacoes{position:absolute;top:9px;right:10px;z-index:2;display:flex;gap:5px}
+  .btexp,.btcopia{display:inline-flex;align-items:center;
         gap:5px;background:var(--card2);border:1px solid var(--edge);color:var(--ink2);
-        border-radius:8px;padding:4px 8px;font:inherit;font-size:11px;cursor:pointer;
+        border-radius:8px;padding:4px 8px;font:inherit;font-size:11px;line-height:1.35;cursor:pointer;
         opacity:.5;transition:opacity .15s}
-  .card:hover .btexp,.btexp:hover,.btexp:focus-visible{opacity:1}
-  .btexp svg{width:11px;height:11px;stroke:currentColor;fill:none;stroke-width:2.2;stroke-linecap:round}
+  .btcopia{padding:4px 6px}
+  .card:hover .btacoes button,.btacoes button:hover,.btacoes button:focus-visible{opacity:1}
+  .btacoes svg{width:11px;height:11px;stroke:currentColor;fill:none;stroke-width:2.2;
+        stroke-linecap:round;stroke-linejoin:round}
+  .btcopia.ok{color:var(--good);opacity:1}
+  .btcopia.erro{color:var(--crit);opacity:1}
+  .btcopia[disabled]{cursor:progress}
   .card.expandido{position:fixed;inset:0;z-index:65;margin:0;border-radius:0;border:0;
         overflow:auto;padding:52px 20px 28px;background:var(--bg)}
-  .card.expandido .btexp{position:fixed;top:14px;right:16px;opacity:1}
+  .card.expandido .btacoes{position:fixed;top:14px;right:16px}
+  .card.expandido .btacoes button{opacity:1}
   body.expandindo{overflow:hidden}
   @media(max-width:640px){
-    .btexp{top:7px;right:8px;padding:4px 7px}
-    .btexp .rot{display:none}
+    .btacoes{top:7px;right:8px}
+    .btexp,.btcopia{padding:4px 7px}
+    .btacoes .rot{display:none}
     .card.expandido{padding:48px 12px 24px}
   }
   .legend i{width:9px;height:9px;border-radius:3px;display:inline-block;margin-right:5px;vertical-align:-1px}
@@ -1936,11 +1947,98 @@ window.__renderEU = function (dados, ymSel) {
     if (b) { b.innerHTML = EXP_ABRIR; b.setAttribute('aria-label', 'Expandir gráfico'); }
   }
 
+  /* ---------- copiar card como imagem ----------
+     PNG na área de transferência, para colar no WhatsApp/e-mail. A foto é
+     do card como está na tela (filtro, período, expandido ou não), sem a
+     barrinha de botões. html-to-image vem do jsDelivr NO CLIQUE, como o
+     SheetJS da Retrospectiva: nada pesa no carregamento, e sem rede o botão
+     diz que não conseguiu. A promessa vai direto no ClipboardItem porque o
+     Safari só aceita escrever na área de transferência dentro do gesto; onde
+     não houver ClipboardItem (ou a escrita for negada), o PNG é baixado. */
+  var COP_ICONE = '<svg viewBox="0 0 24 24"><rect x="9" y="9" width="12" height="12" rx="2"/>' +
+        '<path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1"/></svg>';
+  /* só ícone: com dois botões rotulados a barra encostava nos títulos longos
+     ("Projeção de fechamento"); o rótulo aparece só na volta, por 2 s */
+  var COP_ABRIR = COP_ICONE;
+  var COP_OK = '<svg viewBox="0 0 24 24"><path d="M4 12l5 5L20 6"/></svg><span class="rot">copiado</span>';
+  var COP_BAIXOU = '<svg viewBox="0 0 24 24"><path d="M4 12l5 5L20 6"/></svg><span class="rot">baixado</span>';
+  var COP_ERRO = '<svg viewBox="0 0 24 24"><path d="M6 6l12 12"/><path d="M18 6L6 18"/></svg><span class="rot">falhou</span>';
+  var libImagem = null;
+  function carregarLibImagem() {
+    if (window.htmlToImage) return Promise.resolve(window.htmlToImage);
+    if (libImagem) return libImagem;
+    libImagem = new Promise(function (ok, falha) {
+      var s = document.createElement('script');
+      s.src = 'https://cdn.jsdelivr.net/npm/html-to-image@1.11.11/dist/html-to-image.js';
+      s.onload = function () { window.htmlToImage ? ok(window.htmlToImage) : falha(new Error('html-to-image vazio')); };
+      s.onerror = function () { libImagem = null; falha(new Error('sem rede para html-to-image')); };
+      document.head.appendChild(s);
+    });
+    return libImagem;
+  }
+  function nomeDoCard(card) {
+    var h = card.querySelector('h3');
+    var t = (h ? h.textContent : 'card').trim().toLowerCase()
+      .normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+    return 'painel-' + (t || 'card') + '.png';
+  }
+  function copiarCard(card, b) {
+    if (b.disabled) return;
+    b.disabled = true;
+    var fundo = getComputedStyle(document.body).getPropertyValue('--bg').trim() || '#0b1220';
+    var png = carregarLibImagem().then(function (lib) {
+      return lib.toBlob(card, {
+        pixelRatio: 2,
+        backgroundColor: fundo,
+        filter: function (n) { return !(n.classList && n.classList.contains('btacoes')); }
+      });
+    }).then(function (blob) {
+      if (!blob) throw new Error('imagem vazia');
+      return blob;
+    });
+    function marcar(html, cls) {
+      b.innerHTML = html; b.classList.remove('ok', 'erro'); if (cls) b.classList.add(cls);
+      b.disabled = false;
+      setTimeout(function () { b.innerHTML = COP_ABRIR; b.classList.remove('ok', 'erro'); }, 1800);
+    }
+    function baixar() {
+      return png.then(function (blob) {
+        var a = document.createElement('a');
+        a.href = URL.createObjectURL(blob); a.download = nomeDoCard(card);
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(function () { URL.revokeObjectURL(a.href); }, 5000);
+        marcar(COP_BAIXOU, 'ok');
+      });
+    }
+    var escrita = (navigator.clipboard && navigator.clipboard.write && window.ClipboardItem)
+      ? navigator.clipboard.write([new ClipboardItem({ 'image/png': png })])
+          .then(function () { marcar(COP_OK, 'ok'); }, function (e) {
+            console.warn('copiarCard: área de transferência recusou, baixando', e);
+            return baixar();
+          })
+      : baixar();
+    escrita.catch(function (e) { console.error('copiarCard:', e); marcar(COP_ERRO, 'erro'); });
+  }
+
   function ligarExpandir() {
     if (!document.querySelector('.card.expandido')) document.body.classList.remove('expandindo');
     var cards = document.querySelectorAll('#gridEU .card, #gridPS .card');
     Array.prototype.forEach.call(cards, function (card) {
-      if (card.querySelector('.btexp')) return;
+      var barra = card.querySelector('.btacoes');
+      if (!barra) {
+        barra = document.createElement('div');
+        barra.className = 'btacoes';
+        card.appendChild(barra);
+      }
+      if (!barra.querySelector('.btcopia')) {
+        var c = document.createElement('button');
+        c.type = 'button'; c.className = 'btcopia'; c.innerHTML = COP_ABRIR;
+        c.setAttribute('aria-label', 'Copiar como imagem');
+        c.title = 'Copiar como imagem';
+        c.onclick = function (ev) { ev.stopPropagation(); copiarCard(card, c); };
+        barra.appendChild(c);
+      }
+      if (barra.querySelector('.btexp')) return;
       if (!card.querySelector('svg[viewBox]')) return;
       var b = document.createElement('button');
       b.type = 'button'; b.className = 'btexp'; b.innerHTML = EXP_ABRIR;
@@ -1956,7 +2054,7 @@ window.__renderEU = function (dados, ymSel) {
         b.setAttribute('aria-label', 'Fechar');
         card.scrollTop = 0;
       };
-      card.appendChild(b);
+      barra.appendChild(b);  /* expandir fica na ponta direita, onde sempre esteve */
     });
   }
   document.addEventListener('keydown', function (e) {

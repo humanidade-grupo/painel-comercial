@@ -1,6 +1,11 @@
 /* Painel Comercial — Parque da Saudade + Estrela Urbanidade
    Service worker: instalação PWA + reserva offline.
-   Atualizado em: 17/09/2026 (noite, 2ª) — os cartões "série histórica" e
+   Atualizado em: 18/09/2026 (noite) — COPIAR CARD COMO IMAGEM: todo card
+   do Executivo (v2/, Parque e Estrela) ganha, ao lado do expandir, um botão
+   que põe o card em PNG na área de transferência (html-to-image baixado do
+   jsDelivr NO CLIQUE, cross-origin, não cacheado aqui; sem área de
+   transferência, o PNG é baixado).
+   Antes, 17/09/2026 (noite, 2ª) — os cartões "série histórica" e
    "taxa de distrato" do Executivo da Estrela (v2/) deixaram o cadeado de
    18/08 e leem o histórico congelado, pelo postMessage de sempre.
    Antes, 17/09/2026 (noite) — ABA HISTÓRICO na metade da Estrela, pela rota
@@ -154,7 +159,7 @@
    links dos arquivos são drive.google.com, externos, e NÃO entram no cache).
    Estratégia: rede primeiro (pega versão nova quando online), cache como
    reserva offline. A cada deploy, bumpar a versão em CACHE. */
-const CACHE = 'painel-comercial-260918-4';
+const CACHE = 'painel-comercial-260918-5';
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(['./'])).then(() => self.skipWaiting()));
