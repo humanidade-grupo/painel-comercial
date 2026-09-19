@@ -5,10 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex, nofollow">
 <meta name="referrer" content="no-referrer">
-<title>Contratos e Lançamentos — Parque da Saudade</title>
+<title>PonteApp - Do Facilita ao Ivertex · Parque da Saudade</title>
 <link rel="icon" href="../favicon-32.png" sizes="32x32">
 <!--
-  CONTRATOS E LANÇAMENTOS — Parque da Saudade · do Facilita ao Ivertex (19/09/2026).
+  PONTEAPP - Do Facilita ao Ivertex · Parque da Saudade (19/09/2026). Nasceu com o nome
+  "Contratos e Lançamentos" (o do artefato); rebatizada PonteApp pelo Ricardo na mesma noite.
   Tela da CONTROLADORIA. Backend: cofre/Controladoria.gs (?app=controladoria).
 
   ORIGEM DO LAYOUT: o artefato aprovado SFDV5htMaHURiCe6MkzGhL (claude.ai), que virou REGISTRO
@@ -34,7 +35,10 @@
   da Vendas_Facilita_Pessoal, autorizada para esta tela e só para ela). Por isso esta página
   NÃO guarda nada do que recebe: nem localStorage, nem sessionStorage, nem cópia para abrir
   rápido (o Painel arranca de cópia local desde 01/09; esta tela NÃO pode). O fetch vai com
-  cache:'no-store'. O único item no localStorage é o token (`hub_token_controladoria`) —
+  cache:'no-store'. (19/09 noite, aprovado pelo Ricardo: os meses já abertos ficam na MEMÓRIA
+  da página — variável MEMO —, que morre com a aba; trocar de mês não refaz a busca, e o botão
+  "Recarregar" esvazia a memória. Memória não é cópia local: nada vai para disco.)
+  O único item no localStorage é o token (`hub_token_controladoria`) —
   PRÓPRIO, nunca o `hub_token_gestao`, que é um só para três pessoas.
 
   AS TRÊS DEFESAS:
@@ -63,30 +67,7 @@
   --mono:"Poppins",ui-sans-serif,system-ui,sans-serif;
   color-scheme:light;
 }
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
-  --ground:#17120C; --surface:#211A12; --surface-2:#2A2118;
-  --line:#3A2F22; --line-strong:#52452F;
-  --ink:#EDE8DC; --ink-2:#C2B8A5; --ink-3:#8D8373;
-  --brand:#ECC685; --accent:#E0AE2E; --accent-soft:#3B2C12;
-  --ok:#93AC82; --ok-soft:#25301E;
-  --warn:#D9A227; --warn-soft:#372A11;
-  --crit:#DB7D62; --crit-soft:#38201A;
-  --mute-soft:#2C2419;
-  --shadow:0 1px 2px rgba(0,0,0,.35), 0 6px 18px rgba(0,0,0,.28);
-  color-scheme:dark;
-}}
-:root[data-theme="dark"]{
-  --ground:#17120C; --surface:#211A12; --surface-2:#2A2118;
-  --line:#3A2F22; --line-strong:#52452F;
-  --ink:#EDE8DC; --ink-2:#C2B8A5; --ink-3:#8D8373;
-  --brand:#ECC685; --accent:#E0AE2E; --accent-soft:#3B2C12;
-  --ok:#93AC82; --ok-soft:#25301E;
-  --warn:#D9A227; --warn-soft:#372A11;
-  --crit:#DB7D62; --crit-soft:#38201A;
-  --mute-soft:#2C2419;
-  --shadow:0 1px 2px rgba(0,0,0,.35), 0 6px 18px rgba(0,0,0,.28);
-  color-scheme:dark;
-}
+/* Tema SÓ claro, por decisão do Ricardo (19/09): o escuro do artefato saiu. */
 *{box-sizing:border-box}
 html{scroll-padding-top:env(safe-area-inset-top,0px)}
 body{margin:0;background:var(--ground);color:var(--ink);font:14px/1.45 var(--mono);font-weight:400;
@@ -105,7 +86,9 @@ header{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:va
 .stamps{display:flex;gap:16px;flex-wrap:wrap;font-size:11.5px;color:var(--ink-3)}
 .stamps b{display:block;color:var(--ink-2);font-weight:500;font-size:12px;
   font-variant-numeric:tabular-nums}
+.stamps{align-items:center}
 .stamps .old b{color:var(--warn)}
+.stamps .chip{padding:4px 11px;font-size:12px}
 
 /* ---- avisos (tarjas) ---- */
 #avisos:empty{display:none}
@@ -133,6 +116,9 @@ header{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:va
 select{font:inherit;font-size:12.5px;padding:5px 9px;border-radius:8px;
   border:1px solid var(--line-strong);background:var(--surface-2);color:var(--ink)}
 .spacer{flex:1 1 20px}
+/* como o dado se atualiza — discreto, no topo */
+.ritmo{margin:10px 0 0;font-size:11px;line-height:1.5;color:var(--ink-3)}
+.ritmo b{font-weight:500;color:var(--ink-2)}
 button:focus-visible,select:focus-visible,.row-head:focus-visible,input:focus-visible{outline:2px solid var(--accent);
   outline-offset:2px}
 
@@ -199,12 +185,12 @@ button:focus-visible,select:focus-visible,.row-head:focus-visible,input:focus-vi
 .tablewrap{margin-top:24px;background:var(--surface);border:1px solid var(--line);
   border-radius:var(--r);overflow:hidden}
 .thead,.row-head{display:grid;
-  grid-template-columns:22px 104px minmax(150px,1.5fr) 96px 78px 100px minmax(168px,1.1fr) 128px;
+  grid-template-columns:22px 104px minmax(150px,1.5fr) 96px 78px 100px minmax(168px,1.1fr) 152px;
   gap:10px;align-items:center}
 .thead{padding:9px 14px;background:var(--surface-2);border-bottom:1px solid var(--line);
   font-size:10.5px;text-transform:uppercase;letter-spacing:.07em;color:var(--ink-3)}
 .scroller{overflow-x:auto}
-.scroller>*{min-width:940px}
+.scroller>*{min-width:966px}
 .row{border-bottom:1px solid var(--line);display:block}
 .row:last-child{border-bottom:0}
 .row-head{width:100%;text-align:left;font:inherit;color:inherit;background:transparent;
@@ -250,6 +236,20 @@ button:focus-visible,select:focus-visible,.row-head:focus-visible,input:focus-vi
 .tog[aria-pressed="true"] .sw::after{transform:translateX(12px)}
 .tog small{display:block;font-size:10.5px;opacity:.8;font-weight:400}
 .tog small.erro{color:var(--crit);opacity:1}
+
+/* lançar: "Hoje" ou a data real */
+.ivbox{display:flex;flex-direction:column;gap:5px;align-items:flex-start}
+.ivrow{display:flex;gap:5px;flex-wrap:wrap}
+.ivb{font:inherit;font-size:12px;padding:4px 10px;border-radius:999px;cursor:pointer;
+  border:1px solid var(--line-strong);background:var(--surface-2);color:var(--ink-2)}
+.ivb:hover{border-color:var(--accent);color:var(--ink)}
+.ivb.pri{background:var(--brand);border-color:var(--brand);color:var(--ground)}
+.ivb.del{color:var(--crit)}
+.ivb:disabled{opacity:.6;cursor:progress}
+.ivbox input[type=date]{font:inherit;font-size:12px;padding:3px 6px;border-radius:8px;width:100%;
+  border:1px solid var(--line-strong);background:var(--surface-2);color:var(--ink)}
+.ivmsg{font-size:10.5px;color:var(--ink-3)}
+.ivmsg.erro{color:var(--crit)}
 
 /* detalhe */
 .detail{padding:4px 14px 18px 46px;background:var(--surface-2);
@@ -297,8 +297,8 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
 
 <div class="gate" id="gate" hidden>
   <div class="card">
-    <h1>Contratos e Lançamentos</h1>
-    <p>Tela da Controladoria. Digite o <b>seu token da controladoria</b>: ele fica guardado só
+    <h1>PonteApp</h1>
+    <p>Do Facilita ao Ivertex · Parque da Saudade. Tela da Controladoria. Digite o <b>seu token da controladoria</b>: ele fica guardado só
       neste aparelho, e é dele que sai o nome gravado em cada lançamento marcado.
       O token do Painel Comercial não abre esta tela.</p>
     <input id="tk" type="password" autocomplete="off" spellcheck="false" placeholder="token da controladoria" aria-label="Token da controladoria">
@@ -311,17 +311,25 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
 <header>
   <div class="head">
     <div>
-      <h1>Contratos e Lançamentos</h1>
-      <div class="sub">Parque da Saudade · do Facilita ao Ivertex</div>
+      <h1>PonteApp - Do Facilita ao Ivertex</h1>
+      <div class="sub">Parque da Saudade</div>
     </div>
     <div class="stamps">
       <div id="st-cofre-w" title="Última cópia do Facilita no Cofre — não é a hora em que esta página abriu">Cofre<b id="st-cofre">—</b></div>
       <div id="st-d4-w" title="Última passada do espelho da D4Sign (diária, 8h, no PC do Ricardo)">D4Sign<b id="st-d4">—</b></div>
+      <div title="Quando esta página buscou este mês no Cofre. Voltar a um mês já aberto usa a memória da página.">Lido na tela<b id="st-lido">—</b></div>
+      <button class="chip" id="btRecarregar" type="button" title="Busca este mês de novo no Cofre e esquece os outros meses já abertos">Recarregar</button>
     </div>
   </div>
 </header>
 
 <div class="wrap">
+
+  <p class="ritmo"><b>Vendas</b>: cópia do Facilita no Cofre a cada 5 min (completa a cada 2 h) ·
+    <b>Contratos</b>: espelho da D4Sign 1× por dia, às 8h, só com o PC do Ricardo ligado ·
+    <b>Lançamentos</b>: gravados na hora, com autor e data ·
+    Os meses abertos ficam nesta aba até ela fechar; <b>Recarregar</b> busca de novo.
+    As datas no alto são da cópia, não da abertura da página.</p>
 
   <div class="filters">
     <div class="fgroup" id="g-mes">
@@ -505,11 +513,13 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
   var VENDAS = [];          // linhas montadas
   var D4OK = false;         // o espelho da D4Sign foi lido
   var F = { mes: null, sit: 'tudo', vend: 'tudo', mod: 'tudo' };
+  /* Os meses já abertos, SÓ em memória: morrem com a aba. Nunca localStorage/IndexedDB. */
+  var MEMO = {};
 
   // ================================================================ portão
   function token() { try { return localStorage.getItem(CHAVE_TOKEN) || ''; } catch (e) { return ''; } }
   function abrirPortao(msg) {
-    R = null; VENDAS = [];
+    R = null; VENDAS = []; MEMO = {};
     $('#rows').textContent = '';
     $('#app').hidden = true; $('#gate').hidden = false;
     $('#gateErro').textContent = msg || '';
@@ -524,6 +534,7 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
     $('#tk').value = ''; carregar(F.mes);
   };
   $('#tk').addEventListener('keydown', function (e) { if (e.key === 'Enter') $('#btEntrar').click(); });
+  $('#btRecarregar').onclick = function () { MEMO = {}; carregar(F.mes, true); };
   $('#btTrocar').onclick = function () {
     try { localStorage.removeItem(CHAVE_TOKEN); } catch (e) {}
     abrirPortao('');
@@ -556,10 +567,11 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
   }
   function recusado(r) { return r && r.ok !== true && /token/i.test(String(r.error || '')); }
 
-  function carregar(mes) {
+  function carregar(mes, forcar) {
     var tk = token();
     if (!tk) { abrirPortao(''); return; }
     $('#gate').hidden = true; $('#app').hidden = false;
+    if (!forcar && mes && MEMO[mes]) { montar(MEMO[mes]); return; }
     $('#conteudo').hidden = true; $('#lendo').hidden = false;
     AVISOS = []; pintarAvisos();
     var url = API + '?app=controladoria&fn=dados' + (mes ? '&mes=' + encodeURIComponent(mes) : '') +
@@ -575,6 +587,8 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
           bloqueia('O Cofre respondeu, mas sem dado.', '<p>' + esc((r && r.error) || 'resposta vazia') + '</p>');
           return;
         }
+        r._lido = new Date();
+        if (r.truncado === false) MEMO[r.mes] = r;
         montar(r);
       })
       .catch(function (e) {
@@ -607,6 +621,7 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
 
     R = r;
     F.mes = r.mes;
+    $('#st-lido').textContent = r._lido ? String(r._lido.getHours()).padStart(2, '0') + ':' + String(r._lido.getMinutes()).padStart(2, '0') : '—';
     var d4 = r.d4sign || {};
     D4OK = d4.estado === 'ok';
 
@@ -936,23 +951,60 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
       '</div>' +
       '<div class="detail" hidden></div>';
 
-    // interruptor do Ivertex
-    var tog = document.createElement('button');
-    tog.className = 'tog'; tog.type = 'button';
-    var pintar = function (erro) {
-      tog.setAttribute('aria-pressed', String(v.iv.lancado));
-      tog.innerHTML = '<span class="sw"></span><span>' + (v.iv.lancado ? 'Lançado' : 'Lançar') +
-        '<small' + (erro ? ' class="erro"' : '') + '>' + esc(erro || (v.iv.lancado ? dbr(v.iv.data) + ' · ' + v.iv.quem : 'marcar como lançado')) + '</small></span>';
+    /* Ivertex: "Hoje" grava a data de hoje; "Outro dia…" pede a data REAL do lançamento
+       (muita venda já estava no Ivertex antes da tela). Lançado: o clique abre a correção
+       da data e o Desmarcar. Nunca no futuro, nunca antes da venda — o servidor confere. */
+    var cel = el.querySelector('.ivc');
+    cel.addEventListener('click', function (e) { e.stopPropagation(); });
+    cel.addEventListener('keydown', function (e) { e.stopPropagation(); });
+    var pintarIv = function (modo, erro) {
+      var msg = erro ? '<span class="ivmsg erro">' + esc(erro) + '</span>' : '';
+      if (modo === 'data' || modo === 'editar') {
+        var val = v.iv.lancado && v.iv.data ? v.iv.data : hojeISO();
+        cel.innerHTML = '<div class="ivbox">' +
+          '<input type="date" aria-label="Data do lançamento no Ivertex" value="' + esc(val) + '"' +
+            (/^\d{4}-\d{2}-\d{2}$/.test(v.data) ? ' min="' + esc(v.data) + '"' : '') + ' max="' + hojeISO() + '">' +
+          '<div class="ivrow"><button type="button" class="ivb pri" data-a="gravar">Gravar</button>' +
+            (modo === 'editar' ? '<button type="button" class="ivb del" data-a="desmarcar">Desmarcar</button>' : '') +
+            '<button type="button" class="ivb" data-a="cancelar" aria-label="Cancelar">×</button></div>' + msg + '</div>';
+        var inp = cel.querySelector('input');
+        inp.focus();
+        inp.addEventListener('keydown', function (e) {
+          if (e.key === 'Enter') cel.querySelector('[data-a="gravar"]').click();
+          if (e.key === 'Escape') pintarIv();
+        });
+      } else if (v.iv.lancado) {
+        cel.innerHTML = '<div class="ivbox"><button type="button" class="tog" aria-pressed="true" data-a="editar" ' +
+          'title="Corrigir a data ou desmarcar"><span class="sw"></span><span>Lançado<small>' +
+          esc(dbr(v.iv.data) + ' · ' + v.iv.quem) + '</small></span></button>' + msg + '</div>';
+      } else {
+        cel.innerHTML = '<div class="ivbox"><div class="ivrow">' +
+          '<button type="button" class="ivb pri" data-a="hoje" title="Lançado hoje no Ivertex">Hoje</button>' +
+          '<button type="button" class="ivb" data-a="data" title="Lançado em outro dia: escolha a data real">Outro dia…</button>' +
+          '</div>' + msg + '</div>';
+      }
     };
-    pintar();
-    tog.addEventListener('click', function (e) {
-      e.stopPropagation();
-      var quer = !v.iv.lancado;
-      if (!quer && !confirm('Desmarcar o lançamento do deal ' + v.id + ' (' + v.jaz + ')?\n\n' +
-          'Só faça isso se ele NÃO está lançado no Ivertex. A data do lançamento é apagada; o registro guarda quem desmarcou e quando.')) return;
-      marcar(v, quer, tog, pintar);
+    cel.addEventListener('click', function (e) {
+      var bt = e.target.closest('button[data-a]'); if (!bt) return;
+      var acao = bt.dataset.a;
+      var voltar = v.iv.lancado ? 'editar' : 'data';
+      if (acao === 'hoje') marcar(v, true, '', cel, pintarIv);
+      else if (acao === 'data') pintarIv('data');
+      else if (acao === 'editar') pintarIv('editar');
+      else if (acao === 'cancelar') pintarIv();
+      else if (acao === 'gravar') {
+        var d = cel.querySelector('input').value;
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) { pintarIv(voltar, 'escolha a data'); return; }
+        if (d > hojeISO()) { pintarIv(voltar, 'data no futuro'); return; }
+        if (v.data && d < v.data) { pintarIv(voltar, 'antes da venda (' + dbr(v.data) + ')'); return; }
+        marcar(v, true, d, cel, pintarIv);
+      } else if (acao === 'desmarcar') {
+        if (!confirm('Desmarcar o lançamento do deal ' + v.id + ' (' + v.jaz + ')?\n\n' +
+            'Só faça isso se ele NÃO está lançado no Ivertex. A data do lançamento é apagada; o registro guarda quem desmarcou e quando.')) return;
+        marcar(v, false, '', cel, pintarIv);
+      }
     });
-    el.querySelector('.ivc').appendChild(tog);
+    pintarIv();
 
     var head = el.querySelector('.row-head'), det = el.querySelector('.detail');
     var abrir = function () {
@@ -969,24 +1021,39 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
     return el;
   }
 
-  function marcar(v, quer, tog, pintar) {
+  function marcar(v, quer, data, cel, pintarIv) {
     var tk = token();
     if (!tk) { abrirPortao(''); return; }
-    tog.disabled = true;
-    tog.querySelector('small').textContent = 'gravando…';
+    var modo = !quer ? 'editar' : data ? (v.iv.lancado ? 'editar' : 'data') : undefined;
+    [].forEach.call(cel.querySelectorAll('button, input'), function (x) { x.disabled = true; });
+    var gr = document.createElement('span'); gr.className = 'ivmsg'; gr.textContent = 'gravando…';
+    cel.querySelector('.ivbox').appendChild(gr);
+    var corpo = { token: tk, deal: v.id, lancado: quer };
+    if (quer && data) corpo.data_ivertex = data;
     comPrazo(API + '?app=controladoria&fn=marcar', {
       method: 'POST', cache: 'no-store', credentials: 'omit',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },   // sem preflight de CORS
-      body: JSON.stringify({ token: tk, deal: v.id, lancado: quer })
+      body: JSON.stringify(corpo)
     }, 45000).then(function (r) {
-      tog.disabled = false;
       if (recusado(r)) { try { localStorage.removeItem(CHAVE_TOKEN); } catch (e) {} abrirPortao('Token recusado ao gravar. Digite de novo.'); return; }
-      if (!r || r.ok !== true) { pintar('não gravou: ' + ((r && r.error) || '?')); return; }
+      if (!r || r.ok !== true) { pintarIv(modo, 'não gravou: ' + ((r && r.error) || '?')); return; }
       v.iv = { lancado: r.lancado, data: r.data_ivertex || '', quem: r.quem || '', quando: r.quando || '' };
+      lembrarMarcacao(v.id, r);
       render();
     }).catch(function (e) {
-      tog.disabled = false;
-      pintar('não gravou: ' + (e.message || e));
+      pintarIv(modo, 'não gravou: ' + (e.message || e));
+    });
+  }
+
+  /* A marcação vale para todo mês guardado na memória que contém o deal (o dele e o "Tudo"):
+     voltar a um mês já aberto não pode mostrar a marcação desfeita. */
+  function lembrarMarcacao(deal, r) {
+    var linha = { 'Deal ID': String(deal), 'lancado': r.lancado ? 'SIM' : 'NÃO',
+                  'data_ivertex': r.data_ivertex || '', 'quem': r.quem || '', 'quando': r.quando || '' };
+    Object.keys(MEMO).forEach(function (k) {
+      var m = MEMO[k];
+      if (!(m.vendas || []).some(function (o) { return Number(o['Deal ID']) === deal; })) return;
+      m.controle = (m.controle || []).filter(function (c) { return Number(c['Deal ID']) !== deal; }).concat([linha]);
     });
   }
 

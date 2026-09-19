@@ -1,6 +1,11 @@
 /* Painel Comercial — Parque da Saudade + Estrela Urbanidade
    Service worker: instalação PWA + reserva offline.
-   Atualizado em: 19/09/2026 — NASCE A TELA DA CONTROLADORIA em
+   Atualizado em: 19/09/2026 (noite) — A CONTROLADORIA VIRA "PONTEAPP - Do
+   Facilita ao Ivertex": tema só claro, meses abertos guardados na MEMÓRIA da
+   página (nunca em disco) com botão Recarregar, lançamento com "Hoje" ou
+   "Outro dia…" (data real, rota @71) e uma linha discreta dizendo o ritmo de
+   cada fonte. Sem bump, a equipe abriria a tela velha, escura e sem data.
+   Antes, 19/09/2026 — NASCE A TELA DA CONTROLADORIA em
    /controladoria/ ("Contratos e Lançamentos", do Facilita ao Ivertex), que lê
    ?app=controladoria (@70) com token PRÓPRIO (hub_token_controladoria). Ela
    recebe CPF e endereço do mês pedido: a resposta vem de script.google.com,
@@ -168,7 +173,7 @@
    links dos arquivos são drive.google.com, externos, e NÃO entram no cache).
    Estratégia: rede primeiro (pega versão nova quando online), cache como
    reserva offline. A cada deploy, bumpar a versão em CACHE. */
-const CACHE = 'painel-comercial-260919-1';
+const CACHE = 'painel-comercial-260919-2';
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(['./'])).then(() => self.skipWaiting()));
