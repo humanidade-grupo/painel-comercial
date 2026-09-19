@@ -68,6 +68,12 @@
   isso é o PRODUTO escolhido no cadastro. `Nº Parcelas` é o "Nx" do produto e SOMA todos os
   planos (entrada e ato incluídos) — por isso plano composto ganha um "confira".
 
+  (19/09, noite) "VER TUDO": botão no detalhe da venda abre um modal com tudo o que o Cofre
+  tem DAQUELA venda, buscado NA HORA DO CLIQUE (?app=controladoria&fn=venda&deal=N) — a carga
+  do mês não engorda e a tela não vira consulta da base. Listas fechadas no servidor (coluna
+  nova não aparece sozinha); RG, nascimento e o carnê ficam fora, por decisão. Fechar o modal
+  apaga o conteúdo dele: nada fica guardado.
+
   AS TRÊS DEFESAS:
    1. o carimbo exibido é o DA FOTO (`facilita.ultima_importacao` para as vendas,
       `d4sign.ultima_passada` para os contratos), nunca a hora do fetch — com tarja quando
@@ -308,6 +314,21 @@ button:focus-visible,select:focus-visible,.row-head:focus-visible,input:focus-vi
 .juros b{font-weight:600}
 .juros small{display:block;color:var(--ink-3);font-size:11px;margin-top:2px}
 
+/* "ver tudo": modal simples, conteúdo apagado ao fechar */
+.modal{position:fixed;inset:0;z-index:50;background:rgba(46,36,25,.45);display:flex;
+  align-items:flex-start;justify-content:center;padding:6vh 16px 16px;overflow-y:auto}
+.mcaixa{background:var(--surface-2);border:1px solid var(--line-strong);border-radius:var(--r);
+  box-shadow:var(--shadow);width:100%;max-width:760px;padding:16px 18px 18px}
+.mtopo{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:6px}
+.mtopo h2{font-size:18px;color:var(--brand)}
+.mtopo button{font:inherit;font-size:20px;line-height:1;background:transparent;border:0;cursor:pointer;color:var(--ink-3)}
+.msec{margin-top:14px}
+.msec h3{font-family:var(--mono);font-size:10.5px;text-transform:uppercase;letter-spacing:.07em;
+  color:var(--ink-3);font-weight:500;margin:0 0 4px}
+.msec .pcampo{border-bottom:1px dotted var(--line);padding:4px 0}
+.mnota{font-size:11px;color:var(--ink-3);margin-top:14px}
+.vertudo{margin-top:8px}
+
 /* detalhe */
 .detail{padding:4px 14px 18px 46px;background:var(--surface-2);
   border-top:1px dashed var(--line-strong)}
@@ -498,6 +519,13 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
     <div><span id="ft-voce"></span> <button type="button" id="btTrocar">trocar token</button></div>
   </footer>
 </div>
+</div>
+
+<div class="modal" id="modal" hidden role="dialog" aria-modal="true" aria-labelledby="modalTit">
+  <div class="mcaixa">
+    <div class="mtopo"><h2 id="modalTit">Tudo desta venda</h2><button type="button" id="modalX" aria-label="Fechar">×</button></div>
+    <div id="modalCorpo"></div>
+  </div>
 </div>
 
 <script>
@@ -1331,6 +1359,60 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
     copiar(bt.getAttribute('data-copiar'), bt);
   });
 
+  /* ---------- "ver tudo": uma venda, na hora do clique ---------- */
+  var PEDIDO_TUDO = 0;
+  function secao(titulo, obj, ordem) {
+    if (!obj) return '<div class="msec"><h3>' + esc(titulo) + '</h3><p class="dim">— nada no Cofre —</p></div>';
+    var ks = ordem || Object.keys(obj);
+    return '<div class="msec"><h3>' + esc(titulo) + '</h3>' + ks.map(function (k) {
+      var val = obj[k]; val = val == null ? '' : String(val);
+      return campo(k, val.trim(), val.trim());
+    }).join('') + '</div>';
+  }
+  function fecharTudo() {
+    PEDIDO_TUDO++;
+    $('#modal').hidden = true;
+    $('#modalCorpo').innerHTML = '';   // nada fica na página depois de fechar
+    if (fecharTudo.volta) { try { fecharTudo.volta.focus(); } catch (e) {} }
+  }
+  function abrirTudo(deal, bt) {
+    var tk = token();
+    if (!tk) { abrirPortao(''); return; }
+    fecharTudo.volta = bt;
+    var meu = ++PEDIDO_TUDO;
+    $('#modalTit').textContent = 'Tudo desta venda · deal ' + deal;
+    $('#modalCorpo').innerHTML = '<p class="lendo">Lendo do Cofre…</p>';
+    $('#modal').hidden = false;
+    $('#modalX').focus();
+    comPrazo(API + '?app=controladoria&fn=venda&deal=' + encodeURIComponent(deal) + '&token=' + encodeURIComponent(tk),
+             { cache: 'no-store', credentials: 'omit' }, 45000)
+      .then(function (r) {
+        if (meu !== PEDIDO_TUDO) return;   // fechou (ou abriu outra) enquanto lia
+        if (recusado(r)) { fecharTudo(); try { localStorage.removeItem(CHAVE_TOKEN); } catch (e) {} abrirPortao('Token recusado. Digite de novo.'); return; }
+        if (!r || r.ok !== true) { $('#modalCorpo').innerHTML = '<p class="ivmsg erro">' + esc((r && r.error) || 'resposta vazia') + '</p>'; return; }
+        var docs = r.contratos || [];
+        $('#modalCorpo').innerHTML =
+          secao('Venda · Vendas_Facilita', r.venda) +
+          secao('Cliente · Vendas_Facilita_Pessoal', r.pessoal) +
+          (docs.length ? docs.map(function (d, i) { return secao('Contrato na D4Sign' + (docs.length > 1 ? ' · ' + (i + 1) + ' de ' + docs.length : ''), d); }).join('')
+                       : secao('Contrato na D4Sign', null)) +
+          secao('Lançamento · Controle_ERP', r.controle) +
+          ((r.avisos || []).length ? '<p class="ivmsg erro">' + esc(r.avisos.join(' · ')) + '</p>' : '') +
+          '<p class="mnota">Lido agora do Cofre. Fora, por decisão: ' + esc(r.fora || '') + '.</p>';
+      })
+      .catch(function (e) {
+        if (meu !== PEDIDO_TUDO) return;
+        $('#modalCorpo').innerHTML = '<p class="ivmsg erro">Não consegui falar com o Cofre: ' + esc(e.message || e) + '</p>';
+      });
+  }
+  document.addEventListener('click', function (e) {
+    var bt = e.target.closest && e.target.closest('button[data-vertudo]');
+    if (bt) { e.stopPropagation(); abrirTudo(Number(bt.getAttribute('data-vertudo')), bt); }
+  });
+  $('#modalX').onclick = fecharTudo;
+  $('#modal').addEventListener('click', function (e) { if (e.target === $('#modal')) fecharTudo(); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !$('#modal').hidden) fecharTudo(); });
+
   function detalhe(v) {
     var c = v.ct, p = v.pes;
     var cliente;
@@ -1371,7 +1453,8 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
       '<div class="dblk"><h4>Venda</h4>' +
         '<p>Deal <b>' + esc(v.id) + '</b> · ' + esc(v.mod) + '</p><p>Jazigo <b>' + esc(v.jaz) + '</b></p>' +
         '<p>Fechada em <b>' + esc(dbr(v.data)) + '</b>' + (v.etapa ? ' · etapa <b>' + esc(v.etapa) + '</b>' : '') + '</p>' +
-        '<p>Valor <b>' + esc(brl(v.valor)) + '</b></p><p>Vendedor <b>' + esc(v.vend) + '</b></p></div>' +
+        '<p>Valor <b>' + esc(brl(v.valor)) + '</b></p><p>Vendedor <b>' + esc(v.vend) + '</b></p>' +
+        '<button type="button" class="ivb vertudo" data-vertudo="' + esc(v.id) + '" title="Todas as colunas do Cofre desta venda, lidas agora">Ver tudo do Cofre</button></div>' +
       '<div class="dblk"><h4>Assinaturas</h4>' + assin + '</div>' +
       '<div class="dblk"><h4>Ivertex</h4>' +
         (v.iv.lancado ? '<p>Lançado em <b>' + esc(dbr(v.iv.data)) + '</b> por <b>' + esc(v.iv.quem) + '</b></p>' +

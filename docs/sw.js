@@ -1,6 +1,9 @@
 /* Painel Comercial — Parque da Saudade + Estrela Urbanidade
    Service worker: instalação PWA + reserva offline.
-   Atualizado em: 19/09/2026 (noite, 4ª) — PONTEAPP: o "não copiou" do botão
+   Atualizado em: 19/09/2026 (noite, 5ª) — PONTEAPP: botão "Ver tudo do
+   Cofre" no detalhe da venda abre um modal com todas as colunas daquela venda,
+   lidas na hora do clique (fn=venda, @77); fechar apaga o conteúdo.
+   Antes, 19/09/2026 (noite, 4ª) — PONTEAPP: o "não copiou" do botão
    copiar volta sozinho para "copiar" (ficava preso).
    Antes, 19/09/2026 (noite, 3ª) — PONTEAPP, A BANCADA: o detalhe da
    venda ganha o bloco de pagamento (valor · plano · vencimentos · contrato)
@@ -195,7 +198,7 @@
    links dos arquivos são drive.google.com, externos, e NÃO entram no cache).
    Estratégia: rede primeiro (pega versão nova quando online), cache como
    reserva offline. A cada deploy, bumpar a versão em CACHE. */
-const CACHE = 'painel-comercial-260919-8';
+const CACHE = 'painel-comercial-260919-9';
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(['./'])).then(() => self.skipWaiting()));
