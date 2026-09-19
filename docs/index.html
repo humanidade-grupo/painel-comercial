@@ -718,7 +718,9 @@ align-items:center;gap:3px;cursor:pointer;min-width:0}
      recebimento e o programado ignoram o mês, mas o momento da venda, o mix,
      o prazo e o vendedor seguem o chip. -->
 <section class="panel ps" id="pPSReceita">
-  <div class="chips" id="psMesesR" style="margin:0 0 14px"></div>
+  <!-- SEM CHIPS AQUI (19/09/26): o seletor desta aba vive DENTRO da moldura,
+       com os meses e mais Semestre e Tudo. Dois controles do mesmo assunto,
+       um em cima do outro, era o que a tela tinha — e o de dentro ganhou. -->
   <iframe id="fReceitaPS" title="Receita contratada — como o cliente paga" loading="lazy" style="width:100%;border:0;display:block;min-height:70vh"></iframe>
 </section>
 
@@ -1887,7 +1889,7 @@ function render(){
   }
   if (D.erro) return;
 
-  montarChipsMes('#psMeses'); montarChipsMes('#psMeses2'); montarChipsMes('#psMesesX'); montarChipsMes('#psMesesR');
+  montarChipsMes('#psMeses'); montarChipsMes('#psMeses2'); montarChipsMes('#psMesesX');
 
   const mes = D.meses.filter(m=>m.ym===ymAtivo)[0];
   const vendas = D.vendas.filter(v=>v.ym===ymAtivo);

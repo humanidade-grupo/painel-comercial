@@ -107,6 +107,17 @@
   .cpHead .deck b{color:var(--ink);font-weight:700}
   .cpHead .escopo{font-size:12.5px;line-height:1.55;color:var(--muted);max-width:72ch;margin:0 0 14px}
   .cpHead .escopo b{color:var(--ink2);font-weight:700}
+  /* o rodapé de notas ocupa a faixa inteira: sem isto ele cai numa coluna do
+     grid de 12 e o texto sai quebrado letra a letra (visto em 19/09) */
+  .notas{grid-column:span 12;background:var(--card2);border:1px solid var(--edge);
+    border-radius:12px;padding:13px 15px;font-size:12px;color:var(--ink2);line-height:1.55}
+  .notas b{color:var(--ink)}
+  .notas p{margin:0 0 8px}
+  .notas p:last-child{margin:0}
+  /* barra de 100% dentro de card largo: o SVG do quebraCard tem 320 de viewBox
+     e, esticado na faixa de 12 colunas, escala a fonte junto — o teto segura a
+     proporção em que ele foi desenhado */
+  .barra320{max-width:360px}   /* mesma escala das barras dos cards de 4 colunas */
   .delta{font-size:12px;font-weight:600}
   .delta.up{color:#2fbf4f}.delta.down{color:#e46a6a}.delta.flat{color:var(--ink2)}
   .delta .vs{color:var(--muted);font-weight:400}
@@ -1689,7 +1700,7 @@ function secaoComoPaga(g, dados, ym) {
   g.appendChild(el('<div class="card s12"><h3>De onde vem o dinheiro do período</h3>' +
     '<div class="why">venda fechada no período · carteira de vendas anteriores · e o que as ' +
     'vendas do período ainda trazem</div>' +
-    '<div id="psCpFonte"></div>' +
+    '<div id="psCpFonte"></div><div class="barra320" id="psCpFonteBarra"></div>' +
     '<div class="why rodape">Dinheiro novo é o que entrou de venda assinada no próprio período. ' +
     'Carteira é parcela de venda antiga — ela chega sem ninguém vender de novo. A terceira ' +
     'coluna não é caixa deste período: é o que as vendas dele ainda vão trazer, se todo mundo ' +
@@ -1754,8 +1765,18 @@ function secaoComoPaga(g, dados, ym) {
   var per = K.mix.periodos || {};
   var periodo = per[chaveMes] ? chaveMes : (per['tudo'] ? 'tudo' : Object.keys(per)[0]);
 
+  /* UM SELETOR SÓ (19/09/26, 2ª rodada). A moldura de fora tinha os chips de
+     mês e a seção tinha as pílulas de período: dois controles do mesmo assunto
+     na mesma tela, um em cima do outro. Ficou o de baixo, com os meses DENTRO
+     dele — e os chips saíram do painel pai nesta aba. O período aqui é local:
+     mudar o mês na Receita não mexe no mês do Executivo, porque aqui ele
+     escolhe também Semestre e Tudo, que lá não existem. */
+  var mesesDoPacote = safra.map(function (x) { return x.ym; }).slice().reverse();
+  var opcoes = mesesDoPacote.map(function (m) { return [m, ymLabel(ymN(m))]; })
+    .concat([['sem', 'Semestre'], ['tudo', 'Tudo']]);
+
   var seg = $('#psCpSeg');
-  [[chaveMes, ymLabel(ym)], ['sem', 'Semestre'], ['tudo', 'Tudo']].forEach(function (o) {
+  opcoes.forEach(function (o) {
     if (!per[o[0]]) return;
     var b = el('<button type="button">' + esc(o[1]) + '</button>');
     b.setAttribute('aria-selected', o[0] === periodo ? 'true' : 'false');
@@ -1825,7 +1846,8 @@ function secaoComoPaga(g, dados, ym) {
       fPct(pr.total ? pr.carteira / pr.total * 100 : 0, 0) + ' do que entrou</div></div>' +
       '<div class="bloco"><div class="per">Ainda vem</div><div class="n">' + curto(pr.a_receber) +
       '</div><div class="st">das vendas deste período, nos próximos meses</div></div></div>';
-    quebraCard(fonte, [{ n: 'Dinheiro novo', v: pr.novo }, { n: 'Carteira', v: pr.carteira }],
+    var fbar = $('#psCpFonteBarra'); fbar.innerHTML = '';
+    quebraCard(fbar, [{ n: 'Dinheiro novo', v: pr.novo }, { n: 'Carteira', v: pr.carteira }],
       pr.total, 'em caixa', [C.accent, C.gray]);
 
     /* a barra de naturezas é a mesma conta dos tiles, desenhada — segue o
