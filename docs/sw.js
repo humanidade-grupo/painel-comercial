@@ -1,6 +1,12 @@
 /* Painel Comercial — Parque da Saudade + Estrela Urbanidade
    Service worker: instalação PWA + reserva offline.
-   Atualizado em: 18/09/2026 (noite, 2ª) — o card "Meses — realizado ×
+   Atualizado em: 19/09/2026 — NASCE A TELA DA CONTROLADORIA em
+   /controladoria/ ("Contratos e Lançamentos", do Facilita ao Ivertex), que lê
+   ?app=controladoria (@70) com token PRÓPRIO (hub_token_controladoria). Ela
+   recebe CPF e endereço do mês pedido: a resposta vem de script.google.com,
+   cross-origin, e este SW NÃO a cacheia (só a casca HTML, sem dado). A página
+   também não guarda nada no navegador além do token.
+   Antes, 18/09/2026 (noite, 2ª) — o card "Meses — realizado ×
    meta" do Parque ganha folga no topo: os rótulos da barra mais alta
    (realizado + proj.) saíam cortados, e agora sobem acima da risca da meta.
    Antes, 18/09/2026 (noite) — COPIAR CARD COMO IMAGEM: todo card
@@ -162,7 +168,7 @@
    links dos arquivos são drive.google.com, externos, e NÃO entram no cache).
    Estratégia: rede primeiro (pega versão nova quando online), cache como
    reserva offline. A cada deploy, bumpar a versão em CACHE. */
-const CACHE = 'painel-comercial-260918-6';
+const CACHE = 'painel-comercial-260919-1';
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(['./'])).then(() => self.skipWaiting()));

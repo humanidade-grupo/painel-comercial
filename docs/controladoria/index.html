@@ -1,0 +1,1053 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="referrer" content="no-referrer">
+<title>Contratos e Lançamentos — Parque da Saudade</title>
+<link rel="icon" href="../favicon-32.png" sizes="32x32">
+<!--
+  CONTRATOS E LANÇAMENTOS — Parque da Saudade · do Facilita ao Ivertex (19/09/2026).
+  Tela da CONTROLADORIA. Backend: cofre/Controladoria.gs (?app=controladoria).
+
+  ORIGEM DO LAYOUT: o artefato aprovado SFDV5htMaHURiCe6MkzGhL (claude.ai), que virou REGISTRO
+  no dia em que esta página subiu. A estrutura é dele — cabeçalho com os carimbos, filtros em
+  pílula (competência, situação) e caixas de seleção (vendedor, modalidade), cinco cartões,
+  as três pernas de tempo, as duas trilhas, a tabela com linha que abre e o interruptor
+  "Lançar". Cores e fontes também são as dele. O que a implementação fez DIFERENTE está no
+  doc do artefato e no INFRA.
+
+  A REGRA QUE MANDA NO DESENHO (Ricardo, 19/09): negócio que chega à Proposta já pagou a
+  entrada, e a venda é lançada no Ivertex SEM esperar contrato assinado. Lançamento e
+  assinatura são TRILHAS INDEPENDENTES. Não há selo `Confirmada`, nem etapa como filtro.
+
+  POR QUE A TELA EXISTE: "proteger o comercial, mostrando que estamos fazendo nossa parte".
+  Por isso o tempo é POR PERNA, COM DONO, sempre MEDIANA, e toda mediana vem com o que está
+  EM ABERTO (quantos, e há quantos dias o mais antigo — vermelho a partir de 7). Contrato que
+  nunca assinou não entra em mediana nenhuma.
+
+  TODAS AS CONTAS RODAM AQUI, sobre as linhas cruas: é o que faz o filtro de vendedor e de
+  modalidade valer para cartões, pernas e trilhas — não só para a tabela.
+
+  🔒 DADO PESSOAL: a rota devolve CPF, contato e endereço das vendas DO MÊS pedido (única porta
+  da Vendas_Facilita_Pessoal, autorizada para esta tela e só para ela). Por isso esta página
+  NÃO guarda nada do que recebe: nem localStorage, nem sessionStorage, nem cópia para abrir
+  rápido (o Painel arranca de cópia local desde 01/09; esta tela NÃO pode). O fetch vai com
+  cache:'no-store'. O único item no localStorage é o token (`hub_token_controladoria`) —
+  PRÓPRIO, nunca o `hub_token_gestao`, que é um só para três pessoas.
+
+  AS TRÊS DEFESAS:
+   1. o carimbo exibido é o DA FOTO (`facilita.ultima_importacao` para as vendas,
+      `d4sign.ultima_passada` para os contratos), nunca a hora do fetch — com tarja quando
+      envelhece. A passada da D4Sign é diária às 8h e só roda com o PC do Ricardo ligado.
+   2. `truncado` true OU AUSENTE bloqueia o desenho inteiro.
+   3. a lista de fases é ORDEM, não filtro: fase que a D4Sign criar depois aparece com o
+      rótulo dela, listrada, e uma invariante avisa se as contagens não fecharem.
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,500;0,600;1,500&family=Poppins:wght@300;400;500;600&display=swap">
+<style>
+:root{
+  --ground:#E7E4DA; --surface:#F6F4EC; --surface-2:#FCFBF6;
+  --line:#D7D2C3; --line-strong:#BCB5A2;
+  --ink:#2E2419; --ink-2:#5C5244; --ink-3:#8A806F;
+  --brand:#42270C; --accent:#A8760A; --accent-soft:#F1E3C0;
+  --ok:#4C6B45; --ok-soft:#DCE5D5;
+  --warn:#AE7810; --warn-soft:#F7E9C9;
+  --crit:#993923; --crit-soft:#F4DCD4;
+  --mute-soft:#E3DFD2;
+  --shadow:0 1px 2px rgba(46,36,25,.07), 0 6px 18px rgba(46,36,25,.05);
+  --r:10px;
+  --mono:"Poppins",ui-sans-serif,system-ui,sans-serif;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --ground:#17120C; --surface:#211A12; --surface-2:#2A2118;
+  --line:#3A2F22; --line-strong:#52452F;
+  --ink:#EDE8DC; --ink-2:#C2B8A5; --ink-3:#8D8373;
+  --brand:#ECC685; --accent:#E0AE2E; --accent-soft:#3B2C12;
+  --ok:#93AC82; --ok-soft:#25301E;
+  --warn:#D9A227; --warn-soft:#372A11;
+  --crit:#DB7D62; --crit-soft:#38201A;
+  --mute-soft:#2C2419;
+  --shadow:0 1px 2px rgba(0,0,0,.35), 0 6px 18px rgba(0,0,0,.28);
+  color-scheme:dark;
+}}
+:root[data-theme="dark"]{
+  --ground:#17120C; --surface:#211A12; --surface-2:#2A2118;
+  --line:#3A2F22; --line-strong:#52452F;
+  --ink:#EDE8DC; --ink-2:#C2B8A5; --ink-3:#8D8373;
+  --brand:#ECC685; --accent:#E0AE2E; --accent-soft:#3B2C12;
+  --ok:#93AC82; --ok-soft:#25301E;
+  --warn:#D9A227; --warn-soft:#372A11;
+  --crit:#DB7D62; --crit-soft:#38201A;
+  --mute-soft:#2C2419;
+  --shadow:0 1px 2px rgba(0,0,0,.35), 0 6px 18px rgba(0,0,0,.28);
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--ground);color:var(--ink);font:14px/1.45 var(--mono);font-weight:400;
+  -webkit-font-smoothing:antialiased;padding-bottom:env(safe-area-inset-bottom,0px)}
+[hidden]{display:none!important}
+.wrap{max-width:1180px;margin:0 auto;padding-inline:16px;padding-block:0 40px}
+h1,h2,h3{margin:0;font-family:"Lora",Georgia,serif;font-weight:600;text-wrap:balance}
+
+/* ---- cabeçalho ---- */
+header{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--ground);
+  border-bottom:1px solid var(--line)}
+.head{max-width:1180px;margin:0 auto;padding:14px 16px 12px;display:flex;flex-wrap:wrap;
+  gap:12px 20px;align-items:baseline;justify-content:space-between}
+.head h1{font-size:23px;letter-spacing:-.01em;color:var(--brand)}
+.head .sub{font-size:12px;color:var(--ink-3);margin-top:2px}
+.stamps{display:flex;gap:16px;flex-wrap:wrap;font-size:11.5px;color:var(--ink-3)}
+.stamps b{display:block;color:var(--ink-2);font-weight:500;font-size:12px;
+  font-variant-numeric:tabular-nums}
+.stamps .old b{color:var(--warn)}
+
+/* ---- avisos (tarjas) ---- */
+#avisos:empty{display:none}
+#avisos{display:grid;gap:8px;margin-top:14px}
+.tarja{border:1px solid var(--crit);background:var(--crit-soft);color:var(--ink);
+  border-radius:var(--r);padding:11px 14px;font-size:13px}
+.tarja .t{font-weight:600;color:var(--crit);margin-bottom:2px}
+.tarja.amarela{border-color:var(--warn);background:var(--warn-soft)}
+.tarja.amarela .t{color:var(--warn)}
+.tarja p{margin:3px 0}
+.tarja code{font-size:12px}
+.lendo{margin:26px 0;color:var(--ink-3);font-size:13px}
+
+/* ---- filtros ---- */
+.filters{display:flex;flex-wrap:wrap;gap:8px;align-items:center;
+  padding:14px 0 16px;border-bottom:1px solid var(--line)}
+.fgroup{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.flabel{font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--ink-3);
+  margin-right:2px}
+.chip{border:1px solid var(--line-strong);background:transparent;color:var(--ink-2);
+  font:inherit;font-size:12.5px;padding:5px 11px;border-radius:999px;cursor:pointer}
+.chip:hover{border-color:var(--accent);color:var(--ink)}
+.chip[aria-pressed="true"]{background:var(--brand);border-color:var(--brand);color:var(--ground)}
+.chip .n{opacity:.65;margin-left:5px;font-variant-numeric:tabular-nums}
+select{font:inherit;font-size:12.5px;padding:5px 9px;border-radius:8px;
+  border:1px solid var(--line-strong);background:var(--surface-2);color:var(--ink)}
+.spacer{flex:1 1 20px}
+button:focus-visible,select:focus-visible,.row-head:focus-visible,input:focus-visible{outline:2px solid var(--accent);
+  outline-offset:2px}
+
+/* ---- KPIs ---- */
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(178px,1fr));gap:10px;
+  margin:18px 0 0}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);
+  padding:13px 14px 12px}
+.kpi.lead{background:var(--surface-2);border-color:var(--line-strong);box-shadow:var(--shadow)}
+.kpi .k{font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--ink-3)}
+.kpi .v{font-family:"Lora",Georgia,serif;font-size:29px;line-height:1.12;margin-top:5px;
+  font-variant-numeric:tabular-nums;color:var(--ink)}
+.kpi .v small{font-size:15px;color:var(--ink-3);font-family:var(--mono);margin-left:3px}
+.kpi .f{font-size:12px;color:var(--ink-2);margin-top:4px;font-variant-numeric:tabular-nums}
+.kpi .f.alert{color:var(--crit);font-weight:500}
+.kpi .f.warn{color:var(--warn);font-weight:500}
+
+/* ---- esteira ---- */
+.tracks{margin-top:22px;display:grid;grid-template-columns:1fr 1.5fr;gap:10px 26px;align-items:end}
+.secttl{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-3);
+  margin-bottom:9px}
+.secttl em{font-style:normal;text-transform:none;letter-spacing:0;color:var(--ink-3);opacity:.8}
+.secttl em::before{content:"· "}
+.steps{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:2px}
+.step{background:var(--surface);border:1px solid var(--line);padding:10px 12px 11px}
+.step:first-child{border-radius:var(--r) 0 0 var(--r)}
+.step:last-child{border-radius:0 var(--r) var(--r) 0}
+.step:only-child{border-radius:var(--r)}
+.step .bar{height:5px;border-radius:3px;background:var(--mute-soft);margin-bottom:9px}
+.step .bar i{display:block;height:100%;border-radius:3px;background:var(--ink-3)}
+.step.s1 .bar i{background:var(--crit)} .step.s2 .bar i{background:var(--warn)}
+.step.s3 .bar i{background:var(--accent)} .step.s4 .bar i{background:var(--ok)}
+/* fase que a lista não conhece: aparece com o rótulo dela, listrada */
+.step.extra .bar i{background:repeating-linear-gradient(45deg,var(--ink-3) 0 4px,transparent 4px 8px)}
+.step.extra .l{font-style:italic}
+.step .n{font-family:"Lora",Georgia,serif;font-size:21px;font-variant-numeric:tabular-nums}
+.step .l{font-size:11.5px;color:var(--ink-2);margin-top:1px}
+.semleitura{background:var(--surface);border:1px dashed var(--line-strong);border-radius:var(--r);
+  padding:12px 14px;font-size:12.5px;color:var(--ink-2)}
+.semleitura b{color:var(--warn)}
+
+/* ---- tempos por perna ---- */
+.tempos{margin-top:24px}
+.legs{display:grid;grid-template-columns:repeat(3,1fr);gap:2px}
+.leg{background:var(--surface);border:1px solid var(--line);padding:12px 14px 13px;
+  border-left:3px solid var(--line-strong)}
+.leg:first-child{border-radius:var(--r) 0 0 var(--r);border-left-color:var(--ok)}
+.leg:nth-child(2){border-left-color:var(--warn)}
+.leg:last-child{border-radius:0 var(--r) var(--r) 0;border-left-color:var(--accent)}
+.leg .who{font-size:10.5px;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-3)}
+.leg .what{font-size:12.5px;color:var(--ink-2);margin-top:2px}
+.leg .med{font-family:"Lora",Georgia,serif;font-size:26px;margin-top:6px;
+  font-variant-numeric:tabular-nums;line-height:1.1}
+.leg .med small{font-family:var(--mono);font-size:14px;color:var(--ink-3);margin-left:4px}
+.leg .med.txt{font-size:19px}
+.leg .note{font-size:11.5px;color:var(--ink-3);margin-top:3px;font-variant-numeric:tabular-nums}
+.leg .note.alert{color:var(--crit)}
+@media (max-width:620px){
+  .legs{grid-template-columns:1fr}
+  .leg,.leg:first-child,.leg:last-child{border-radius:var(--r)}
+}
+
+/* ---- tabela ---- */
+.tablewrap{margin-top:24px;background:var(--surface);border:1px solid var(--line);
+  border-radius:var(--r);overflow:hidden}
+.thead,.row-head{display:grid;
+  grid-template-columns:22px 104px minmax(150px,1.5fr) 96px 78px 100px minmax(168px,1.1fr) 128px;
+  gap:10px;align-items:center}
+.thead{padding:9px 14px;background:var(--surface-2);border-bottom:1px solid var(--line);
+  font-size:10.5px;text-transform:uppercase;letter-spacing:.07em;color:var(--ink-3)}
+.scroller{overflow-x:auto}
+.scroller>*{min-width:940px}
+.row{border-bottom:1px solid var(--line);display:block}
+.row:last-child{border-bottom:0}
+.row-head{width:100%;text-align:left;font:inherit;color:inherit;background:transparent;
+  border:0;padding:11px 14px;cursor:pointer}
+.row-head:hover{background:var(--surface-2)}
+.row[data-open="true"] .row-head{background:var(--surface-2)}
+.caret{color:var(--ink-3);font-size:11px;transition:transform .15s}
+.row[data-open="true"] .caret{transform:rotate(90deg)}
+.jaz{font-weight:500;font-variant-numeric:tabular-nums;letter-spacing:.01em}
+.cli{color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cli span{display:block;font-size:11.5px;color:var(--ink-3)}
+.num{font-variant-numeric:tabular-nums;font-size:13px}
+.dim{color:var(--ink-2);font-size:12.5px}
+
+/* estado do contrato */
+.pill{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:3px 9px;
+  font-size:11.5px;font-weight:500;white-space:nowrap}
+.pill i{width:7px;height:7px;border-radius:50%;flex:none}
+.p-crit{background:var(--crit-soft);color:var(--crit)} .p-crit i{background:var(--crit)}
+.p-warn{background:var(--warn-soft);color:var(--warn)} .p-warn i{background:var(--warn)}
+.p-ok{background:var(--ok-soft);color:var(--ok)} .p-ok i{background:var(--ok)}
+.p-mute{background:var(--mute-soft);color:var(--ink-2)} .p-mute i{background:var(--ink-3)}
+.sig{display:flex;gap:3px;margin-top:5px}
+.sig b{width:15px;height:4px;border-radius:2px;background:var(--mute-soft);display:block}
+.sig b.on{background:var(--ok)}
+.sigtxt{font-size:11px;color:var(--ink-3);margin-top:3px;font-variant-numeric:tabular-nums;display:block}
+.fraco{font-style:italic;opacity:.85}
+
+/* toggle ivertex */
+.tog{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line-strong);
+  background:var(--surface-2);border-radius:999px;padding:4px 10px 4px 5px;cursor:pointer;
+  font:inherit;font-size:12px;color:var(--ink-2);text-align:left}
+.tog:hover{border-color:var(--accent)}
+.tog:disabled{opacity:.6;cursor:progress}
+.tog .sw{width:28px;height:16px;border-radius:999px;background:var(--mute-soft);
+  position:relative;flex:none;transition:background .15s}
+.tog .sw::after{content:"";position:absolute;top:2px;left:2px;width:12px;height:12px;
+  border-radius:50%;background:var(--surface-2);box-shadow:0 1px 2px rgba(0,0,0,.25);
+  transition:transform .15s}
+.tog[aria-pressed="true"]{background:var(--ok-soft);border-color:var(--ok);color:var(--ok);
+  font-weight:500}
+.tog[aria-pressed="true"] .sw{background:var(--ok)}
+.tog[aria-pressed="true"] .sw::after{transform:translateX(12px)}
+.tog small{display:block;font-size:10.5px;opacity:.8;font-weight:400}
+.tog small.erro{color:var(--crit);opacity:1}
+
+/* detalhe */
+.detail{padding:4px 14px 18px 46px;background:var(--surface-2);
+  border-top:1px dashed var(--line-strong)}
+.dgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(196px,1fr));gap:14px 22px;
+  margin-top:12px}
+.dblk h4{margin:0 0 6px;font-family:var(--mono);font-size:10.5px;text-transform:uppercase;
+  letter-spacing:.07em;color:var(--ink-3);font-weight:500}
+.dblk p{margin:0 0 3px;font-size:12.5px;color:var(--ink-2)}
+.dblk p b{color:var(--ink);font-weight:500}
+.falta{list-style:none;margin:0;padding:0}
+.falta li{font-size:12.5px;padding:3px 0;display:flex;gap:7px;align-items:baseline}
+.falta li::before{content:"";width:6px;height:6px;border-radius:50%;flex:none;
+  background:var(--warn);transform:translateY(-1px)}
+.falta li em{font-style:normal;color:var(--ink-3);font-size:11.5px}
+.empty{padding:34px 16px;text-align:center;color:var(--ink-3);font-size:13px}
+footer{margin-top:20px;font-size:11.5px;color:var(--ink-3);display:flex;gap:6px 18px;
+  flex-wrap:wrap;justify-content:space-between;border-top:1px solid var(--line);padding-top:12px}
+footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transparent;border:0;
+  text-decoration:underline;cursor:pointer;padding:0}
+
+/* ---- portão do token ---- */
+.gate{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px 16px}
+.gate .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);
+  box-shadow:var(--shadow);padding:22px 20px;max-width:380px;width:100%}
+.gate h1{font-size:21px;color:var(--brand)}
+.gate p{font-size:12.5px;color:var(--ink-2);margin:8px 0 14px}
+.gate input{width:100%;font:inherit;font-size:14px;padding:9px 11px;border-radius:8px;
+  border:1px solid var(--line-strong);background:var(--surface-2);color:var(--ink)}
+.gate button{margin-top:10px;width:100%;font:inherit;font-size:13.5px;font-weight:500;padding:9px;
+  border-radius:8px;border:0;background:var(--brand);color:var(--ground);cursor:pointer}
+.gate .erro{color:var(--crit);font-size:12px;min-height:1.2em;margin-top:8px}
+
+@media (max-width:620px){
+  .head h1{font-size:20px}
+  .tracks{grid-template-columns:1fr}
+  .steps{grid-auto-flow:row;grid-auto-columns:auto}
+  .step:first-child,.step:last-child,.step{border-radius:var(--r)}
+  .kpi .v{font-size:25px}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+<div class="gate" id="gate" hidden>
+  <div class="card">
+    <h1>Contratos e Lançamentos</h1>
+    <p>Tela da Controladoria. Digite o <b>seu token da controladoria</b>: ele fica guardado só
+      neste aparelho, e é dele que sai o nome gravado em cada lançamento marcado.
+      O token do Painel Comercial não abre esta tela.</p>
+    <input id="tk" type="password" autocomplete="off" spellcheck="false" placeholder="token da controladoria" aria-label="Token da controladoria">
+    <button id="btEntrar" type="button">Entrar</button>
+    <div class="erro" id="gateErro" role="alert"></div>
+  </div>
+</div>
+
+<div id="app" hidden>
+<header>
+  <div class="head">
+    <div>
+      <h1>Contratos e Lançamentos</h1>
+      <div class="sub">Parque da Saudade · do Facilita ao Ivertex</div>
+    </div>
+    <div class="stamps">
+      <div id="st-cofre-w" title="Última cópia do Facilita no Cofre — não é a hora em que esta página abriu">Cofre<b id="st-cofre">—</b></div>
+      <div id="st-d4-w" title="Última passada do espelho da D4Sign (diária, 8h, no PC do Ricardo)">D4Sign<b id="st-d4">—</b></div>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <div class="filters">
+    <div class="fgroup" id="g-mes">
+      <span class="flabel" title="mês da Data da Venda no Cofre">Competência</span>
+    </div>
+    <div class="fgroup">
+      <span class="flabel">Situação</span>
+      <button class="chip" data-f="sit" data-v="tudo" aria-pressed="true">Tudo</button>
+      <button class="chip" data-f="sit" data-v="alancar" aria-pressed="false">A lançar <span class="n" id="n-alancar">0</span></button>
+      <button class="chip" data-f="sit" data-v="assinatura" aria-pressed="false">Aguardando assinatura <span class="n" id="n-assin">0</span></button>
+      <button class="chip" data-f="sit" data-v="semcontrato" aria-pressed="false">Sem contrato <span class="n" id="n-sem">0</span></button>
+      <button class="chip" data-f="sit" data-v="lancadas" aria-pressed="false">Lançadas <span class="n" id="n-lanc">0</span></button>
+    </div>
+    <div class="spacer"></div>
+    <div class="fgroup">
+      <label class="flabel" for="f-vend">Vendedor</label>
+      <select id="f-vend"><option value="tudo">Todos</option></select>
+      <label class="flabel" for="f-mod">Modalidade</label>
+      <select id="f-mod"><option value="tudo">Todas</option></select>
+    </div>
+  </div>
+
+  <div id="avisos"></div>
+  <div class="lendo" id="lendo" hidden>Lendo os dados do Cofre…</div>
+
+  <div id="conteudo" hidden>
+  <div class="kpis">
+    <div class="kpi lead">
+      <div class="k">A lançar no Ivertex</div>
+      <div class="v" id="k-fila">0</div>
+      <div class="f" id="k-filav">R$ 0</div>
+      <div class="f" id="k-filaold">—</div>
+    </div>
+    <div class="kpi">
+      <div class="k">Lançadas</div>
+      <div class="v"><span id="k-lanc">0</span><small id="k-lancp">0%</small></div>
+      <div class="f" id="k-lancv">R$ 0</div>
+    </div>
+    <div class="kpi">
+      <div class="k">Vendas no recorte</div>
+      <div class="v" id="k-tot">0</div>
+      <div class="f" id="k-totv">R$ 0</div>
+    </div>
+    <div class="kpi">
+      <div class="k">Aguardando assinatura</div>
+      <div class="v" id="k-assin">0</div>
+      <div class="f warn" id="k-assinold">—</div>
+    </div>
+    <div class="kpi">
+      <div class="k">Lançadas sem contrato assinado</div>
+      <div class="v" id="k-risco">0</div>
+      <div class="f" id="k-riscotxt">—</div>
+    </div>
+  </div>
+
+  <section class="tempos">
+    <div class="secttl">Quanto tempo leva cada perna <em>mediana, como na Esteira</em></div>
+    <div class="legs">
+      <div class="leg">
+        <div class="who">Comercial</div>
+        <div class="what">Venda → contrato enviado</div>
+        <div class="med" id="t1">—</div>
+        <div class="note" id="t1n">—</div>
+      </div>
+      <div class="leg">
+        <div class="who">Cliente e casa</div>
+        <div class="what">Contrato enviado → assinado</div>
+        <div class="med" id="t2">—</div>
+        <div class="note" id="t2n">—</div>
+      </div>
+      <div class="leg">
+        <div class="who">Controladoria</div>
+        <div class="what">Venda → lançada no Ivertex</div>
+        <div class="med" id="t3">—</div>
+        <div class="note" id="t3n">—</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="tracks">
+    <div class="track">
+      <div class="secttl">Lançamento no Ivertex</div>
+      <div class="steps" id="trilha-iv"></div>
+    </div>
+    <div class="track">
+      <div class="secttl">Contrato <em>não trava o lançamento</em></div>
+      <div id="trilha-ct"></div>
+    </div>
+  </section>
+
+  <div class="tablewrap">
+    <div class="scroller">
+      <div class="thead">
+        <div></div><div>Jazigo</div><div>Cliente</div><div>Vendedor</div><div>Venda</div>
+        <div>Valor</div><div>Contrato</div><div>Ivertex</div>
+      </div>
+      <div id="rows"></div>
+    </div>
+    <div class="empty" id="empty" hidden>Nenhuma venda neste recorte.</div>
+  </div>
+  </div>
+
+  <footer>
+    <div>Vendas: <b>Vendas_Facilita</b> · Assinaturas: <b>Contratos_D4Sign</b> · Lançamento: <b>Controle_ERP</b><span id="ft-extra"></span></div>
+    <div>Competência = mês da <b>Data da Venda</b> · marcação grava por <b>Deal ID</b>, com autor e hora</div>
+    <div><span id="ft-voce"></span> <button type="button" id="btTrocar">trocar token</button></div>
+  </footer>
+</div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  var API = 'https://script.google.com/macros/s/AKfycbydLmUEX3g6FeojFGAcVHfNKoPsr4d9oTBUdi7GtcfsirQL6xHJM0BELVGcCrcqrICY/exec';
+  var CHAVE_TOKEN = 'hub_token_controladoria';   // PRÓPRIO — nunca o hub_token_gestao
+  var DIAS_ALERTA = 7;          // vermelho a partir de 7 dias em aberto
+  var HORAS_VELHO_VENDAS = 6;   // a cópia do Facilita anda de hora em hora
+  var HORAS_VELHO_D4 = 48;      // a passada da D4Sign é diária, e depende do PC do Ricardo
+  var MESES = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+
+  /* ⚠️ ESTA LISTA É ORDEM, NÃO FILTRO. Fase que a D4Sign criar depois aparece com o rótulo
+     dela, listrada, no fim da trilha — e a invariante abaixo avisa se a soma não fechar. */
+  var FASE = {
+    'FINALIZADO':             { k: 'assinado',       rank: 5 },
+    'AGUARDANDO ASSINATURAS': { k: 'aguardando',     rank: 4 },
+    'AGUARDANDO SIGNATÁRIOS': { k: 'sem_signatario', rank: 3 },
+    'EDITANDO':               { k: 'editando',       rank: 2 },
+    'CANCELADO':              { k: 'cancelado',      rank: 0 }
+  };
+  var PEND = ['nao_gerado', 'cancelado', 'sem_signatario', 'editando'];
+
+  var $ = function (s) { return document.querySelector(s); };
+  var esc = function (s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c];
+    });
+  };
+  var brl = function (v) { return 'R$ ' + v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); };
+  var brlc = function (v) { return 'R$ ' + Math.round(v).toLocaleString('pt-BR'); };
+  var dbr = function (s) { s = String(s || ''); return /^\d{4}-\d{2}-\d{2}/.test(s) ? s.slice(8, 10) + '/' + s.slice(5, 7) : '—'; };
+  var soma = function (a) { return a.reduce(function (s, v) { return s + v.valor; }, 0); };
+  var plural = function (n, um, varios) { return n + ' ' + (n === 1 ? um : varios); };
+
+  /* "2026-09-18" ou "2026-09-18 14:30" -> Date LOCAL. */
+  function quando(s) {
+    var m = String(s || '').match(/^(\d{4})-(\d{2})-(\d{2})(?:[ T](\d{2}):(\d{2}))?/);
+    if (!m) return null;
+    return new Date(+m[1], +m[2] - 1, +m[3], m[4] ? +m[4] : 0, m[5] ? +m[5] : 0);
+  }
+  /* Dias de CALENDÁRIO entre duas datas (a hora não conta): o que a Data da Venda permite. */
+  function diasEntre(a, b) {
+    var x = quando(String(a || '').slice(0, 10)), y = quando(String(b || '').slice(0, 10));
+    if (!x || !y) return null;
+    return Math.round((y - x) / 864e5);
+  }
+  function hojeISO() {
+    var d = new Date();
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  }
+  function idade(s) { var n = diasEntre(s, hojeISO()); return n === null ? null : Math.max(0, n); }
+  function mediana(v) {
+    var a = v.filter(function (x) { return typeof x === 'number' && isFinite(x); }).sort(function (x, y) { return x - y; });
+    if (!a.length) return null;
+    var m = a.length >> 1;
+    return a.length % 2 ? a[m] : (a[m - 1] + a[m]) / 2;
+  }
+  function rotuloMes(ym) { return MESES[+ym.slice(5, 7) - 1] + '/' + ym.slice(2, 4); }
+  function horasDesde(carimbo) {
+    var d = quando(carimbo);
+    return d ? (Date.now() - d.getTime()) / 36e5 : null;
+  }
+  function fmtCarimbo(c) {
+    var d = quando(c);
+    if (!d) return 'sem data';
+    return dbr(c) + (/\d{2}:\d{2}/.test(c) ? ' ' + String(c).slice(11, 16) : '');
+  }
+
+  // ================================================================ estado — SÓ em memória
+  var R = null;             // a resposta da rota
+  var VENDAS = [];          // linhas montadas
+  var D4OK = false;         // o espelho da D4Sign foi lido
+  var F = { mes: null, sit: 'tudo', vend: 'tudo', mod: 'tudo' };
+
+  // ================================================================ portão
+  function token() { try { return localStorage.getItem(CHAVE_TOKEN) || ''; } catch (e) { return ''; } }
+  function abrirPortao(msg) {
+    R = null; VENDAS = [];
+    $('#rows').textContent = '';
+    $('#app').hidden = true; $('#gate').hidden = false;
+    $('#gateErro').textContent = msg || '';
+    setTimeout(function () { $('#tk').focus(); }, 50);
+  }
+  $('#btEntrar').onclick = function () {
+    var v = $('#tk').value.trim();
+    if (!v) { $('#gateErro').textContent = 'Digite o token.'; return; }
+    try { localStorage.setItem(CHAVE_TOKEN, v); } catch (e) {
+      $('#gateErro').textContent = 'Este navegador não deixa guardar o token (janela anônima?).'; return;
+    }
+    $('#tk').value = ''; carregar(F.mes);
+  };
+  $('#tk').addEventListener('keydown', function (e) { if (e.key === 'Enter') $('#btEntrar').click(); });
+  $('#btTrocar').onclick = function () {
+    try { localStorage.removeItem(CHAVE_TOKEN); } catch (e) {}
+    abrirPortao('');
+  };
+
+  // ================================================================ avisos
+  var AVISOS = [], AVISOS_CARGA = [];   // os da carga ficam; os do desenho refazem a cada render
+  function aviso(titulo, corpo, amarela) { AVISOS.push({ t: titulo, c: corpo, a: amarela }); }
+  function pintarAvisos() {
+    $('#avisos').innerHTML = AVISOS.map(function (x) {
+      return '<div class="tarja' + (x.a ? ' amarela' : '') + '" role="status"><div class="t">' + esc(x.t) +
+        '</div>' + x.c + '</div>';
+    }).join('');
+  }
+  function bloqueia(titulo, corpo) {
+    AVISOS = [{ t: titulo, c: corpo }]; pintarAvisos();
+    $('#conteudo').hidden = true; $('#lendo').hidden = true;
+  }
+
+  // ================================================================ rede
+  function comPrazo(url, opts, ms) {
+    return new Promise(function (resolve, reject) {
+      var venceu = false;
+      var t = setTimeout(function () { venceu = true; reject(new Error('o Cofre não respondeu em ' + (ms / 1000) + 's')); }, ms);
+      fetch(url, opts)
+        .then(function (r) { return r.json(); })
+        .then(function (j) { if (!venceu) { clearTimeout(t); resolve(j); } })
+        .catch(function (e) { if (!venceu) { clearTimeout(t); reject(e); } });
+    });
+  }
+  function recusado(r) { return r && r.ok !== true && /token/i.test(String(r.error || '')); }
+
+  function carregar(mes) {
+    var tk = token();
+    if (!tk) { abrirPortao(''); return; }
+    $('#gate').hidden = true; $('#app').hidden = false;
+    $('#conteudo').hidden = true; $('#lendo').hidden = false;
+    AVISOS = []; pintarAvisos();
+    var url = API + '?app=controladoria&fn=dados' + (mes ? '&mes=' + encodeURIComponent(mes) : '') +
+              '&token=' + encodeURIComponent(tk);
+    comPrazo(url, { cache: 'no-store', credentials: 'omit' }, 60000)
+      .then(function (r) {
+        if (recusado(r)) {
+          try { localStorage.removeItem(CHAVE_TOKEN); } catch (e) {}
+          abrirPortao('Token recusado. Confira e digite de novo — o token do Painel não serve aqui.');
+          return;
+        }
+        if (!r || r.ok !== true) {
+          bloqueia('O Cofre respondeu, mas sem dado.', '<p>' + esc((r && r.error) || 'resposta vazia') + '</p>');
+          return;
+        }
+        montar(r);
+      })
+      .catch(function (e) {
+        bloqueia('Não consegui falar com o Cofre.',
+          '<p>' + esc(e.message || e) + '</p><p>Nenhum número aparece enquanto isso: tela vazia é melhor ' +
+          'que tela desatualizada com cara de atual.</p>');
+      });
+  }
+
+  // ================================================================ montagem
+  function montar(r) {
+    $('#lendo').hidden = true;
+    AVISOS = [];
+
+    /* GUARDA DE TRUNCAMENTO: `truncado` ausente é pior que true — rota que não sabe dizer se
+       cortou é indistinguível de rota que cortou. Nos dois casos, nada é desenhado. */
+    if (typeof r.truncado === 'undefined') {
+      bloqueia('Esta página não vai desenhar: a rota não diz se cortou a resposta.',
+        '<p>O <code>?app=controladoria&amp;fn=dados</code> respondeu sem o campo <code>truncado</code>. ' +
+        'O Cofre está servindo uma implantação antiga — republicar (Implantar ▸ Gerenciar ▸ ✏️ ▸ Nova versão).</p>');
+      return;
+    }
+    if (r.truncado === true) {
+      bloqueia('Esta página não vai desenhar: a resposta veio cortada.',
+        '<p>O Cofre devolveu <b>' + esc(r.n) + '</b> vendas de <b>' + esc(r.no_recorte) + '</b> no recorte. ' +
+        'Toda conta sairia sobre um pedaço, com cara de completa. Aumentar <code>CTL_TETO</code> em ' +
+        '<code>Controladoria.gs</code> e republicar.</p>');
+      return;
+    }
+
+    R = r;
+    F.mes = r.mes;
+    var d4 = r.d4sign || {};
+    D4OK = d4.estado === 'ok';
+
+    // ---- carimbos DA FOTO, nunca a hora do fetch
+    var hV = horasDesde(r.carimbo_vendas), hD = horasDesde(d4.carimbo);
+    $('#st-cofre').textContent = fmtCarimbo(r.carimbo_vendas);
+    $('#st-d4').textContent = fmtCarimbo(d4.carimbo);
+    $('#st-cofre-w').className = (hV === null || hV >= HORAS_VELHO_VENDAS) ? 'old' : '';
+    $('#st-d4-w').className = (hD === null || hD >= HORAS_VELHO_D4) ? 'old' : '';
+
+    if (hV === null) {
+      aviso('As vendas chegaram sem data.', '<p>Não dá para saber de quando é a cópia do Facilita ' +
+        '(<code>facilita.ultima_importacao</code> vazio na Config do Cofre).</p>', true);
+    } else if (hV >= HORAS_VELHO_VENDAS) {
+      aviso('A cópia das vendas tem mais de ' + HORAS_VELHO_VENDAS + ' horas.',
+        '<p>É de <b>' + esc(fmtCarimbo(r.carimbo_vendas)) + '</b>. Venda fechada depois disso ainda não ' +
+        'aparece aqui. A importação do Facilita roda de hora em hora — parada quer dizer que falhou.</p>', true);
+    }
+    if (!D4OK) {
+      var porque = d4.estado === 'vazia' ? 'a aba <code>Contratos_D4Sign</code> está vazia'
+        : d4.estado === 'ausente' ? 'a aba <code>Contratos_D4Sign</code> não existe no Cofre'
+        : 'a aba <code>Contratos_D4Sign</code> não pôde ser lida: ' + esc(d4.erro || '?');
+      aviso('Sem leitura dos contratos: ' + (d4.estado === 'vazia' ? 'o espelho da D4Sign está vazio.' : 'o espelho da D4Sign não foi lido.'),
+        '<p>Motivo: ' + porque + '. A trilha de contrato e as pernas de assinatura ficam em branco — ' +
+        '<b>não quer dizer "nenhum pendente"</b>. O lançamento no Ivertex segue normal.</p>');
+    } else if (hD === null || hD >= HORAS_VELHO_D4) {
+      aviso('O espelho da D4Sign tem mais de ' + HORAS_VELHO_D4 + ' horas.',
+        '<p>Última passada: <b>' + esc(fmtCarimbo(d4.carimbo)) + '</b>. A passada roda todo dia às 8h no PC ' +
+        'do Ricardo, e só com ele ligado e a sessão da D4Sign aberta. Os estados de contrato abaixo são ' +
+        '<b>daquele instante</b>' + (d4.ultimo_erro ? ' — último erro: ' + esc(d4.ultimo_erro) : '') + '.</p>', true);
+    }
+    if ((r.lancadas_sem_venda || []).length) {
+      aviso(plural(r.lancadas_sem_venda.length, 'lançamento no Ivertex sem venda viva', 'lançamentos no Ivertex sem venda viva') + '.',
+        '<p>Marcados como lançados e ausentes da Vendas_Facilita — estorno no ERP? Deal ' +
+        r.lancadas_sem_venda.map(function (x) { return '<b>' + esc(x.deal) + '</b> (' + esc(dbr(x.data_ivertex)) + ', ' + esc(x.quem) + ')'; }).join(' · ') +
+        '. Também viram linha <code>LANCADA_SEM_VENDA</code> na Divergencias.</p>');
+    }
+    if (r.mes !== 'tudo' && !r.pessoal && r.pessoal_motivo) {
+      aviso('Os dados de cadastro do cliente não vieram.', '<p>' + esc(r.pessoal_motivo) + '</p>', true);
+    }
+
+    // ---- índices por Deal ID
+    var ctl = {}, docs = {}, pes = {};
+    (r.controle || []).forEach(function (c) { ctl[Number(c['Deal ID'])] = c; });
+    (d4.contratos || []).forEach(function (c) { var k = Number(c['Deal ID']); (docs[k] = docs[k] || []).push(c); });
+    (r.pessoal || []).forEach(function (p) { pes[Number(p['Deal ID'])] = p; });
+
+    VENDAS = (r.vendas || []).map(function (o) {
+      var id = Number(o['Deal ID']);
+      var c = ctl[id];
+      var lanc = !!c && /^(SIM|TRUE)$/i.test(String(c['lancado']));
+      var q = String(o['Quadra'] || '').trim(), j = String(o['Jazigo'] || '').trim();
+      var v = {
+        id: id,
+        jaz: q && j ? q + '-' + j : (q || j || '—'),
+        cli: String(o['Cliente'] || '').trim() || '(sem nome)',
+        vend: String(o['Vendedor'] || '').trim() || 'Sem vendedor',
+        data: String(o['Data da Venda'] || '').slice(0, 10),
+        valor: Number(o['Valor Venda']) || 0,
+        mod: String(o['Modalidade'] || '').trim() || '—',
+        etapa: String(o['Etapa'] || '').trim(),
+        docs: docs[id] || [],
+        iv: { lancado: lanc, data: lanc ? String(c['data_ivertex'] || '') : '',
+              quem: c ? String(c['quem'] || '') : '', quando: c ? String(c['quando'] || '') : '' },
+        pes: pes[id] || null
+      };
+      v.ct = estadoContrato(v);
+      return v;
+    });
+
+    // ---- filtros que dependem do recorte
+    pintarMeses(r);
+    var selV = $('#f-vend'), vends = uniq(VENDAS.map(function (v) { return v.vend; }));
+    if (F.vend !== 'tudo' && vends.indexOf(F.vend) < 0) F.vend = 'tudo';
+    selV.innerHTML = '<option value="tudo">Todos</option>' + vends.map(function (n) {
+      return '<option' + (n === F.vend ? ' selected' : '') + '>' + esc(n) + '</option>';
+    }).join('');
+    var mods = ['Perpétuo', 'Temporário', 'Reserva'];
+    uniq(VENDAS.map(function (v) { return v.mod; })).forEach(function (m) { if (mods.indexOf(m) < 0) mods.push(m); });
+    if (F.mod !== 'tudo' && mods.indexOf(F.mod) < 0) F.mod = 'tudo';
+    $('#f-mod').innerHTML = '<option value="tudo">Todas</option>' + mods.map(function (m) {
+      return '<option' + (m === F.mod ? ' selected' : '') + '>' + esc(m) + '</option>';
+    }).join('');
+
+    $('#ft-voce').textContent = 'Você: ' + (r.voce || '?') + ' ·';
+    $('#ft-extra').textContent = D4OK && d4.sem_casar
+      ? ' · ' + plural(d4.sem_casar, 'documento da D4Sign sem venda casada', 'documentos da D4Sign sem venda casada') : '';
+
+    AVISOS_CARGA = AVISOS.slice();
+    $('#conteudo').hidden = false;
+    render();
+  }
+
+  function uniq(a) { return a.filter(function (x, i) { return a.indexOf(x) === i; }).sort(function (x, y) { return x.localeCompare(y, 'pt-BR'); }); }
+
+  /* Os dois meses mais recentes com venda, + o que está na tela, + Tudo. */
+  function pintarMeses(r) {
+    var ms = (r.competencias || []).map(function (c) { return c.mes; }).slice(0, 2);
+    if (r.mes !== 'tudo' && ms.indexOf(r.mes) < 0) ms.push(r.mes);
+    var g = $('#g-mes');
+    g.innerHTML = '<span class="flabel" title="mês da Data da Venda no Cofre">Competência</span>' +
+      ms.map(function (m) {
+        return '<button class="chip" data-mes="' + esc(m) + '" aria-pressed="' + (m === r.mes) + '">' + esc(rotuloMes(m)) + '</button>';
+      }).join('') +
+      '<button class="chip" data-mes="tudo" aria-pressed="' + (r.mes === 'tudo') + '" title="todas as competências — sem dado de cadastro do cliente">Tudo</button>';
+    [].forEach.call(g.querySelectorAll('.chip'), function (c) {
+      c.onclick = function () { if (c.dataset.mes !== F.mes) carregar(c.dataset.mes); };
+    });
+  }
+
+  /* O documento que representa a venda: o mais adiantado. Os outros vão para o detalhe. */
+  function estadoContrato(v) {
+    if (!D4OK) return { k: 'semleitura' };
+    if (!v.docs.length) return { k: 'nao_gerado' };
+    var rep = v.docs.slice().sort(function (a, b) { return rank(b) - rank(a); })[0];
+    var fase = String(rep['Fase'] || '').trim().toUpperCase();
+    var f = FASE[fase];
+    var primeiro = v.docs.map(function (d) { return String(d['Cadastro'] || ''); })
+      .filter(function (s) { return quando(s); }).sort()[0] || '';
+    return {
+      k: f ? f.k : 'extra', fase: fase || '(sem fase)', doc: rep,
+      cadastro: String(rep['Cadastro'] || ''), fim: String(rep['Finalizado em'] || ''),
+      assinadas: Number(rep['Assinadas']) || 0, total: Number(rep['Total']) || 0,
+      falta: String(rep['Falta assinar'] || '').split('·').map(function (s) { return s.trim(); }).filter(Boolean),
+      fraco: String(rep['Casou por'] || '') === 'jazigo no nome',
+      primeiroEnvio: primeiro,
+      outros: v.docs.length - 1
+    };
+  }
+  function rank(d) { var f = FASE[String(d['Fase'] || '').trim().toUpperCase()]; return f ? f.rank : 3.5; }
+
+  // ================================================================ filtros
+  function base() {
+    return VENDAS.filter(function (v) {
+      if (F.vend !== 'tudo' && v.vend !== F.vend) return false;
+      if (F.mod !== 'tudo' && v.mod !== F.mod) return false;
+      return true;
+    });
+  }
+  function filtrar(B) {
+    return B.filter(function (v) {
+      var k = v.ct.k;
+      if (F.sit === 'alancar' && v.iv.lancado) return false;
+      if (F.sit === 'lancadas' && !v.iv.lancado) return false;
+      if (F.sit === 'assinatura' && k !== 'aguardando') return false;
+      if (F.sit === 'semcontrato' && PEND.indexOf(k) < 0) return false;
+      return true;
+    }).sort(function (a, b) { return b.data.localeCompare(a.data) || b.id - a.id; });
+  }
+
+  // ================================================================ desenho
+  function render() {
+    if (!R) return;
+    AVISOS = AVISOS_CARGA.slice();
+    var B = base();
+    var T = function (id, txt) { $('#' + id).textContent = txt; };
+    var fila = B.filter(function (v) { return !v.iv.lancado; });
+    var lanc = B.filter(function (v) { return v.iv.lancado; });
+    var ass = B.filter(function (v) { return v.ct.k === 'aguardando'; });
+    var pend = B.filter(function (v) { return PEND.indexOf(v.ct.k) >= 0; });
+    var assd = B.filter(function (v) { return v.ct.k === 'assinado'; });
+    var extras = {};
+    B.forEach(function (v) { if (v.ct.k === 'extra') (extras[v.ct.fase] = extras[v.ct.fase] || []).push(v); });
+
+    // ---- cartões
+    T('k-tot', B.length); T('k-totv', brlc(soma(B)));
+    T('k-fila', fila.length); T('k-filav', brlc(soma(fila)));
+    var velho = Math.max.apply(null, [-1].concat(fila.map(function (v) { return idade(v.data); }).filter(function (n) { return n !== null; })));
+    var eo = $('#k-filaold');
+    eo.textContent = fila.length ? (velho >= 0 ? 'a mais antiga vendida há ' + plural(velho, 'dia', 'dias') : 'sem data de venda') : 'fila zerada';
+    eo.className = 'f' + (fila.length && velho >= DIAS_ALERTA ? ' alert' : '');
+    T('k-lanc', lanc.length);
+    T('k-lancp', B.length ? Math.round(lanc.length / B.length * 100) + '%' : '0%');
+    T('k-lancv', brlc(soma(lanc)));
+
+    var ka = $('#k-assinold');
+    if (!D4OK) {
+      T('k-assin', '—'); ka.textContent = 'sem leitura da D4Sign'; ka.className = 'f warn';
+      T('k-risco', '—'); T('k-riscotxt', 'sem leitura da D4Sign');
+    } else {
+      T('k-assin', ass.length);
+      var av = Math.max.apply(null, [-1].concat(ass.map(function (v) { return idade(v.ct.cadastro); }).filter(function (n) { return n !== null; })));
+      ka.textContent = ass.length ? 'o mais antigo parado há ' + plural(Math.max(0, av), 'dia', 'dias') : 'nenhum pendente';
+      ka.className = 'f ' + (ass.length && av >= DIAS_ALERTA ? 'alert' : 'warn');
+      var risco = lanc.filter(function (v) { return v.ct.k !== 'assinado'; });
+      T('k-risco', risco.length);
+      T('k-riscotxt', risco.length ? 'hoje não trava nada — o número existe para o dia em que travar'
+                                   : 'todas as lançadas estão com contrato assinado');
+    }
+
+    // ---- as três pernas (mediana; o que está em aberto ao lado)
+    var pintaPerna = function (id, med, nota, alerta) {
+      var el = $('#' + id);
+      el.className = 'med' + (med && med.txt ? ' txt' : '');
+      el.innerHTML = !med ? '—' : med.txt ? esc(med.txt) : esc(med.n) + '<small>' + esc(med.u) + '</small>';
+      var n = $('#' + id + 'n'); n.textContent = nota; n.className = 'note' + (alerta ? ' alert' : '');
+    };
+    var emDias = function (m) {   // pernas de calendário (a Data da Venda não tem hora)
+      if (m === null) return null;
+      if (m < 1) return { txt: 'no mesmo dia' };
+      var r = Math.round(m); return { n: r, u: r === 1 ? 'dia' : 'dias' };
+    };
+    var abertoTxt = function (lista, desde, rot) {
+      var ids = lista.map(function (v) { return idade(desde(v)); }).filter(function (n) { return n !== null; });
+      var mx = ids.length ? Math.max.apply(null, ids) : null;
+      return {
+        txt: lista.length ? plural(lista.length, rot[0], rot[1]) + (mx !== null ? ' · o mais antigo há ' + plural(mx, 'dia', 'dias') : '') : '',
+        alerta: mx !== null && mx >= DIAS_ALERTA
+      };
+    };
+
+    if (!D4OK) {
+      pintaPerna('t1', null, 'sem leitura da D4Sign', false);
+      pintaPerna('t2', null, 'sem leitura da D4Sign', false);
+    } else {
+      // Perna 1 — Comercial: Data da Venda -> primeiro Cadastro na D4Sign
+      var p1 = B.filter(function (v) { return v.ct.primeiroEnvio; })
+                .map(function (v) { return Math.max(0, diasEntre(v.data, v.ct.primeiroEnvio)); });
+      var sem = B.filter(function (v) { return v.ct.k === 'nao_gerado' || (v.ct.k !== 'semleitura' && !v.ct.primeiroEnvio); });
+      var a1 = abertoTxt(sem, function (v) { return v.data; }, ['sem contrato', 'sem contrato']);
+      pintaPerna('t1', emDias(mediana(p1)),
+        plural(p1.length, 'contrato enviado', 'contratos enviados') + (a1.txt ? ' · em aberto: ' + a1.txt : ' · nenhum em aberto'), a1.alerta);
+
+      /* Perna 2 — Cliente e casa: Cadastro -> Finalizado em. O `Finalizado em` é DERIVADO do
+         texto da fase ("LEVOU 2 DIAS"): a precisão é de dia. Abaixo de 24 h escreve-se
+         "menos de 1 dia", nunca "0 dias". Contrato que nunca assinou não entra aqui. */
+      var p2 = assd.map(function (v) {
+        var a = quando(v.ct.cadastro), b = quando(v.ct.fim);
+        return a && b ? Math.max(0, b - a) : null;
+      }).filter(function (x) { return x !== null; });
+      var m2 = mediana(p2);
+      var med2 = m2 === null ? null : m2 < 864e5 ? { txt: 'menos de 1 dia' }
+        : (function (d) { return { n: d, u: d === 1 ? 'dia' : 'dias' }; })(Math.floor(m2 / 864e5));
+      var abertos2 = B.filter(function (v) { return v.ct.cadastro && v.ct.k !== 'assinado' && v.ct.k !== 'cancelado'; });
+      var a2 = abertoTxt(abertos2, function (v) { return v.ct.cadastro; }, ['em aberto', 'em aberto']);
+      pintaPerna('t2', med2,
+        plural(p2.length, 'assinado', 'assinados') + (a2.txt ? ' · ' + a2.txt : ' · nenhum em aberto'), a2.alerta);
+    }
+
+    // Perna 3 — Controladoria: Data da Venda -> data_ivertex
+    var p3 = lanc.map(function (v) { var d = diasEntre(v.data, v.iv.data); return d === null ? null : Math.max(0, d); });
+    var a3 = abertoTxt(fila, function (v) { return v.data; }, ['na fila', 'na fila']);
+    pintaPerna('t3', emDias(mediana(p3)),
+      plural(p3.filter(function (x) { return x !== null; }).length, 'lançada', 'lançadas') + (a3.txt ? ' · ' + a3.txt : ' · fila zerada'), a3.alerta);
+
+    // ---- trilhas
+    var passo = function (cls, n, max, rot) {
+      return '<div class="step ' + cls + '"><div class="bar"><i style="width:' + (n / max * 100) + '%"></i></div>' +
+        '<div class="n">' + n + '</div><div class="l">' + esc(rot) + '</div></div>';
+    };
+    var m1 = Math.max(1, fila.length, lanc.length);
+    $('#trilha-iv').innerHTML = passo('s3', fila.length, m1, 'A lançar') + passo('s4', lanc.length, m1, 'Lançadas');
+
+    if (!D4OK) {
+      $('#trilha-ct').innerHTML = '<div class="semleitura"><b>Sem leitura da D4Sign.</b> Nada aqui quer dizer ' +
+        '"nenhum pendente" — o espelho de contratos não foi lido (ver o aviso acima).</div>';
+    } else {
+      var ext = Object.keys(extras);
+      var m2x = Math.max.apply(null, [1, pend.length, ass.length, assd.length].concat(ext.map(function (k) { return extras[k].length; })));
+      $('#trilha-ct').innerHTML = '<div class="steps">' +
+        passo('s1', pend.length, m2x, 'Sem contrato ou signatário') +
+        passo('s2', ass.length, m2x, 'Aguardando assinatura') +
+        passo('s4', assd.length, m2x, 'Assinado') +
+        ext.map(function (k) { return passo('extra', extras[k].length, m2x, k.charAt(0) + k.slice(1).toLowerCase()); }).join('') +
+        '</div>';
+      // INVARIANTE: toda venda do recorte está em exatamente um degrau
+      var fecha = pend.length + ass.length + assd.length + ext.reduce(function (s, k) { return s + extras[k].length; }, 0);
+      if (fecha !== B.length) {
+        AVISOS.push({ t: 'As contagens da trilha de contrato não fecham.',
+          c: '<p>' + fecha + ' nos degraus contra ' + B.length + ' vendas no recorte. Algum estado de contrato ' +
+             'não foi classificado — os números da trilha estão errados até isso ser corrigido.</p>' });
+      }
+    }
+
+    // ---- contadores das pílulas de situação
+    T('n-alancar', fila.length);
+    T('n-assin', D4OK ? ass.length : '—');
+    T('n-sem', D4OK ? pend.length : '—');
+    T('n-lanc', lanc.length);
+
+    // ---- tabela
+    var L = filtrar(B);
+    var box = $('#rows'); box.textContent = '';
+    L.forEach(function (v) { box.appendChild(linha(v)); });
+    $('#empty').hidden = L.length > 0;
+    pintarAvisos();
+  }
+
+  function pill(v) {
+    var c = v.ct;
+    switch (c.k) {
+      case 'semleitura': return ['p-mute', 'Sem leitura da D4Sign'];
+      case 'nao_gerado': return ['p-crit', 'Contrato não gerado'];
+      case 'cancelado': return ['p-crit', 'Contrato cancelado'];
+      case 'sem_signatario': return ['p-crit', 'Sem signatário'];
+      case 'editando': return ['p-crit', 'Em edição na D4Sign'];
+      case 'assinado': return ['p-ok', 'Assinado · ' + dbr(c.fim)];
+      case 'aguardando':
+        var d = idade(c.cadastro);
+        if (d === null) return ['p-warn', 'Aguardando assinatura'];
+        return [d >= DIAS_ALERTA ? 'p-crit' : 'p-warn', d === 0 ? 'Aguardando · enviado hoje' : 'Aguardando há ' + plural(d, 'dia', 'dias')];
+      default: return ['p-mute', c.fase.charAt(0) + c.fase.slice(1).toLowerCase()];
+    }
+  }
+
+  function linha(v) {
+    var pc = pill(v), c = v.ct;
+    var el = document.createElement('div');
+    el.className = 'row'; el.dataset.open = 'false';
+    var tot = Math.min(c.total || 0, 10);
+    var barras = '';
+    for (var i = 0; i < tot; i++) barras += '<b class="' + (i < c.assinadas ? 'on' : '') + '"></b>';
+    el.innerHTML =
+      '<div class="row-head" role="button" tabindex="0" aria-expanded="false">' +
+        '<span class="caret">▶</span>' +
+        '<span class="jaz">' + esc(v.jaz) + '</span>' +
+        '<span class="cli">' + esc(v.cli) + '<span>deal ' + esc(v.id) + ' · ' + esc(v.mod) + '</span></span>' +
+        '<span class="dim">' + esc(v.vend) + '</span>' +
+        '<span class="num dim">' + esc(dbr(v.data)) + '</span>' +
+        '<span class="num">' + esc(brlc(v.valor)) + '</span>' +
+        '<span><span class="pill ' + pc[0] + '"><i></i>' + esc(pc[1]) + '</span>' +
+          (c.total ? '<span class="sig">' + barras + '</span><span class="sigtxt">' + c.assinadas + ' de ' + c.total + ' assinaram' +
+            (c.fraco ? ' · <span class="fraco" title="Documento casado com a venda só pelo jazigo escrito no nome — o casamento mais fraco. O normal é pelo e-mail do cliente.">pelo jazigo no nome</span>' : '') +
+          '</span>' : (c.fraco ? '<span class="sigtxt fraco" title="Documento casado com a venda só pelo jazigo escrito no nome — o casamento mais fraco.">pelo jazigo no nome</span>' : '')) +
+        '</span>' +
+        '<span class="ivc"></span>' +
+      '</div>' +
+      '<div class="detail" hidden></div>';
+
+    // interruptor do Ivertex
+    var tog = document.createElement('button');
+    tog.className = 'tog'; tog.type = 'button';
+    var pintar = function (erro) {
+      tog.setAttribute('aria-pressed', String(v.iv.lancado));
+      tog.innerHTML = '<span class="sw"></span><span>' + (v.iv.lancado ? 'Lançado' : 'Lançar') +
+        '<small' + (erro ? ' class="erro"' : '') + '>' + esc(erro || (v.iv.lancado ? dbr(v.iv.data) + ' · ' + v.iv.quem : 'marcar como lançado')) + '</small></span>';
+    };
+    pintar();
+    tog.addEventListener('click', function (e) {
+      e.stopPropagation();
+      var quer = !v.iv.lancado;
+      if (!quer && !confirm('Desmarcar o lançamento do deal ' + v.id + ' (' + v.jaz + ')?\n\n' +
+          'Só faça isso se ele NÃO está lançado no Ivertex. A data do lançamento é apagada; o registro guarda quem desmarcou e quando.')) return;
+      marcar(v, quer, tog, pintar);
+    });
+    el.querySelector('.ivc').appendChild(tog);
+
+    var head = el.querySelector('.row-head'), det = el.querySelector('.detail');
+    var abrir = function () {
+      var ab = el.dataset.open !== 'true';
+      el.dataset.open = String(ab); head.setAttribute('aria-expanded', String(ab));
+      det.hidden = !ab;
+      if (ab && !det.dataset.pronto) { det.innerHTML = detalhe(v); det.dataset.pronto = '1'; }
+    };
+    head.addEventListener('click', abrir);
+    head.addEventListener('keydown', function (e) {
+      if (e.target !== head) return;
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); abrir(); }
+    });
+    return el;
+  }
+
+  function marcar(v, quer, tog, pintar) {
+    var tk = token();
+    if (!tk) { abrirPortao(''); return; }
+    tog.disabled = true;
+    tog.querySelector('small').textContent = 'gravando…';
+    comPrazo(API + '?app=controladoria&fn=marcar', {
+      method: 'POST', cache: 'no-store', credentials: 'omit',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },   // sem preflight de CORS
+      body: JSON.stringify({ token: tk, deal: v.id, lancado: quer })
+    }, 45000).then(function (r) {
+      tog.disabled = false;
+      if (recusado(r)) { try { localStorage.removeItem(CHAVE_TOKEN); } catch (e) {} abrirPortao('Token recusado ao gravar. Digite de novo.'); return; }
+      if (!r || r.ok !== true) { pintar('não gravou: ' + ((r && r.error) || '?')); return; }
+      v.iv = { lancado: r.lancado, data: r.data_ivertex || '', quem: r.quem || '', quando: r.quando || '' };
+      render();
+    }).catch(function (e) {
+      tog.disabled = false;
+      pintar('não gravou: ' + (e.message || e));
+    });
+  }
+
+  function detalhe(v) {
+    var c = v.ct, p = v.pes;
+    var cliente;
+    if (R.mes === 'tudo') cliente = '<p class="dim">Cadastro do cliente só aparece com a competência de um mês escolhida.</p>';
+    else if (!p) cliente = '<p class="dim">Sem cadastro na Vendas_Facilita_Pessoal para este deal.</p>';
+    else {
+      var end = [String(p['Logradouro'] || '').trim() + (p['Número'] ? ', ' + p['Número'] : '') + (p['Complemento'] ? ' ' + p['Complemento'] : ''),
+                 p['Bairro'], [p['Cidade'], p['UF']].filter(Boolean).join('/'), p['CEP'] ? 'CEP ' + p['CEP'] : '']
+        .map(function (s) { return String(s || '').trim(); }).filter(Boolean).join(' · ');
+      cliente = '<p>CPF ' + esc(p['CPF'] || '—') + '</p><p>' + esc(p['Celular'] || '—') + '</p><p>' + esc(p['E-mail'] || '—') + '</p>' +
+                '<p>' + esc(end || 'sem endereço') + '</p>';
+    }
+
+    var assin;
+    if (c.k === 'semleitura') assin = '<p class="dim">Sem leitura da D4Sign nesta carga.</p>';
+    else if (c.k === 'nao_gerado') assin = '<p class="dim">Nenhum documento na D4Sign casado com esta venda.</p>';
+    else {
+      assin = '<p>Fase <b>' + esc(c.fase.charAt(0) + c.fase.slice(1).toLowerCase()) + '</b></p>' +
+        '<p>Enviado em <b>' + esc(dbr(c.cadastro)) + '</b>' + (c.fim ? ' · assinado em <b>' + esc(dbr(c.fim)) + '</b>' : '') + '</p>';
+      if (c.total) assin += '<p>' + c.assinadas + ' de ' + c.total + ' assinaram</p>';
+      if (c.k !== 'assinado' && c.falta.length) {
+        assin += '<ul class="falta">' + c.falta.map(function (f) {
+          var papel = f === 'CLIENTE' ? 'cliente' : f === 'TESTEMUNHA' ? 'testemunha' : 'da casa';
+          var nome = f === 'CLIENTE' ? v.cli : f === 'TESTEMUNHA' ? 'Testemunha' : f;
+          return '<li>' + esc(nome) + ' <em>' + papel + '</em></li>';
+        }).join('') + '</ul>';
+      }
+      if (c.k === 'sem_signatario') assin += '<p class="dim">Documento sem signatário cadastrado — não anda sozinho.</p>';
+      if (c.outros) assin += '<p class="dim">+ ' + plural(c.outros, 'outro documento', 'outros documentos') + ' desta venda na D4Sign</p>';
+      if (c.fraco) assin += '<p class="dim fraco">Casado pelo jazigo no nome do documento, não pelo e-mail.</p>';
+    }
+
+    return '<div class="dgrid">' +
+      '<div class="dblk"><h4>Cliente</h4><p><b>' + esc(v.cli) + '</b></p>' + cliente + '</div>' +
+      '<div class="dblk"><h4>Venda</h4>' +
+        '<p>Deal <b>' + esc(v.id) + '</b> · ' + esc(v.mod) + '</p><p>Jazigo <b>' + esc(v.jaz) + '</b></p>' +
+        '<p>Fechada em <b>' + esc(dbr(v.data)) + '</b>' + (v.etapa ? ' · etapa <b>' + esc(v.etapa) + '</b>' : '') + '</p>' +
+        '<p>Valor <b>' + esc(brl(v.valor)) + '</b></p><p>Vendedor <b>' + esc(v.vend) + '</b></p></div>' +
+      '<div class="dblk"><h4>Assinaturas</h4>' + assin + '</div>' +
+      '<div class="dblk"><h4>Ivertex</h4>' +
+        (v.iv.lancado ? '<p>Lançado em <b>' + esc(dbr(v.iv.data)) + '</b> por <b>' + esc(v.iv.quem) + '</b></p>'
+                      : '<p>Ainda não lançado</p>' + (v.iv.quem ? '<p class="dim">desmarcado por ' + esc(v.iv.quem) + ' em ' + esc(fmtCarimbo(v.iv.quando)) + '</p>' : '')) +
+      '</div>' +
+    '</div>';
+  }
+
+  // ================================================================ eventos
+  [].forEach.call(document.querySelectorAll('.chip[data-f="sit"]'), function (c) {
+    c.addEventListener('click', function () {
+      [].forEach.call(document.querySelectorAll('.chip[data-f="sit"]'), function (o) { o.setAttribute('aria-pressed', 'false'); });
+      c.setAttribute('aria-pressed', 'true'); F.sit = c.dataset.v; render();
+    });
+  });
+  $('#f-vend').addEventListener('change', function (e) { F.vend = e.target.value; render(); });
+  $('#f-mod').addEventListener('change', function (e) { F.mod = e.target.value; render(); });
+
+  carregar(null);
+})();
+</script>
+</body>
+</html>
