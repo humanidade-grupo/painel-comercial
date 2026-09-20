@@ -2214,7 +2214,14 @@ function secaoComoPaga(g, dados, ym) {
       return '<div class="bloco"><div class="per">' + p[1] + '</div><div class="n">' +
         curto(v) + '</div><div class="st">' + esc(faixaMeses(Number(p[2]))) +
         ' · sem venda nova</div></div>';
-    }).join('') + '</div>' +
+    }).join('') +
+    /* O QUARTO BLOCO (20/09/26, pedido do Ricardo): os três primeiros são
+       recortes; este é o contrato inteiro até a última parcela — a carteira de
+       recebíveis que já existe, do mês que vem até o fim dela. É o número que
+       diz o tamanho real do que foi vendido a prazo. */
+    '<div class="bloco"><div class="per">Tudo</div><div class="n">' + curto(pr.total) +
+    '</div><div class="st">' + esc(faixaMeses(pmz.length)) + ' · a carteira inteira</div></div>' +
+    '</div>' +
     '<table class="placar" style="margin-top:12px"><tr><th>Total a vencer</th>' +
     '<th class="num">' + rs(pr.total) + '</th><th></th></tr>' +
     '<tr><td><i class="dot" style="background:' + C.blue + '"></i>Cartão</td>' +
