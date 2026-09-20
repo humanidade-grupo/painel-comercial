@@ -1769,6 +1769,55 @@ function secaoComoPaga(g, dados, ym) {
     'pagar — o Cofre registra vencimento, não baixa.</div></div>');
   g.appendChild(cVend); g.appendChild(cNat);
 
+  /* LIQUIDEZ MÊS A MÊS (20/09/26). A tabela que respondeu "qual foi o melhor
+     mês" virou bloco: o mesmo dado, sem precisar de alguém para montá-lo. Duas
+     barras por mês — o que foi vendido e o que entrou na assinatura — e, em
+     cima, o percentual que uma é da outra. É a medida de liquidez da SAFRA:
+     quanto de cada real vendido naquele mês virou dinheiro na hora da venda.
+     Nada aqui depende da carteira; é só o mês contra ele mesmo. */
+  g.appendChild(el('<div class="card s12"><span class="selo venda">venda</span>' +
+    '<h3>Liquidez mês a mês</h3>' +
+    '<div class="why">quanto de cada real vendido entrou já na assinatura · barra clara = ' +
+    'vendido no mês · barra cheia = entrou na assinatura · milhares de reais</div>' +
+    '<div id="psCpLiq"></div>' +
+    '<div class="why rodape">O percentual é a <b>liquidez da safra</b>: o mês contra ele ' +
+    'mesmo, sem carteira nenhuma na conta. Mês que vende muito a prazo aparece com barra alta ' +
+    'e percentual baixo — vendeu bem e trouxe pouco agora. O contrário também: um mês menor ' +
+    'pode ser o mais líquido da série. Vender mais e vender líquido são duas metas, e esta ' +
+    'barra mostra quando elas discordam.</div></div>'));
+
+  (function () {
+    if (!safra.length) return;
+    var w = 1000, h = 250, svg = S(w, h), y0 = 196, alt = 150;
+    var topo = 0;
+    safra.forEach(function (x) { topo = Math.max(topo, x.vgv); });
+    topo = topo * 1.12 || 1;
+    function yy(v) { return y0 - (v / topo) * alt; }
+    [0, topo / 2, topo].forEach(function (v) {
+      N('line', { x1: 46, y1: yy(v), x2: w - 6, y2: yy(v), stroke: C.grid }, svg);
+      T(40, yy(v) + 3.5, fN(v / 1000, 0), 'axis-t', 'end', svg);
+    });
+    var passo = (w - 60) / safra.length, larg = Math.min(46, passo / 3.2);
+    safra.forEach(function (x, i) {
+      var cx = 46 + passo * (i + .5);
+      var pct = x.vgv ? x.ato / x.vgv * 100 : 0;
+      var b1 = N('rect', { x: cx - larg - 3, y: yy(x.vgv), width: larg, height: y0 - yy(x.vgv),
+        rx: 3, fill: C.gray }, svg);
+      var b2 = N('rect', { x: cx + 3, y: yy(x.ato), width: larg, height: y0 - yy(x.ato),
+        rx: 3, fill: C.accent }, svg);
+      var tip = '<b>' + esc(ymLabel(ymN(x.ym))) + '</b><br><span>vendido ' + fBRL(x.vgv) +
+        ' em ' + fN(x.vendas) + ' vendas<br>na assinatura ' + fBRL(x.ato) + ' · ' +
+        fPct(pct, 1) + '<br>ainda a receber ' + fBRL(x.a_receber || 0) + '</span>';
+      b1.dataset.tip = tip; b2.dataset.tip = tip;
+      T(cx - larg / 2 - 3, yy(x.vgv) - 6, fN(x.vgv / 1000, 0), 'axis-t', 'middle', svg);
+      T(cx + larg / 2 + 3, yy(x.ato) - 6, fN(x.ato / 1000, 0), 'axis-t', 'middle', svg);
+      T(cx, 216, ymLabel(ymN(x.ym)), 'axis-t', 'middle', svg);
+      T(cx, 236, fPct(pct, 0), 'val-t', 'middle', svg);
+    });
+    T(46, 236, 'liquidez', 'axis-t', 'start', svg);
+    $('#psCpLiq').appendChild(svg); bindTips(svg);
+  })();
+
   /* DINHEIRO NOVO × CARTEIRA — o corte que o gestor pediu em 19/09.
      O mês recebe de duas origens que não se parecem: venda fechada agora (o
      comercial produziu) e parcela de venda antiga (a carteira paga sozinha).
@@ -1980,7 +2029,7 @@ function secaoComoPaga(g, dados, ym) {
       var linhas = K.recebimento.por_mes || [];
       var cont = $('#psCpFonteSerie'); cont.innerHTML = '';
       if (!linhas.length) return;
-      var w = 1000, h = 150, svg = S(w, h), y0 = 108, alt = 86;
+      var w = 1000, h = 152, svg = S(w, h), y0 = 108, alt = 74;
       var topo = 0;
       linhas.forEach(function (m) { topo = Math.max(topo, (m.novo || 0) + (m.carteira || 0)); });
       topo = topo * 1.08 || 1;
@@ -1989,6 +2038,10 @@ function secaoComoPaga(g, dados, ym) {
         N('line', { x1: 44, y1: yy, x2: w - 6, y2: yy, stroke: C.grid }, svg);
         T(38, yy + 3.5, fN(v / 1000, 0), 'axis-t', 'end', svg);
       });
+      N('rect', { x: 50, y: 20, width: 9, height: 9, rx: 3, fill: C.accent }, svg);
+      T(64, 28, 'venda nova', 'lab-t', 'start', svg);
+      N('rect', { x: 150, y: 20, width: 9, height: 9, rx: 3, fill: C.gray }, svg);
+      T(164, 28, 'carteira', 'lab-t', 'start', svg);
       var passo = (w - 56) / linhas.length;
       linhas.forEach(function (m, i) {
         var x = 50 + passo * i + 3, bw = Math.max(passo - 12, 6);
@@ -2002,8 +2055,14 @@ function secaoComoPaga(g, dados, ym) {
         T(x + bw / 2, y0 - hn - hc - 5, tt ? Math.round(nv / tt * 100) + '%' : '–',
           'val-t', 'middle', svg);
         T(x + bw / 2, 126, ymLabel(ymN(m.ym)), 'axis-t', 'middle', svg);
+        /* A PREVISIBILIDADE SENDO CONSTRUÍDA (20/09/26): embaixo de cada mês,
+           quanto do caixa NÃO dependeu de vender de novo. É o número que sobe
+           sozinho quando a carteira cresce — e é ele, não o total, que diz se
+           o mês seguinte já nasce com chão. */
+        T(x + bw / 2, 140, tt ? 'carteira ' + Math.round(ct / tt * 100) + '%' : '',
+          'axis-t', 'middle', svg);
       });
-      T(50, 144, '% em cima de cada barra = quanto daquele mês veio de venda nova',
+      T(50, 14, '% em cima da barra = veio de venda nova  ·  embaixo = veio da carteira',
         'axis-t', 'start', svg);
       cont.appendChild(svg); bindTips(svg);
     })();
