@@ -119,6 +119,17 @@
      e, esticado na faixa de 12 colunas, escala a fonte junto — o teto segura a
      proporção em que ele foi desenhado */
   .barra320{max-width:360px}   /* mesma escala das barras dos cards de 4 colunas */
+  /* SELO DE RÉGUA (19/09/26). A tela mistura duas perguntas — o que o mês
+     VENDEU e o dinheiro que ficou DISPONÍVEL nele — e quem lê pela primeira
+     vez não tem como saber qual é qual. Agora cada caixa de número carrega o
+     selo da régua a que pertence, e a seção diz o período. */
+  .selo{display:inline-flex;align-items:center;gap:5px;font-size:9.5px;font-weight:700;
+    letter-spacing:.08em;text-transform:uppercase;border-radius:6px;padding:3px 7px;
+    margin:0 0 8px}
+  .selo.venda{color:var(--accent);background:rgba(192,135,8,.14)}
+  .selo.caixa{color:var(--blue);background:rgba(74,143,224,.14)}
+  .sect .tot{font-size:11.5px;color:var(--ink2);font-variant-numeric:tabular-nums}
+  .sect .tot b{color:var(--ink);font-weight:700}
   .delta{font-size:12px;font-weight:600}
   .delta.up{color:#2fbf4f}.delta.down{color:#e46a6a}.delta.flat{color:var(--ink2)}
   .delta .vs{color:var(--muted);font-weight:400}
@@ -1609,18 +1620,42 @@ function secaoComoPaga(g, dados, ym) {
      o Ricardo leu. Agora o mês manda aqui também; só o Programado continua
      fora, e por um motivo que se escreve: parcela a vencer não tem versão
      retroativa. */
-  var CERTEZA = [['Entrou de fato', 'a_vista', 'pago na assinatura da venda',
-    'c-fato', '● fato — não há venda sem pagamento no ato'],
-   ['Cartão', 'cartao', 'parcelas já disponíveis, em débito automático',
-    'c-quase', '● quase fato — debita sozinho'],
-   ['Carnê', 'carne', 'boletos vencidos no período',
-    'c-prev', '● previsto — o Cofre não tem baixa']];
-  g.appendChild(el('<div class="card s3 tile"><h3>Receita contratada</h3>' +
-    '<div class="why" id="psCpTWhy"></div><div class="val" id="psCpTVal"></div>' +
-    '<div class="st" id="psCpTSt"></div></div>'));
+  /* DUAS RÉGUAS, DUAS SEÇÕES (19/09/26). Antes eram quatro cards em fila: o
+     primeiro falava do que o mês VENDEU e os outros três, do dinheiro que ficou
+     DISPONÍVEL — sem nada dizendo isso. Quem leu de fora entendeu que os quatro
+     eram do mesmo assunto, e não são: os três de caixa repartem um bolo só, que
+     nada tem a ver com o primeiro. Agora cada régua tem sua faixa, e o total do
+     bolo fica escrito no título dela. */
+  var CERTEZA = [
+    ['Pago na assinatura', 'a_vista',
+     'a parcela do ato da venda, com dinheiro disponível neste período',
+     'c-fato', '● o mais certo que esta tela tem: não existe venda sem ele'],
+    ['Parcelas no cartão', 'cartao',
+     'cobradas automaticamente pela operadora (crédito ou débito — o Cofre não separa)',
+     'c-quase', '● cobra sozinho, mas o Cofre não registra o pagamento'],
+    ['Parcelas no carnê', 'carne',
+     'boletos com data de vencimento dentro do período',
+     'c-prev', '● depende de o cliente pagar — e isso o Cofre não sabe']];
+
+  g.appendChild(el('<div class="sect"><h2 id="psCpSecVenda">O que o período vendeu</h2>' +
+    '<div class="ln"></div><span class="tag">valor de face menos desconto, no mês da assinatura</span></div>'));
+  g.appendChild(el('<div class="card s4 tile"><span class="selo venda" id="psCpSelo1">venda</span>' +
+    '<h3>Receita contratada</h3><div class="why" id="psCpTWhy"></div>' +
+    '<div class="val" id="psCpTVal"></div><div class="st" id="psCpTSt"></div></div>'));
+  g.appendChild(el('<div class="card s4 tile"><span class="selo venda">venda</span>' +
+    '<h3>Vendas</h3><div class="why">contratos assinados no período · cortesia conta venda e ' +
+    'não conta valor</div><div class="val" id="psCpTQtd"></div>' +
+    '<div class="st" id="psCpTQtdSt"></div></div>'));
+  g.appendChild(el('<div class="card s4 tile"><span class="selo venda">venda</span>' +
+    '<h3>Jazigo mediano</h3><div class="why">metade das vendas acima, metade abaixo</div>' +
+    '<div class="val" id="psCpTMed"></div>' +
+    '<div class="st">mediana, não média: um jazigo caro não puxa o número</div></div>'));
+
+  g.appendChild(el('<div class="sect"><h2>O dinheiro que ficou disponível</h2><div class="ln"></div>' +
+    '<span class="tot" id="psCpSecCaixa"></span></div>'));
   CERTEZA.forEach(function (t, i) {
-    g.appendChild(el('<div class="card s3 tile"><h3>' + esc(t[0]) + '</h3>' +
-      '<div class="why">' + esc(t[2]) + '</div>' +
+    g.appendChild(el('<div class="card s4 tile"><span class="selo caixa">caixa</span>' +
+      '<h3>' + esc(t[0]) + '</h3><div class="why">' + esc(t[2]) + '</div>' +
       '<div class="val" id="psCpN' + i + '"></div>' +
       '<div class="certeza ' + t[3] + '">' + esc(t[4]) + '</div></div>'));
   });
@@ -1657,18 +1692,30 @@ function secaoComoPaga(g, dados, ym) {
              : (ymLabel(ymN(dentro[0])) + ' a ' + ymLabel(ymN(dentro[dentro.length - 1])));
     return r;
   }
-  function pintaTiles(chave) {
+  function pintaTiles(chave, mediana) {
     var p = somaPeriodo(chave);
-    var vgv = p.vgv, vendas = p.vendas, rec = p, tot = p.total, rotulo = p.rotulo;
-    $('#psCpTWhy').textContent = fN(vendas) + ' vendas · ' + rotulo;
-    $('#psCpTVal').textContent = rs(vgv);
-    /* a cortesia só aparece onde ela é contada: no total, não no mês */
+    var tot = p.total;
+    /* FAIXA DA VENDA: tudo aqui é do mês em que o contrato foi assinado */
+    $('#psCpSecVenda').textContent = 'O que ' +
+      (p.meses.length === 1 ? esc(p.rotulo) : 'o período') + ' vendeu';
+    $('#psCpSelo1').textContent = 'venda · ' + p.rotulo;
+    $('#psCpTWhy').textContent = 'contratado em ' + p.rotulo;
+    $('#psCpTVal').textContent = rs(p.vgv);
     $('#psCpTSt').textContent = (chave === 'tudo' && K.base.cortesias)
       ? fN(K.base.cortesias) + ' cortesia(s) contam venda e ficam fora do valor'
-      : 'recebido no período: ' + rs(tot);
+      : 'não é caixa: é o que foi assinado no período';
+    $('#psCpTQtd').textContent = fN(p.vendas);
+    $('#psCpTQtdSt').textContent = p.vendas
+      ? 'ticket médio de ' + rs(p.vgv / p.vendas) : '—';
+    $('#psCpTMed').textContent = rs((mediana && mediana.ticket) || 0);
+
+    /* FAIXA DO CAIXA: os três repartem UM bolo, e o bolo fica escrito no
+       título da faixa — era a pergunta que o Ricardo fez sobre os 66% */
+    $('#psCpSecCaixa').innerHTML = 'em ' + esc(p.rotulo) + ' · <b>' + rs(tot) +
+      '</b> — os três cartões abaixo repartem este total';
     CERTEZA.forEach(function (t, i) {
-      $('#psCpN' + i).innerHTML = rs(rec[t[1]]) + ' <small>· ' +
-        fPct(tot ? rec[t[1]] / tot * 100 : 0, 0) + '</small>';
+      $('#psCpN' + i).innerHTML = rs(p[t[1]]) + ' <small>· ' +
+        fPct(tot ? p[t[1]] / tot * 100 : 0, 0) + ' do total</small>';
     });
   }
 
@@ -1676,7 +1723,8 @@ function secaoComoPaga(g, dados, ym) {
   g.appendChild(el('<div class="sect"><h2>O que entra no mês</h2><div class="ln"></div>' +
     '<span class="tag">vendido · recebido</span></div>'));
 
-  var cVend = el('<div class="card s8"><h3>Vendido × recebimento</h3>' +
+  var cVend = el('<div class="card s8"><span class="selo venda">venda</span> ' +
+    '<span class="selo caixa">caixa</span><h3>Vendido × recebimento</h3>' +
     '<div class="why">barra = receita contratada no mês · risca = dinheiro disponível no mês, ' +
     'de todas as safras</div><div id="psCpVend"></div>' +
     '<div class="legend"><span><i style="background:' + C.accent + '"></i>Receita contratada no mês</span>' +
@@ -1684,9 +1732,10 @@ function secaoComoPaga(g, dados, ym) {
     '<div class="why rodape">A barra é o que o mês vendeu; a risca é o dinheiro que ficou ' +
     'disponível no mês, somando todas as safras. Parcela de cartão parcelado entra 30 dias ' +
     'depois do vencimento: o Parque não antecipa recebível.</div></div>');
-  var cNat = el('<div class="card s4"><h3>De que é feito o recebimento</h3>' +
-    '<div class="why">à vista · cartão · carnê, mês a mês</div>' +
-    '<div id="psCpNat"></div><div id="psCpNatMes"></div>' +
+  var cNat = el('<div class="card s4"><span class="selo caixa">caixa</span>' +
+    '<h3>Composição mês a mês</h3>' +
+    '<div class="why">a mesma divisão dos três cartões acima, em cada mês da série</div>' +
+    '<div id="psCpNatMes"></div>' +
     '<div class="why rodape">Três naturezas, três graus de certeza. À vista é fato: não existe ' +
     'venda no Parque sem pagamento no ato. Cartão debita sozinho. Carnê depende de o cliente ' +
     'pagar — o Cofre registra vencimento, não baixa.</div></div>');
@@ -1698,7 +1747,8 @@ function secaoComoPaga(g, dados, ym) {
      Um mês pode cair de vendas e subir de caixa, ou o contrário, e o número
      somado esconde as duas coisas. O terceiro bloco é a outra ponta da mesma
      conta: o que as vendas do período ainda vão trazer depois. */
-  g.appendChild(el('<div class="card s12"><h3>De onde vem o dinheiro do período</h3>' +
+  g.appendChild(el('<div class="card s12"><span class="selo caixa">caixa</span>' +
+    '<h3>De onde vem o dinheiro do período</h3>' +
     '<div class="why">venda fechada no período · carteira de vendas anteriores · e o que as ' +
     'vendas do período ainda trazem</div>' +
     '<div id="psCpFonte"></div><div class="barra320" id="psCpFonteBarra"></div>' +
@@ -1792,21 +1842,24 @@ function secaoComoPaga(g, dados, ym) {
   g.appendChild(el('<div class="sect"><h2>Como fecha a venda</h2><div class="ln"></div>' +
     '<span class="tag">momento · forma · prazo, no período escolhido</span></div>'));
 
-  g.appendChild(el('<div class="card s4"><h3>Momento do pagamento</h3>' +
+  g.appendChild(el('<div class="card s4"><span class="selo venda">venda</span>' +
+    '<h3>Momento do pagamento</h3>' +
     '<div class="why">quando o cliente paga, lido no carnê</div>' +
     '<div id="psCpMom"></div><div id="psCpMomTab"></div>' +
     '<div class="why rodape">O momento sai do carnê: primeira parcela 1,5 vez maior que as ' +
     'demais é entrada. Não usa meio de pagamento — o meio parou de ser registrado em 14/08 e ' +
     'não volta por dedução.</div></div>'));
-  g.appendChild(el('<div class="card s4"><h3>Forma de pagamento</h3>' +
+  g.appendChild(el('<div class="card s4"><span class="selo venda">venda</span>' +
+    '<h3>Forma de pagamento</h3>' +
     '<div class="why">participação nas vendas do período</div><div id="psCpMeio"></div>' +
     '<div class="why rodape">A forma é o instrumento; o momento, ao lado, é a decisão ' +
     'comercial. Os meios de agosto e setembro foram reconstruídos à mão, um a um.</div></div>'));
-  g.appendChild(el('<div class="card s4"><h3>Prazo</h3>' +
+  g.appendChild(el('<div class="card s4"><span class="selo venda">venda</span><h3>Prazo</h3>' +
     '<div class="why">em quantas vezes o cliente fechou</div><div id="psCpPrazo"></div>' +
     '<div class="why rodape">O prazo é o que o cliente leva embora e o que a casa financia. ' +
     'As vendas em 1x são as mesmas do balde à vista.</div></div>'));
-  g.appendChild(el('<div class="card s12"><h3>A venda típica de cada forma</h3>' +
+  g.appendChild(el('<div class="card s12"><span class="selo venda">venda</span>' +
+    '<h3>A venda típica de cada forma</h3>' +
     '<div class="why">medianas do período · e quanto de cada real vendido entra na assinatura</div>' +
     '<div id="psCpTipica"></div>' +
     '<div class="why rodape">O jazigo custa praticamente o mesmo nas quatro formas. O cliente ' +
@@ -1814,7 +1867,8 @@ function secaoComoPaga(g, dados, ym) {
 
   g.appendChild(el('<div class="sect"><h2>Por vendedor</h2><div class="ln"></div>' +
     '<span class="tag">não é ranking — a mistura depende do cliente que chega</span></div>'));
-  g.appendChild(el('<div class="card s12"><h3>Como cada um fecha</h3>' +
+  g.appendChild(el('<div class="card s12"><span class="selo venda">venda</span>' +
+    '<h3>Como cada um fecha</h3>' +
     '<div class="why">barra = participação de cada forma · assinatura = quanto o cliente pagou ' +
     'no ato</div><div id="psCpVend2"></div>' +
     '<div class="why rodape">A tabela ordena por quanto de cada real vendido entra na ' +
@@ -1823,7 +1877,7 @@ function secaoComoPaga(g, dados, ym) {
 
   function pintaPeriodo() {
     var B = per[periodo] || { meio: [], prazo: [], momento: [], vendedores: [], vendas: 0 };
-    pintaTiles(periodo);
+    pintaTiles(periodo, B.mediana);
 
     /* a abertura fala do período escolhido, como o resto da tela */
     var md = B.mediana || { ticket: 0, ato: 0, prazo: 0 };
@@ -1869,12 +1923,9 @@ function secaoComoPaga(g, dados, ym) {
     quebraCard(fbar, [{ n: 'Dinheiro novo', v: pr.novo }, { n: 'Carteira', v: pr.carteira }],
       pr.total, 'em caixa', [C.accent, C.gray]);
 
-    /* a barra de naturezas é a mesma conta dos tiles, desenhada — segue o
-       período junto com eles, senão as duas brigam na mesma tela */
-    var pr0 = pr, nat = $('#psCpNat'); nat.innerHTML = '';
-    quebraCard(nat, [{ n: 'À vista', v: pr0.a_vista }, { n: 'Cartão', v: pr0.cartao },
-      { n: 'Carnê', v: pr0.carne }], pr0.total, 'em caixa',
-      [CN.a_vista, CN.cartao, CN.carne]);
+    /* a barra de 100% saiu daqui: ela repetia, em desenho, os três cartões de
+       caixa da faixa de cima. Ficou só o histórico mês a mês, que é o que este
+       card tem de próprio. */
 
     var mom = $('#psCpMom'); mom.innerHTML = '';
     quebraCard(mom, B.momento.map(function (x) { return { n: x.nome, v: x.vendas }; }),
@@ -1952,7 +2003,8 @@ function secaoComoPaga(g, dados, ym) {
   var pr = K.programado;
   g.appendChild(el('<div class="sect"><h2>Programado</h2><div class="ln"></div>' +
     '<span class="tag">parcelas dos contratos que já existem · sempre do mês seguinte em diante</span></div>'));
-  g.appendChild(el('<div class="card s8"><h3>A vencer, por natureza</h3>' +
+  g.appendChild(el('<div class="card s8"><span class="selo caixa">caixa · futuro</span>' +
+    '<h3>A vencer, por natureza</h3>' +
     '<div class="why">próximos 18 meses · na data em que o dinheiro fica disponível</div>' +
     '<div id="psCpProg"></div>' +
     '<div class="legend"><span><i style="background:' + C.blue + '"></i>Cartão — debita sozinho</span>' +
@@ -1960,7 +2012,8 @@ function secaoComoPaga(g, dados, ym) {
     '<div class="why rodape">Cada parcela aparece no mês em que o dinheiro fica disponível, ' +
     'não no do vencimento. Quando o cartão acaba, sobra só carnê — e carnê é o dinheiro que ' +
     'depende de alguém pagar.</div></div>'));
-  g.appendChild(el('<div class="card s4"><h3>Horizonte</h3>' +
+  g.appendChild(el('<div class="card s4"><span class="selo caixa">caixa · futuro</span>' +
+    '<h3>Horizonte</h3>' +
     '<div class="why">o que os contratos de hoje ainda trazem, sem nenhuma venda nova</div>' +
     '<div class="blocos">' +
     ['m3,3 meses', 'm12,12 meses', 'm18,18 meses'].map(function (o) {
