@@ -1711,8 +1711,12 @@ function secaoComoPaga(g, dados, ym) {
 
     /* FAIXA DO CAIXA: os três repartem UM bolo, e o bolo fica escrito no
        título da faixa — era a pergunta que o Ricardo fez sobre os 66% */
+    /* a frase é do Ricardo, e a palavra que a sustenta é PREVISTO: o Cofre
+       sabe o que venceu, não o que foi pago — e a taxa da adquirente ainda não
+       está descontada. Dizer "entrou" aqui seria prometer o que não temos. */
     $('#psCpSecCaixa').innerHTML = 'em ' + esc(p.rotulo) + ' · <b>' + rs(tot) +
-      '</b> — os três cartões abaixo repartem este total';
+      '</b> — os três cartões abaixo repartem este total e mostram o valor ' +
+      'previsto para entrar na conta do Parque em ' + esc(p.rotulo);
     CERTEZA.forEach(function (t, i) {
       $('#psCpN' + i).innerHTML = rs(p[t[1]]) + ' <small>· ' +
         fPct(tot ? p[t[1]] / tot * 100 : 0, 0) + ' do total</small>';
