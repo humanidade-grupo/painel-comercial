@@ -1657,6 +1657,7 @@ function secaoComoPaga(g, dados, ym) {
     g.appendChild(el('<div class="card s4 tile"><span class="selo caixa">caixa</span>' +
       '<h3>' + esc(t[0]) + '</h3><div class="why">' + esc(t[2]) + '</div>' +
       '<div class="val" id="psCpN' + i + '"></div>' +
+      '<div class="st" id="psCpO' + i + '"></div>' +
       '<div class="certeza ' + t[3] + '">' + esc(t[4]) + '</div></div>'));
   });
 
@@ -1673,7 +1674,9 @@ function secaoComoPaga(g, dados, ym) {
   function somaPeriodo(chave) {
     var dentro = mesesDoPeriodo(chave);
     var r = { vgv: 0, vendas: 0, a_vista: 0, cartao: 0, carne: 0,
-              novo: 0, carteira: 0, a_receber: 0, meses: dentro };
+              novo: 0, carteira: 0, a_receber: 0, meses: dentro,
+              a_vista_novo: 0, a_vista_carteira: 0, cartao_novo: 0, cartao_carteira: 0,
+              carne_novo: 0, carne_carteira: 0 };
     safra.forEach(function (x) {
       if (dentro.indexOf(x.ym) < 0) return;
       r.vgv += x.vgv; r.vendas += x.vendas;
@@ -1682,6 +1685,10 @@ function secaoComoPaga(g, dados, ym) {
       if (dentro.indexOf(m.ym) < 0) return;
       r.a_vista += m.a_vista; r.cartao += m.cartao; r.carne += m.carne;
       r.novo += (m.novo || 0); r.carteira += (m.carteira || 0);
+      ['a_vista', 'cartao', 'carne'].forEach(function (n) {
+        r[n + '_novo'] += (m[n + '_novo'] || 0);
+        r[n + '_carteira'] += (m[n + '_carteira'] || 0);
+      });
     });
     safra.forEach(function (x) {
       if (dentro.indexOf(x.ym) < 0) return;
@@ -1720,6 +1727,19 @@ function secaoComoPaga(g, dados, ym) {
     CERTEZA.forEach(function (t, i) {
       $('#psCpN' + i).innerHTML = rs(p[t[1]]) + ' <small>· ' +
         fPct(tot ? p[t[1]] / tot * 100 : 0, 0) + ' do total</small>';
+      /* DE ONDE VEIO CADA UM (19/09/26). "Pago na assinatura" parecia ser todo
+         do mês, e não é: a assinatura de uma venda no cartão parcelado chega 30
+         dias depois, então a do mês passado cai aqui e a deste mês cai no
+         próximo. O mesmo vale para as outras duas naturezas — e no cartão e no
+         carnê a carteira é quase tudo, o que também precisa estar escrito. */
+      var nv = p[t[1] + '_novo'] || 0, ct = p[t[1] + '_carteira'] || 0;
+      var alvo = $('#psCpO' + i);
+      if (!nv && !ct) { alvo.textContent = ''; return; }
+      var partes = [];
+      if (nv) partes.push(rs(nv) + ' de venda ' + (p.meses.length === 1 ? 'de ' + p.rotulo
+                                                                        : 'do período'));
+      if (ct) partes.push(rs(ct) + ' de venda anterior');
+      alvo.textContent = partes.join(' · ');
     });
   }
 
@@ -1729,13 +1749,17 @@ function secaoComoPaga(g, dados, ym) {
 
   var cVend = el('<div class="card s8"><span class="selo venda">venda</span> ' +
     '<span class="selo caixa">caixa</span><h3>Vendido × recebimento</h3>' +
-    '<div class="why">barra = receita contratada no mês · risca = dinheiro disponível no mês, ' +
-    'de todas as safras</div><div id="psCpVend"></div>' +
-    '<div class="legend"><span><i style="background:' + C.accent + '"></i>Receita contratada no mês</span>' +
-    '<span><i style="background:' + C.ink2 + ';height:2px;border-radius:0;width:14px"></i>Dinheiro disponível no mês</span></div>' +
-    '<div class="why rodape">A barra é o que o mês vendeu; a risca é o dinheiro que ficou ' +
-    'disponível no mês, somando todas as safras. Parcela de cartão parcelado entra 30 dias ' +
-    'depois do vencimento: o Parque não antecipa recebível.</div></div>');
+    '<div class="why">o único gráfico da tela com as <b>duas réguas juntas</b>, de propósito: ' +
+    'a barra é do mês da <b>venda</b>, a risca é do mês em que o <b>dinheiro ficou ' +
+    'disponível</b> · milhares de reais</div><div id="psCpVend"></div>' +
+    '<div class="legend"><span><i style="background:' + C.accent + '"></i><b>Barra</b> — vendido ' +
+    'naquele mês</span><span><i style="background:' + C.ink2 + ';height:2px;border-radius:0;' +
+    'width:14px"></i><b>Risca</b> — dinheiro disponível naquele mês, de qualquer safra</span></div>' +
+    '<div class="why rodape">As duas não se comparam venda a venda: o que o mês vende chega ' +
+    'diluído ao longo de anos, e o que entra no mês veio, em boa parte, de vendas antigas. É ' +
+    'justamente a distância entre elas que esta tela existe para mostrar — barra alta com risca ' +
+    'baixa é mês que vendeu muito a prazo; risca alta com barra baixa é carteira pagando. O ' +
+    'bloco abaixo separa uma coisa da outra.</div></div>');
   var cNat = el('<div class="card s4"><span class="selo caixa">caixa</span>' +
     '<h3>Composição mês a mês</h3>' +
     '<div class="why">a mesma divisão dos três cartões acima, em cada mês da série</div>' +
@@ -1874,10 +1898,35 @@ function secaoComoPaga(g, dados, ym) {
   g.appendChild(el('<div class="card s12"><span class="selo venda">venda</span>' +
     '<h3>Como cada um fecha</h3>' +
     '<div class="why">barra = participação de cada forma · assinatura = quanto o cliente pagou ' +
-    'no ato</div><div id="psCpVend2"></div>' +
-    '<div class="why rodape">A tabela ordena por quanto de cada real vendido entra na ' +
-    'assinatura. Quem está fora da equipe aparece marcado. Vendedor com menos de cinco vendas ' +
-    'no período fica de fora.</div></div>'));
+    'no ato</div>' +
+    '<div class="seg" id="psCpOrd" role="group" aria-label="Ordenar por" ' +
+    'style="margin:0 0 10px;width:max-content;max-width:100%;flex-wrap:wrap"></div>' +
+    '<div id="psCpVend2"></div>' +
+    '<div class="why rodape">ORDEM: a tabela não tem um "melhor" único. <b>Vendido</b> mostra ' +
+    'quem trouxe mais contrato; <b>% na assinatura</b> mostra quem trouxe mais dinheiro agora — ' +
+    'e esse percentual depende da mistura que chegou, não só de quem vendeu: uma carteira de ' +
+    'clientes à vista sobe o número sem esforço, e uma de boleto 72x o derruba com a mesma ' +
+    'venda. Quem está fora da equipe aparece marcado, no fim. Vendedor com menos de cinco ' +
+    'vendas no período fica de fora.</div></div>'));
+
+  /* a ordem é escolha de quem lê, e o padrão é o VENDIDO: ordenar por "% na
+     assinatura" como padrão premiava quem pegou cliente de PIX */
+  var ORDENS = [['vgv', 'Vendido'], ['vendas', 'Vendas'], ['pct_ato', '% na assinatura']];
+  var ordemVend = 'vgv';
+  (function () {
+    var box = $('#psCpOrd');
+    ORDENS.forEach(function (o) {
+      var b2 = el('<button type="button">' + esc(o[1]) + '</button>');
+      b2.setAttribute('aria-selected', o[0] === ordemVend ? 'true' : 'false');
+      b2.onclick = function () {
+        ordemVend = o[0];
+        box.querySelectorAll('button').forEach(function (x) { x.setAttribute('aria-selected', 'false'); });
+        b2.setAttribute('aria-selected', 'true');
+        pintaPeriodo();
+      };
+      box.appendChild(b2);
+    });
+  })();
 
   function pintaPeriodo() {
     var B = per[periodo] || { meio: [], prazo: [], momento: [], vendedores: [], vendas: 0 };
@@ -1972,12 +2021,15 @@ function secaoComoPaga(g, dados, ym) {
     var foraDaLista = (B.vendedores || []).length - vs.length;
     vs.sort(function (a, b) {
       if (a.fora !== b.fora) return a.fora ? 1 : -1;      // quem saiu da equipe vai para o fim
-      return b.pct_ato - a.pct_ato;
+      return (b[ordemVend] || 0) - (a[ordemVend] || 0);
     });
+    function marca(col) { return ordemVend === col ? ' ▾' : ''; }
     var hv = '<table class="placar"><tr><th style="width:150px">Vendedor</th>' +
-      '<th>Formas de pagamento</th><th class="num" style="width:58px">Vendas</th>' +
-      '<th class="num" style="width:62px">Prazo</th><th class="num" style="width:104px">Assinatura</th>' +
-      '<th class="num" style="width:74px">% do vendido</th></tr>';
+      '<th>Formas de pagamento</th><th class="num" style="width:58px">Vendas' + marca('vendas') +
+      '</th><th class="num" style="width:62px">Prazo</th>' +
+      '<th class="num" style="width:104px">Vendido' + marca('vgv') + '</th>' +
+      '<th class="num" style="width:104px">Assinatura</th>' +
+      '<th class="num" style="width:74px">% na assinatura' + marca('pct_ato') + '</th></tr>';
     vs.forEach(function (v) {
       var ordem = ['Boleto', 'Cartão', 'PIX', 'PIX + cartão'];
       var barra = '<svg viewBox="0 0 340 14" style="height:14px">';
@@ -1993,7 +2045,8 @@ function secaoComoPaga(g, dados, ym) {
         ' <span class="axis-t" style="font-style:italic">fora da equipe</span>' : '') +
         '</td><td>' + barra + '</svg></td><td class="num">' + fN(v.vendas) +
         '</td><td class="num">' + vezes(v.prazo_mediano) + '</td><td class="num">' +
-        fN(v.ato, 0) + '</td><td class="num">' + fPct(v.pct_ato, 1) + '</td></tr>';
+        fN(v.vgv, 0) + '</td><td class="num">' + fN(v.ato, 0) + '</td><td class="num">' +
+        fPct(v.pct_ato, 1) + '</td></tr>';
     });
     hv += '</table><div class="legend">' + ['Boleto', 'Cartão', 'PIX', 'PIX + cartão']
       .map(function (n) { return '<span><i style="background:' + (CM[n] || C.gray) + '"></i>' + n + '</span>'; })
@@ -2016,14 +2069,25 @@ function secaoComoPaga(g, dados, ym) {
     '<div class="why rodape">Cada parcela aparece no mês em que o dinheiro fica disponível, ' +
     'não no do vencimento. Quando o cartão acaba, sobra só carnê — e carnê é o dinheiro que ' +
     'depende de alguém pagar.</div></div>'));
+  /* o intervalo de cada bloco sai do próprio calendário: "3 meses" sozinho não
+     diz se conta de hoje, do mês que vem ou do fechamento */
+  var pmz = pr.por_mes || [];
+  function faixaMeses(n) {
+    if (!pmz.length) return '';
+    var ate = pmz[Math.min(n, pmz.length) - 1];
+    return n <= 3 ? ymLabel(ymN(pmz[0].ym)) + ' a ' + ymLabel(ymN(ate.ym))
+                  : 'até ' + ymLabel(ymN(ate.ym));
+  }
   g.appendChild(el('<div class="card s4"><span class="selo caixa">caixa · futuro</span>' +
     '<h3>Horizonte</h3>' +
-    '<div class="why">o que os contratos de hoje ainda trazem, sem nenhuma venda nova</div>' +
+    '<div class="why">quanto os contratos <b>que já existem</b> ainda trazem — a conta supõe ' +
+    'que o Parque <b>não venda mais nada</b> a partir de hoje</div>' +
     '<div class="blocos">' +
-    ['m3,3 meses', 'm12,12 meses', 'm18,18 meses'].map(function (o) {
+    ['m3,3 meses,3', 'm12,12 meses,12', 'm18,18 meses,18'].map(function (o) {
       var p = o.split(','), v = pr.horizonte[p[0]];
       return '<div class="bloco"><div class="per">' + p[1] + '</div><div class="n">' +
-        curto(v) + '</div><div class="st">a vencer</div></div>';
+        curto(v) + '</div><div class="st">' + esc(faixaMeses(Number(p[2]))) +
+        ' · sem venda nova</div></div>';
     }).join('') + '</div>' +
     '<table class="placar" style="margin-top:12px"><tr><th>Total a vencer</th>' +
     '<th class="num">' + rs(pr.total) + '</th><th></th></tr>' +
