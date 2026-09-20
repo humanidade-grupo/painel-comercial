@@ -1779,11 +1779,12 @@ function secaoComoPaga(g, dados, ym) {
     '<h3>De onde vem o dinheiro do período</h3>' +
     '<div class="why">venda fechada no período · carteira de vendas anteriores · e o que as ' +
     'vendas do período ainda trazem</div>' +
-    '<div id="psCpFonte"></div><div class="barra320" id="psCpFonteBarra"></div>' +
+    '<div id="psCpFonte"></div><div id="psCpFonteSerie"></div>' +
     '<div class="why rodape">Dinheiro novo é o que entrou de venda assinada no próprio período. ' +
     'Carteira é parcela de venda antiga — ela chega sem ninguém vender de novo. A terceira ' +
     'coluna não é caixa deste período: é o que as vendas dele ainda vão trazer, se todo mundo ' +
-    'pagar.</div></div>'));
+    'pagar. <b>O gráfico é a pergunta que interessa no longo prazo:</b> o mês se sustenta ' +
+    'vendendo ou já se sustenta com o que a carteira paga sozinha?</div></div>'));
 
   /* barra = VGV da safra · risca = o que ficou disponível naquele mês */
   (function () {
@@ -1874,9 +1875,7 @@ function secaoComoPaga(g, dados, ym) {
     '<h3>Momento do pagamento</h3>' +
     '<div class="why">quando o cliente paga, lido no carnê</div>' +
     '<div id="psCpMom"></div><div id="psCpMomTab"></div>' +
-    '<div class="why rodape">O momento sai do carnê: primeira parcela 1,5 vez maior que as ' +
-    'demais é entrada. Não usa meio de pagamento — o meio parou de ser registrado em 14/08 e ' +
-    'não volta por dedução.</div></div>'));
+    '<div class="why rodape" id="psCpMomNota"></div></div>'));
   g.appendChild(el('<div class="card s4"><span class="selo venda">venda</span>' +
     '<h3>Forma de pagamento</h3>' +
     '<div class="why">participação nas vendas do período</div><div id="psCpMeio"></div>' +
@@ -1972,9 +1971,42 @@ function secaoComoPaga(g, dados, ym) {
       fPct(pr.total ? pr.carteira / pr.total * 100 : 0, 0) + ' do que entrou</div></div>' +
       '<div class="bloco"><div class="per">Ainda vem</div><div class="n">' + curto(pr.a_receber) +
       '</div><div class="st">das vendas deste período, nos próximos meses</div></div></div>';
-    var fbar = $('#psCpFonteBarra'); fbar.innerHTML = '';
-    quebraCard(fbar, [{ n: 'Dinheiro novo', v: pr.novo }, { n: 'Carteira', v: pr.carteira }],
-      pr.total, 'em caixa', [C.accent, C.gray]);
+    /* A barra de 100% saiu: ela repetia, em desenho, os números dos três blocos
+       acima — e, desde que cada cartão de caixa passou a dizer sua própria
+       origem, repetia duas vezes. No lugar entrou a SÉRIE: mês a mês, quanto
+       do que entrou veio de venda nova e quanto veio da carteira. É a leitura
+       que nenhum outro bloco dá, e a que mostra a virada quando ela vier. */
+    (function () {
+      var linhas = K.recebimento.por_mes || [];
+      var cont = $('#psCpFonteSerie'); cont.innerHTML = '';
+      if (!linhas.length) return;
+      var w = 1000, h = 150, svg = S(w, h), y0 = 108, alt = 86;
+      var topo = 0;
+      linhas.forEach(function (m) { topo = Math.max(topo, (m.novo || 0) + (m.carteira || 0)); });
+      topo = topo * 1.08 || 1;
+      [0, topo / 2, topo].forEach(function (v) {
+        var yy = y0 - (v / topo) * alt;
+        N('line', { x1: 44, y1: yy, x2: w - 6, y2: yy, stroke: C.grid }, svg);
+        T(38, yy + 3.5, fN(v / 1000, 0), 'axis-t', 'end', svg);
+      });
+      var passo = (w - 56) / linhas.length;
+      linhas.forEach(function (m, i) {
+        var x = 50 + passo * i + 3, bw = Math.max(passo - 12, 6);
+        var nv = m.novo || 0, ct = m.carteira || 0, tt = nv + ct;
+        var hn = (nv / topo) * alt, hc = (ct / topo) * alt;
+        var r1 = N('rect', { x: x, y: y0 - hn, width: bw, height: hn, fill: C.accent }, svg);
+        var r2 = N('rect', { x: x, y: y0 - hn - hc, width: bw, height: hc, fill: C.gray }, svg);
+        var tip = '<b>' + esc(ymLabel(ymN(m.ym))) + '</b><br><span>venda nova ' + fBRL(nv) +
+          '<br>carteira ' + fBRL(ct) + '</span>';
+        r1.dataset.tip = tip; r2.dataset.tip = tip;
+        T(x + bw / 2, y0 - hn - hc - 5, tt ? Math.round(nv / tt * 100) + '%' : '–',
+          'val-t', 'middle', svg);
+        T(x + bw / 2, 126, ymLabel(ymN(m.ym)), 'axis-t', 'middle', svg);
+      });
+      T(50, 144, '% em cima de cada barra = quanto daquele mês veio de venda nova',
+        'axis-t', 'start', svg);
+      cont.appendChild(svg); bindTips(svg);
+    })();
 
     /* a barra de 100% saiu daqui: ela repetia, em desenho, os três cartões de
        caixa da faixa de cima. Ficou só o histórico mês a mês, que é o que este
@@ -1995,6 +2027,14 @@ function secaoComoPaga(g, dados, ym) {
         '</td></tr>';
     });
     $('#psCpMomTab').innerHTML = tab + '</table>';
+    var semBase = B.momento_sem_base || 0;
+    $('#psCpMomNota').innerHTML = 'O momento sai do carnê: primeira parcela 1,5 vez maior que ' +
+      'as demais é entrada. Não usa meio de pagamento — o meio parou de ser registrado em 14/08 ' +
+      'e não volta por dedução.' + (semBase
+        ? ' <b>' + fN(semBase) + ' venda(s) do período entraram em "Parcelado" sem comparação ' +
+          'possível:</b> o carnê delas não tem nenhuma parcela além da assinatura, então não há ' +
+          'como dizer se houve entrada.'
+        : '');
 
     var cm = $('#psCpMeio'); cm.innerHTML = '';
     var porMeio = B.meio.slice().sort(function (a, b) { return b.vendas - a.vendas; });
