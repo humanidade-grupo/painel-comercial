@@ -404,7 +404,7 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
 <div class="wrap">
 
   <p class="ritmo"><b>Vendas</b>: cópia do Facilita no Cofre a cada 5 min (completa a cada 2 h) ·
-    <b>Contratos</b>: espelho da D4Sign 1× por dia, às 8h, só com o PC do Ricardo ligado ·
+    <b>Contratos</b>: espelho da D4Sign às 8h, 14h e 20h, só com o PC do Ricardo ligado e a sessão da D4Sign aberta ·
     <b>Lançamentos</b>: gravados na hora, com autor e data ·
     Os meses abertos ficam nesta aba até ela fechar; <b>Recarregar</b> busca de novo.
     As datas no alto são da cópia, não da abertura da página.</p>
@@ -590,6 +590,10 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
     var d = quando(carimbo);
     return d ? (Date.now() - d.getTime()) / 36e5 : null;
   }
+  function idadeTxt(h) {
+    if (h === null) return '';
+    return h < 1 ? 'há menos de 1 hora' : h < 48 ? 'há ' + Math.floor(h) + 'h' : 'há ' + Math.floor(h / 24) + ' dias';
+  }
   function fmtCarimbo(c) {
     var d = quando(c);
     if (!d) return 'sem data';
@@ -744,11 +748,24 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
       aviso('Sem leitura dos contratos: ' + (d4.estado === 'vazia' ? 'o espelho da D4Sign está vazio.' : 'o espelho da D4Sign não foi lido.'),
         '<p>Motivo: ' + porque + '. A trilha de contrato e as pernas de assinatura ficam em branco — ' +
         '<b>não quer dizer "nenhum pendente"</b>. O lançamento no Ivertex segue normal.</p>');
+    } else if (d4.ultimo_erro) {
+      /* A PASSADA QUE NÃO ACONTECEU TAMBÉM É NOTÍCIA (21/09): o status.py manda o motivo do
+         aborto para o Cofre, e a tarja diz POR QUE o espelho parou — em 20/09 ela só sabia
+         dizer "mais de 48 horas", e a causa (sessão da D4Sign caída) ficava no PC do Ricardo. */
+      var caiu = /sess|login/i.test(String(d4.ultimo_erro));
+      aviso(caiu ? 'A sessão da D4Sign caiu: os contratos pararam de atualizar.'
+                 : 'A última tentativa de atualizar os contratos falhou.',
+        '<p>Última tentativa' + (d4.ultima_falha ? ' em <b>' + esc(fmtCarimbo(d4.ultima_falha)) + '</b>' : '') +
+        ': <b>' + esc(d4.ultimo_erro) + '</b>.</p>' +
+        '<p>Os estados de contrato abaixo são da passada de <b>' + esc(fmtCarimbo(d4.carimbo)) + '</b>' +
+        (idadeTxt(hD) ? ' (' + esc(idadeTxt(hD)) + ')' : '') + ' — e seguem parados até a próxima passada dar certo.</p>' +
+        (caiu ? '<p><b>O conserto é do Ricardo:</b> entrar na D4Sign na janela do Edge que a passada abre ' +
+                '(ela roda às 8h, 14h e 20h).</p>' : ''), true);
     } else if (hD === null || hD >= HORAS_VELHO_D4) {
       aviso('O espelho da D4Sign tem mais de ' + HORAS_VELHO_D4 + ' horas.',
-        '<p>Última passada: <b>' + esc(fmtCarimbo(d4.carimbo)) + '</b>. A passada roda todo dia às 8h no PC ' +
+        '<p>Última passada: <b>' + esc(fmtCarimbo(d4.carimbo)) + '</b>. A passada roda às 8h, 14h e 20h no PC ' +
         'do Ricardo, e só com ele ligado e a sessão da D4Sign aberta. Os estados de contrato abaixo são ' +
-        '<b>daquele instante</b>' + (d4.ultimo_erro ? ' — último erro: ' + esc(d4.ultimo_erro) : '') + '.</p>', true);
+        '<b>daquele instante</b>.</p>', true);
     }
     if (D4OK && !CORTE) {
       aviso('Sem data de corte da D4Sign.', '<p>A Config do Cofre não tem <code>d4sign.corte</code> (AAAA-MM-DD). ' +
