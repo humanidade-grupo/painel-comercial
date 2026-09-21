@@ -90,6 +90,27 @@
   /* aba Como o cliente paga (19/09/26): o grau de certeza embaixo do número, e
      o ponto colorido que liga tabela e barra — ali a cor é legenda, não enfeite */
   .tile .st{font-size:11.5px;color:var(--ink2)}
+  /* OS NÚMEROS DA FAIXA NA MESMA ALTURA (21/09/26). Os três tiles de uma faixa
+     têm "why" de 1, 2 e 4 linhas, e o número grande nascia numa altura
+     diferente em cada um: quem compara valores percorre a linha com o olho, e
+     a escadinha obriga a procurar cada número antes de lê-lo. Subgrid resolve
+     sem número mágico e sem JS — os tiles passam a dividir as MESMAS faixas de
+     linha do grid da página, então selo, título, texto e valor ficam alinhados
+     venha o texto que vier, em qualquer largura. A classe é própria (e não
+     `.tile`) porque `.tile` também veste cards de outras telas, com outra
+     quantidade de linhas. Sem subgrid (Chrome < 117), cai no desenho de antes:
+     desalinhado, nunca quebrado. */
+  @supports (grid-template-rows: subgrid) {
+    /* `align-content:start` é pelo card EXPANDIDO: ali ele vira position:fixed,
+       deixa de ser item do grid, o subgrid cai para linhas automáticas — e sem
+       isto elas esticam para encher os 900 px da tela, espalhando selo, texto e
+       número de ponta a ponta. No card normal a regra não faz nada. */
+    .grid > .card.tile-fila{display:grid;grid-template-rows:subgrid;grid-row:span 6;
+      row-gap:0;align-content:start}
+    /* item de grid estica por padrão, e o selo é uma pílula: sem isto o fundo
+       dele atravessaria o cartão inteiro */
+    .grid > .card.tile-fila > .selo{justify-self:start}
+  }
   .certeza{font-size:11px;margin-top:4px}
   .c-fato{color:#2fbf4f}.c-quase{color:var(--ink2)}.c-prev{color:var(--warn)}
   .dot{display:inline-block;width:9px;height:9px;border-radius:3px;margin-right:6px;vertical-align:-1px}
@@ -1675,14 +1696,14 @@ function secaoComoPaga(g, dados, ym) {
 
   g.appendChild(el('<div class="sect"><h2 id="psCpSecVenda">O que o período vendeu</h2>' +
     '<div class="ln"></div><span class="tag">valor de face menos desconto, no mês da assinatura</span></div>'));
-  g.appendChild(el('<div class="card s4 tile"><span class="selo venda" data-per="1">venda</span>' +
+  g.appendChild(el('<div class="card s4 tile tile-fila"><span class="selo venda" data-per="1">venda</span>' +
     '<h3>Receita contratada</h3><div class="why" id="psCpTWhy"></div>' +
     '<div class="val" id="psCpTVal"></div><div class="st" id="psCpTSt"></div></div>'));
-  g.appendChild(el('<div class="card s4 tile"><span class="selo venda" data-per="1">venda</span>' +
+  g.appendChild(el('<div class="card s4 tile tile-fila"><span class="selo venda" data-per="1">venda</span>' +
     '<h3>Vendas</h3><div class="why">contratos assinados no período · cortesia conta venda e ' +
     'não conta valor</div><div class="val" id="psCpTQtd"></div>' +
     '<div class="st" id="psCpTQtdSt"></div></div>'));
-  g.appendChild(el('<div class="card s4 tile"><span class="selo venda" data-per="1">venda</span>' +
+  g.appendChild(el('<div class="card s4 tile tile-fila"><span class="selo venda" data-per="1">venda</span>' +
     '<h3>Jazigo mediano</h3><div class="why">metade das vendas acima, metade abaixo</div>' +
     '<div class="val" id="psCpTMed"></div>' +
     '<div class="st">mediana, não média: um jazigo caro não puxa o número</div></div>'));
@@ -1690,7 +1711,7 @@ function secaoComoPaga(g, dados, ym) {
   g.appendChild(el('<div class="sect"><h2>O dinheiro que ficou disponível</h2><div class="ln"></div>' +
     '<span class="tot" id="psCpSecCaixa"></span></div>'));
   CERTEZA.forEach(function (t, i) {
-    g.appendChild(el('<div class="card s4 tile"><span class="selo caixa" data-per="1">caixa</span>' +
+    g.appendChild(el('<div class="card s4 tile tile-fila"><span class="selo caixa" data-per="1">caixa</span>' +
       '<h3>' + esc(t[0]) + '</h3><div class="why">' + esc(t[2]) + '</div>' +
       '<div class="val" id="psCpN' + i + '"></div>' +
       '<div class="st" id="psCpO' + i + '"></div>' +
