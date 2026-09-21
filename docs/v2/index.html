@@ -2977,8 +2977,8 @@ window.__renderEU = function (dados, ymSel) {
 
   var carga = document.getElementById('carga');
   /* Embutida, esta página não busca nada — então não tem passo para narrar.
-     "lendo a Estrela…" por cima de uma Estrela já desenhada é pior que
-     silêncio: descreve trabalho que não está acontecendo. */
+     "Aquecendo…" por cima de uma Estrela já desenhada é pior que silêncio:
+     anuncia trabalho que não está acontecendo. */
   function passo(t) { if (EMBUTIDO) return; var p = document.getElementById('cargaPasso'); if (p) p.textContent = t; }
   function fecharCarga() { if (!carga) return; carga.style.opacity = '0'; setTimeout(function () { if (carga && carga.parentNode) carga.remove(); carga = null; }, 320); }
 
@@ -3071,10 +3071,10 @@ window.__renderEU = function (dados, ymSel) {
     var q = API + '?token=' + encodeURIComponent(token);
     var sEU = (sincronizar === 'eu') ? '&sync=1' : '';
     var sPS = (sincronizar === 'ps') ? '&sync=1' : '';
-    passo(sEU ? 'importando as vendas da Estrela…' : 'lendo a Estrela…');
+    passo(sEU ? 'importando as vendas da Estrela…' : 'Aquecendo…');
     return comPrazo(q + '&app=estrela&fn=dados' + sEU, sEU ? 90000 : 30000, 'A Estrela').then(function (eu) {
       if (!eu || !eu.ok) return eu || { ok: false };
-      passo(sPS ? 'importando as vendas do Parque…' : 'lendo o Parque…');
+      passo(sPS ? 'importando as vendas do Parque…' : 'Aquecendo…');
       return comPrazo(q + '&app=vendas&fn=dados' + sPS, sPS ? 90000 : 30000, 'O Parque').then(function (ps) {
         if (ps && ps.ok) eu.ps = ps; else { eu.ps = null; eu.psErro = (ps && ps.error) || 'resposta sem dado'; }
         return eu;
