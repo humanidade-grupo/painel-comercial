@@ -1616,6 +1616,26 @@ function secaoComoPaga(g, dados, ym) {
   function curto(x) { return x >= 1e6 ? fN(x / 1e6, 2) + ' mi' : fN(x / 1e3, 0) + ' mil'; }
   /* 14,5x é prazo mediano de quem tem número par de vendas — arredondar some com isso */
   function vezes(x) { return fN(x, x % 1 ? 1 : 0) + 'x'; }
+  /* PERCENTUAL QUE FECHA 100,0 (21/09/26). Os três cartões do caixa repartem um
+     bolo só, então a soma do que está escrito neles é lida como conferência:
+     em set/26 dava 66 + 12 + 21 = 99 e os reais fechavam exatos — era só
+     arredondamento, mas quem lê caixa vê 99% e passa a duvidar do resto da
+     tela. Uma casa decimal não resolve sozinha (66,4 + 12,2 + 21,4 pode dar
+     99,9 noutro mês): reparte-se em décimos inteiros e os que sobram vão para
+     quem teve a maior fração cortada. Assim a soma EXIBIDA é 100,0 em qualquer
+     período, sem mexer em nenhum valor em reais. */
+  function repartir100(vals, tot) {
+    if (!tot) return vals.map(function () { return 0; });
+    var d = vals.map(function (v, i) {
+      var x = v / tot * 1000;
+      return { i: i, base: Math.floor(x), resto: x - Math.floor(x) };
+    });
+    var falta = 1000 - d.reduce(function (s, x) { return s + x.base; }, 0);
+    d.slice().sort(function (a, b) { return b.resto - a.resto; })
+     .slice(0, Math.max(0, falta)).forEach(function (x) { x.base++; });
+    var r = []; d.forEach(function (x) { r[x.i] = x.base / 10; });
+    return r;
+  }
 
   var safra = K.safra || [];
 
@@ -1636,7 +1656,9 @@ function secaoComoPaga(g, dados, ym) {
      bolo fica escrito no título dela. */
   var CERTEZA = [
     ['Pago na assinatura', 'a_vista',
-     'a parcela do ato da venda, com dinheiro disponível neste período',
+     'a parcela do ato da venda, com dinheiro disponível neste período. ' +
+     'Venda no cartão parcelado entra aqui no mês seguinte: a assinatura ' +
+     'acontece no mês da venda, o depósito da operadora, 30 dias depois.',
      'c-fato', '● o mais certo que esta tela tem: não existe venda sem ele'],
     ['Parcelas no cartão', 'cartao',
      'cobradas automaticamente pela operadora (crédito ou débito — o Cofre não separa)',
@@ -1741,9 +1763,10 @@ function secaoComoPaga(g, dados, ym) {
     $('#psCpSecCaixa').innerHTML = 'em ' + esc(p.rotulo) + ' · <b>' + rs(tot) +
       '</b> — os três cartões abaixo repartem este total e mostram o valor ' +
       'previsto para entrar na conta do Parque em ' + esc(p.rotulo);
+    var pcts = repartir100(CERTEZA.map(function (t) { return p[t[1]]; }), tot);
     CERTEZA.forEach(function (t, i) {
       $('#psCpN' + i).innerHTML = rs(p[t[1]]) + ' <small>· ' +
-        fPct(tot ? p[t[1]] / tot * 100 : 0, 0) + ' do total</small>';
+        fPct(pcts[i], 1) + ' do total</small>';
       /* DE ONDE VEIO CADA UM (19/09/26). "Pago na assinatura" parecia ser todo
          do mês, e não é: a assinatura de uma venda no cartão parcelado chega 30
          dias depois, então a do mês passado cai aqui e a deste mês cai no
@@ -1755,7 +1778,13 @@ function secaoComoPaga(g, dados, ym) {
       var partes = [];
       if (nv) partes.push(rs(nv) + ' de venda ' + (p.meses.length === 1 ? 'de ' + p.rotulo
                                                                         : 'do período'));
-      if (ct) partes.push(rs(ct) + ' da carteira de recebíveis');
+      /* "carteira de recebíveis" soa como PARCELA, e no cartão da assinatura
+         a fatia é ato: assinatura de venda anterior cujo dinheiro só ficou
+         disponível agora (21/09/26, antes da reunião com o Rodrigo). No cartão
+         e no carnê o termo continua e está certo — lá é parcela mesmo. */
+      if (ct) partes.push(rs(ct) + (t[1] === 'a_vista'
+        ? ' de vendas anteriores, disponível agora'
+        : ' da carteira de recebíveis'));
       alvo.textContent = partes.join(' · ');
     });
   }
