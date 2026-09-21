@@ -221,6 +221,12 @@
   .bloco{flex:1 1 150px;background:var(--card2);border:1px solid var(--edge);border-radius:12px;padding:11px 12px}
   .bloco.curso{border-color:var(--accent)}
   .bloco.futuro{opacity:.62}
+  /* "AINDA VEM" NÃO É CAIXA DO PERÍODO (21/09/26). Os três blocos lado a lado,
+     com o mesmo fundo e a mesma borda, são lidos como parcelas de uma soma — e
+     o terceiro é futuro: ele não entrou, vai entrar. O tracejado e o selo
+     dizem isso antes de qualquer texto ser lido. */
+  .bloco.adiante{border:1px dashed var(--axis);background:var(--card2);position:relative}
+  .bloco.adiante .selo{position:absolute;top:8px;right:9px;margin:0}
   .bloco .per{font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
   .bloco .n{font-size:24px;font-weight:650;margin:3px 0 1px;font-variant-numeric:tabular-nums}
   .bloco .n small{font-size:13px;color:var(--ink2);font-weight:500}
@@ -1878,14 +1884,16 @@ function secaoComoPaga(g, dados, ym) {
     '<span class="selo serie">os três números seguem o seletor · o gráfico é a série ' +
     'inteira</span><h3>De onde vem o dinheiro do período</h3>' +
     '<div class="why">venda fechada no período · carteira de recebíveis (clientes que já ' +
-    'compraram) · e o que as vendas do período ainda trazem</div>' +
+    'compraram) · e o que as vendas do período ainda trazem. A carteira aqui começa do zero em ' +
+    'abril porque é onde a base do CRM começa. Contratos anteriores ao corte seguem pagando e ' +
+    'estão no ERP — esta tela mostra só a carteira que as vendas deste período formaram.</div>' +
     '<div id="psCpFonte"></div><div id="psCpFonteSerie"></div>' +
     '<div class="why rodape">Dinheiro novo é o que entrou de venda assinada no próprio período. ' +
     '<b>Carteira de recebíveis</b> é parcela de quem já é cliente — ela chega sem ninguém ' +
     'vender de novo. A terceira ' +
     'coluna não é caixa deste período: é o que as vendas dele ainda vão trazer, se todo mundo ' +
-    'pagar. <b>O gráfico é a pergunta que interessa no longo prazo:</b> o mês se sustenta ' +
-    'vendendo ou já se sustenta com o que a carteira de recebíveis paga sozinha?</div></div>'));
+    'pagar. <b>O gráfico mostra quanto do dinheiro de cada mês já vem de contratos fechados em ' +
+    'meses anteriores</b> — a carteira que o próprio comercial está formando.</div></div>'));
 
   /* barra = VGV da safra · risca = o que ficou disponível naquele mês */
   (function () {
@@ -2068,10 +2076,11 @@ function secaoComoPaga(g, dados, ym) {
       '<div class="bloco"><div class="per">Dinheiro novo</div><div class="n">' + curto(pr.novo) +
       '</div><div class="st">venda fechada no período · ' +
       fPct(pr.total ? pr.novo / pr.total * 100 : 0, 0) + ' do que entrou</div></div>' +
-      '<div class="bloco"><div class="per">Carteira de recebíveis</div><div class="n">' +
+      '<div class="bloco"><div class="per">Carteira formada desde abr/26</div><div class="n">' +
       curto(pr.carteira) + '</div><div class="st">parcela de quem já é cliente · ' +
       fPct(pr.total ? pr.carteira / pr.total * 100 : 0, 0) + ' do que entrou</div></div>' +
-      '<div class="bloco"><div class="per">Ainda vem</div><div class="n">' + curto(pr.a_receber) +
+      '<div class="bloco adiante"><span class="selo futuro">futuro</span>' +
+      '<div class="per">Ainda vem</div><div class="n">' + curto(pr.a_receber) +
       '</div><div class="st">das vendas deste período, nos próximos meses</div></div></div>';
     /* A barra de 100% saiu: ela repetia, em desenho, os números dos três blocos
        acima — e, desde que cada cartão de caixa passou a dizer sua própria
@@ -2082,7 +2091,12 @@ function secaoComoPaga(g, dados, ym) {
       var linhas = K.recebimento.por_mes || [];
       var cont = $('#psCpFonteSerie'); cont.innerHTML = '';
       if (!linhas.length) return;
-      var w = 1000, h = 152, svg = S(w, h), y0 = 108, alt = 74;
+      /* LAYOUT NO IDIOMA DO EXECUTIVO (21/09/26). Estava comprimido: 74 px de
+         área útil e a barra ocupando o slot inteiro, o que faz seis meses
+         parecerem uma parede. Passa a seguir o "Meses — realizado × meta":
+         barra fina de largura fixa ocupando bem menos da metade da coluna,
+         220 px de plotagem e as mesmas três linhas de grade. */
+      var w = 1000, h = 308, svg = S(w, h), y0 = 268, alt = 220;
       var topo = 0;
       linhas.forEach(function (m) { topo = Math.max(topo, (m.novo || 0) + (m.carteira || 0)); });
       topo = topo * 1.08 || 1;
@@ -2091,13 +2105,20 @@ function secaoComoPaga(g, dados, ym) {
         N('line', { x1: 44, y1: yy, x2: w - 6, y2: yy, stroke: C.grid }, svg);
         T(38, yy + 3.5, fN(v / 1000, 0), 'axis-t', 'end', svg);
       });
+      /* a unidade dita no alto do eixo: sem ela, "533" em cima da barra fica à
+         mercê do palpite de quem lê — e o bloco ao lado diz "R$ 533 mil" */
+      T(38, y0 - alt - 9, 'mil', 'axis-t', 'end', svg);
       N('rect', { x: 50, y: 20, width: 9, height: 9, rx: 3, fill: C.accent }, svg);
       T(64, 28, 'venda nova', 'lab-t', 'start', svg);
       N('rect', { x: 150, y: 20, width: 9, height: 9, rx: 3, fill: C.gray }, svg);
-      T(164, 28, 'carteira de recebíveis', 'lab-t', 'start', svg);
+      T(164, 28, 'carteira formada desde abr/26', 'lab-t', 'start', svg);
       var passo = (w - 56) / linhas.length;
+      /* 32 no viewBox de 1000 ≈ 37 px na largura real do cartão (s12), dentro
+         da régua do Executivo; se um dia a série ficar longa, o slot manda e a
+         barra nunca passa de 42% dele. */
+      var bw = Math.max(6, Math.min(32, Math.round(passo * 0.42)));
       linhas.forEach(function (m, i) {
-        var x = 50 + passo * i + 3, bw = Math.max(passo - 12, 6);
+        var cx = 50 + passo * i + passo / 2, x = cx - bw / 2;
         var nv = m.novo || 0, ct = m.carteira || 0, tt = nv + ct;
         var hn = (nv / topo) * alt, hc = (ct / topo) * alt;
         var r1 = N('rect', { x: x, y: y0 - hn, width: bw, height: hn, fill: C.accent }, svg);
@@ -2105,18 +2126,18 @@ function secaoComoPaga(g, dados, ym) {
         var tip = '<b>' + esc(ymLabel(ymN(m.ym))) + '</b><br><span>venda nova ' + fBRL(nv) +
           '<br>carteira de recebíveis ' + fBRL(ct) + '</span>';
         r1.dataset.tip = tip; r2.dataset.tip = tip;
-        T(x + bw / 2, y0 - hn - hc - 5, tt ? Math.round(nv / tt * 100) + '%' : '–',
-          'val-t', 'middle', svg);
-        T(x + bw / 2, 126, ymLabel(ymN(m.ym)), 'axis-t', 'middle', svg);
+        /* em cima, o TOTAL do mês em mil reais. Era o % de venda nova, e em
+           abril — o mês em que a carteira ainda não existia — ele dava "100%"
+           em cima da barra mais baixa do gráfico: lê-se como meta batida. */
+        T(cx, y0 - hn - hc - 5, tt ? fN(tt / 1000, 0) : '–', 'val-t', 'middle', svg);
+        T(cx, y0 + 18, ymLabel(ymN(m.ym)), 'axis-t', 'middle', svg);
         /* A PREVISIBILIDADE SENDO CONSTRUÍDA (20/09/26): embaixo de cada mês,
            quanto do caixa NÃO dependeu de vender de novo. É o número que sobe
            sozinho quando a carteira cresce — e é ele, não o total, que diz se
            o mês seguinte já nasce com chão. */
-        T(x + bw / 2, 140, tt ? 'recebíveis ' + Math.round(ct / tt * 100) + '%' : '',
+        T(cx, y0 + 32, tt ? 'carteira ' + Math.round(ct / tt * 100) + '%' : '',
           'axis-t', 'middle', svg);
       });
-      T(50, 14, '% em cima da barra = veio de venda nova  ·  embaixo = veio da carteira de ' +
-        'recebíveis', 'axis-t', 'start', svg);
       cont.appendChild(svg); bindTips(svg);
     })();
 
