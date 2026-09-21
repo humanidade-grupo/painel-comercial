@@ -1798,17 +1798,23 @@ function secaoComoPaga(g, dados, ym) {
          do mês, e não é: a assinatura de uma venda no cartão parcelado chega 30
          dias depois, então a do mês passado cai aqui e a deste mês cai no
          próximo. O mesmo vale para as outras duas naturezas — e no cartão e no
-         carnê a carteira é quase tudo, o que também precisa estar escrito. */
+         carnê a fatia de vendas anteriores é quase tudo, o que também precisa
+         estar escrito. */
       var nv = p[t[1] + '_novo'] || 0, ct = p[t[1] + '_carteira'] || 0;
       var alvo = $('#psCpO' + i);
       if (!nv && !ct) { alvo.textContent = ''; return; }
       var partes = [];
       if (nv) partes.push(rs(nv) + ' de venda ' + (p.meses.length === 1 ? 'de ' + p.rotulo
                                                                         : 'do período'));
-      /* "carteira de recebíveis" soa como PARCELA, e no cartão da assinatura
-         a fatia é ato: assinatura de venda anterior cujo dinheiro só ficou
-         disponível agora (21/09/26, antes da reunião com o Rodrigo). No cartão
-         e no carnê o termo continua e está certo — lá é parcela mesmo. */
+      /* O RÓTULO DIZ O QUE A FATIA É, E ISSO MUDA COM A NATUREZA (21/09/26).
+         No cartão da assinatura a fatia é ATO — assinatura de uma venda
+         anterior cujo dinheiro só ficou disponível agora —, e por isso ali se
+         lê "de assinaturas de vendas anteriores"; no cartão e no carnê a mesma
+         fatia é PARCELA, e o rótulo para em "de vendas anteriores". Sem a
+         palavra assinatura os três diriam a mesma coisa sobre coisas
+         diferentes. Os três já disseram "da carteira de recebíveis", termo que
+         saiu da aba no mesmo dia e não deve voltar: carteira é nome de ESTOQUE
+         (quanto há a receber) e isto aqui é FLUXO (quanto entrou no mês). */
       if (ct) partes.push(rs(ct) + (t[1] === 'a_vista'
         ? ' de assinaturas de vendas anteriores, disponível agora'
         : ' de vendas anteriores'));
