@@ -1877,7 +1877,8 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
     var dia = quando(cf); if (dia) dia.setDate(dia.getDate() + 1);
     $('#rodapeB').textContent = (dia ? 'Carnês de vendas anteriores a ' + String(dia.getDate()).padStart(2, '0') + '/' +
       String(dia.getMonth() + 1).padStart(2, '0') + '/' + dia.getFullYear() + ' não estão no Cofre — continuam na planilha até acabar.' : '') +
-      (r.fora_da_regra && r.fora_da_regra.n ? ' · ' + plural(r.fora_da_regra.n, 'parcela', 'parcelas') + ' deste mês não é boleto (cartão, entrada) e fica fora.' : '') +
+      (r.fora_da_regra && r.fora_da_regra.n ? ' · ' + (r.fora_da_regra.n === 1 ? '1 parcela deste mês não é boleto (cartão, entrada) e fica fora.'
+      : r.fora_da_regra.n + ' parcelas deste mês não são boleto (cartão, entrada) e ficam fora.') : '') +
       ' · "Enviado" é envio, não pagamento.';
     $('#lendoB').hidden = true; $('#conteudoB').hidden = false;
     renderBoletos();
@@ -2082,7 +2083,12 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
         $('#bmCorpo').innerHTML = '<div class="bmbody"><p class="ivmsg erro">Não consegui falar com o Cofre: ' + esc(e.message || e) + '</p></div>';
       });
   }
-  function linhaCarne(n) { return ((BM.r && BM.r.carne) || []).filter(function (p) { return Number(p['Nº Parcela']) === Number(n); })[0] || null; }
+  /* A numeração pode recomeçar por plano (o ato e a 1ª mensal são os dois nº 1): com o nº repetido,
+     vale a parcela-BOLETO — é ela que se marca. */
+  function linhaCarne(n) {
+    var ms = ((BM.r && BM.r.carne) || []).filter(function (p) { return Number(p['Nº Parcela']) === Number(n); });
+    return ms.filter(function (p) { return p.classe; })[0] || ms[0] || null;
+  }
 
   function tipoTxt(p) {
     var t = String(p['Tipo'] || '').toLowerCase(), m = String(p['Meio'] || '').trim();
