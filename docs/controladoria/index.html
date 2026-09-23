@@ -71,8 +71,11 @@
   (19/09, noite) "VER TUDO": botão no detalhe da venda abre um modal com tudo o que o Cofre
   tem DAQUELA venda, buscado NA HORA DO CLIQUE (?app=controladoria&fn=venda&deal=N) — a carga
   do mês não engorda e a tela não vira consulta da base. Listas fechadas no servidor (coluna
-  nova não aparece sozinha); RG, nascimento e o carnê ficam fora, por decisão. Fechar o modal
-  apaga o conteúdo dele: nada fica guardado.
+  nova não aparece sozinha). Fechar o modal apaga o conteúdo dele: nada fica guardado.
+  (22/09, decisão do Ricardo, revogando a de 19/09) RG e NASCIMENTO SAEM: "todos os dados devem
+  estar disponíveis pro boleto e Ivertex". Aparecem logo depois do CPF, no detalhe e no "ver
+  tudo", com copiar. O servidor manda o nascimento em AAAA-MM-DD; a tela mostra e COPIA
+  dd/mm/aaaa (o formato dos portais). Valor que não é data válida vem cru e ganha "confira".
 
   AS TRÊS DEFESAS:
    1. o carimbo exibido é o DA FOTO (`facilita.ultima_importacao` para as vendas,
@@ -1335,6 +1338,16 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
       (vazio ? '' : '<button type="button" class="cp" data-copiar="' + esc(copia != null ? copia : mostra) +
         '" aria-label="Copiar ' + esc(rotulo) + '">copiar</button>') + '</div>';
   }
+  /* Nascimento: AAAA-MM-DD do servidor -> dd/mm/aaaa (mostra e copia). Fora disso, o valor cru
+     com "confira" — a tela nunca inventa uma data. */
+  function campoNascimento(v) {
+    var s = String(v == null ? '' : v).trim();
+    if (!s) return campo('Nascimento', '');
+    if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return campo('Nascimento', dataBR(s), dataBR(s));
+    return '<div class="pcampo"><span class="pk">Nascimento</span><span class="pv">' + esc(s) +
+      ' <span class="ivmsg aviso" title="O Cofre não reconheceu uma data válida neste campo">confira</span></span>' +
+      '<button type="button" class="cp" data-copiar="' + esc(s) + '" aria-label="Copiar Nascimento">copiar</button></div>';
+  }
   function sugestaoJuros(o) {
     var n = Number(o['Nº Parcelas']);
     if (!n || !isFinite(n)) return '<div class="juros">Sem nº de parcelas no Facilita — sem sugestão de juros.</div>';
@@ -1408,6 +1421,7 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
     if (!obj) return '<div class="msec"><h3>' + esc(titulo) + '</h3><p class="dim">— nada no Cofre —</p></div>';
     var ks = ordem || Object.keys(obj);
     return '<div class="msec"><h3>' + esc(titulo) + '</h3>' + ks.map(function (k) {
+      if (k === 'Nascimento') return campoNascimento(obj[k]);
       var val = obj[k]; val = val == null ? '' : String(val);
       return campo(k, val.trim(), val.trim());
     }).join('') + '</div>';
@@ -1443,7 +1457,7 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
                        : secao('Contrato na D4Sign', null)) +
           secao('Lançamento · Controle_ERP', r.controle) +
           ((r.avisos || []).length ? '<p class="ivmsg erro">' + esc(r.avisos.join(' · ')) + '</p>' : '') +
-          '<p class="mnota">Lido agora do Cofre. Fora, por decisão: RG e nascimento do cliente, e o carnê (parcela a parcela).</p>';
+          '<p class="mnota">Lido agora do Cofre. Fora, por decisão: o carnê (parcela a parcela). RG e nascimento aparecem desde 22/09.</p>';
       })
       .catch(function (e) {
         if (meu !== PEDIDO_TUDO) return;
@@ -1468,7 +1482,10 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
       var end = [String(p['Logradouro'] || '').trim() + (p['Número'] ? ', ' + p['Número'] : '') + (p['Complemento'] ? ' ' + p['Complemento'] : ''),
                  p['Bairro'], [p['Cidade'], p['UF']].filter(Boolean).join('/'), p['CEP'] ? 'CEP ' + p['CEP'] : '']
         .map(function (s) { return String(s || '').trim(); }).filter(Boolean).join(' · ');
-      cliente = '<p>CPF ' + esc(p['CPF'] || '—') + '</p><p>' + esc(p['Celular'] || '—') + '</p><p>' + esc(p['E-mail'] || '—') + '</p>' +
+      // (22/09) CPF, RG e Nascimento com copiar, nessa ordem — é o que os portais pedem primeiro
+      cliente = campo('CPF', String(p['CPF'] || '').trim()) + campo('RG', String(p['RG'] || '').trim()) +
+                campoNascimento(p['Nascimento']) +
+                '<p>' + esc(p['Celular'] || '—') + '</p><p>' + esc(p['E-mail'] || '—') + '</p>' +
                 '<p>' + esc(end || 'sem endereço') + '</p>';
     }
 
