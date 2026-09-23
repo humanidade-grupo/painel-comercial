@@ -84,6 +84,14 @@
    2. `truncado` true OU AUSENTE bloqueia o desenho inteiro.
    3. a lista de fases é ORDEM, não filtro: fase que a D4Sign criar depois aparece com o
       rótulo dela, listrada, e uma invariante avisa se as contagens não fecharem.
+   (22/09) BOLETOS — layout do artefato WUuWtAz6zm8we7cQkvz4zS (REGISTRO desde que esta página
+   subiu). O controle de envio de boleto sai da aba `Boletos` da Controle de Vendas e entra aqui:
+   a coluna BOLETO na tabela de vendas (último enviado e próximo a vencer, abre o modal) e a aba
+   BOLETOS DO MÊS (mês de VENCIMENTO, não a competência; marcação em lote). O modal busca a venda
+   na hora (?fn=venda: cadastro + carnê inteiro) e grava por Deal ID + Nº Parcela. Só é boleto o
+   que é `monthly · Boleto` (e `monthly · (indefinido)`, marcado "confira"). Numeração do
+   Facilita (2/72). Sem `boleto.corte` na Config, tarja amarela e nenhum atraso calculado.
+   Nada disto vai para disco: memória da página, como o resto.
    4. (22/09) o RECIBO DE ESCRITA: a rota devolve `contagem` [{aba, esperado, lido}] — o nº de
       linhas que a importação diz ter gravado × o que foi lido. Diferente, ou ausente, bloqueia
       o desenho inteiro (e o "ver tudo"): é a aba lida no meio da regravação.
@@ -130,8 +138,8 @@ header{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:va
 .stamps .chip{padding:4px 11px;font-size:12px}
 
 /* ---- avisos (tarjas) ---- */
-#avisos:empty{display:none}
-#avisos{display:grid;gap:8px;margin-top:14px}
+#avisos:empty,#avisosB:empty{display:none}
+#avisos,#avisosB{display:grid;gap:8px;margin-top:14px}
 .tarja{border:1px solid var(--crit);background:var(--crit-soft);color:var(--ink);
   border-radius:var(--r);padding:11px 14px;font-size:13px}
 .tarja .t{font-weight:600;color:var(--crit);margin-bottom:2px}
@@ -227,12 +235,12 @@ button:focus-visible,select:focus-visible,.row-head:focus-visible,input:focus-vi
 .tablewrap{margin-top:24px;background:var(--surface);border:1px solid var(--line);
   border-radius:var(--r);overflow:hidden}
 .thead,.row-head{display:grid;
-  grid-template-columns:22px 104px minmax(150px,1.5fr) 96px 78px 100px minmax(168px,1.1fr) 152px;
+  grid-template-columns:22px 104px minmax(150px,1.5fr) 96px 78px 100px minmax(168px,1.1fr) 152px 178px;
   gap:10px;align-items:center}
 .thead{padding:9px 14px;background:var(--surface-2);border-bottom:1px solid var(--line);
   font-size:10.5px;text-transform:uppercase;letter-spacing:.07em;color:var(--ink-3)}
 .scroller{overflow-x:auto}
-.scroller>*{min-width:966px}
+.scroller>*{min-width:1156px}
 .row{border-bottom:1px solid var(--line);display:block}
 .row:last-child{border-bottom:0}
 .row-head{width:100%;text-align:left;font:inherit;color:inherit;background:transparent;
@@ -367,6 +375,119 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
   border-radius:8px;border:0;background:var(--brand);color:var(--ground);cursor:pointer}
 .gate .erro{color:var(--crit);font-size:12px;min-height:1.2em;margin-top:8px}
 
+/* ---- (22/09) BOLETOS — do artefato WUuWtAz6zm8we7cQkvz4zS ---- */
+.tabs{display:flex;gap:4px;margin-top:18px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.tab{font:inherit;font-size:13px;padding:9px 15px;border:0;border-bottom:2px solid transparent;
+  background:transparent;color:var(--ink-3);cursor:pointer;border-radius:8px 8px 0 0}
+.tab:hover{color:var(--ink-2);background:var(--surface-2)}
+.tab[aria-selected="true"]{color:var(--brand);border-bottom-color:var(--accent);font-weight:500}
+.tab .n{font-variant-numeric:tabular-nums;color:var(--ink-3);font-weight:400;margin-left:5px}
+.mesbar{margin-top:18px;display:flex;gap:14px;align-items:flex-end;flex-wrap:wrap;
+  background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:13px 15px}
+.campo{display:flex;flex-direction:column;gap:4px}
+.campo label{font-size:10.5px;text-transform:uppercase;letter-spacing:.07em;color:var(--ink-3)}
+.aviso-eixo{flex:1 1 260px;font-size:11.5px;color:var(--ink-2);line-height:1.4;margin:0;
+  border-left:2px solid var(--accent);padding-left:11px}
+.aviso-eixo b{font-weight:600;color:var(--brand)}
+.kpi .d{font-size:11px;color:var(--ink-3);margin-top:3px}
+.kpi .v.crit{color:var(--crit)} .kpi .v.ok{color:var(--ok)}
+.lote{position:sticky;top:70px;z-index:5;margin-top:16px;background:var(--brand);color:var(--ground);
+  border-radius:var(--r);padding:11px 15px;display:flex;gap:12px;align-items:center;flex-wrap:wrap;box-shadow:var(--shadow)}
+.lote .cnt{font-size:13px;font-weight:500;font-variant-numeric:tabular-nums}
+.lote .cnt small{display:block;font-weight:400;font-size:11px;opacity:.75}
+.lote .sp{flex:1 1 auto}
+.lb{font:inherit;font-size:12.5px;padding:6px 13px;border-radius:999px;cursor:pointer;
+  border:1px solid rgba(231,228,218,.45);background:transparent;color:var(--ground)}
+.lb:hover{border-color:var(--accent-soft)}
+.lb.pri{background:var(--accent-soft);border-color:var(--accent-soft);color:var(--brand);font-weight:500}
+.lb:disabled{opacity:.6;cursor:progress}
+.lote input[type=date]{font:inherit;font-size:12.5px;padding:4px 8px;border-radius:8px;border:0}
+.lote .lmsg{font-size:11.5px;flex-basis:100%}
+.g-bol .thead,.g-bol .row-head{display:grid;
+  grid-template-columns:30px 100px minmax(150px,1.4fr) 78px 96px 104px minmax(190px,1.2fr) 104px;
+  gap:10px;align-items:center}
+.g-bol .scroller>*{min-width:1000px}
+.g-bol .row-head{cursor:default}
+.g-bol .row-head:hover{background:transparent}
+.g-bol .row.sel .row-head{background:var(--accent-soft)}
+.chk{width:17px;height:17px;accent-color:var(--brand);cursor:pointer;margin:0}
+.pills{display:flex;flex-wrap:wrap;gap:4px;align-items:center}
+.g-bol .pill{white-space:normal}
+.bolc{display:flex;flex-direction:column;gap:4px;align-items:flex-start}
+.bol-lin{font-size:11.5px;color:var(--ink-2);font-variant-numeric:tabular-nums;line-height:1.35}
+.bol-lin .fez{color:var(--ok);font-weight:500}
+.bol-lin .vem{color:var(--ink-3)}
+.bol-lin .tarde{color:var(--crit);font-weight:500}
+.bol-lin .neutro{color:var(--ink-3);font-style:italic}
+.bol-lin .conf{color:var(--warn);font-weight:500}
+.bolb{font:inherit;font-size:11.5px;padding:3px 10px;border-radius:999px;cursor:pointer;
+  border:1px solid var(--line-strong);background:var(--surface-2);color:var(--ink-2)}
+.bolb:hover{border-color:var(--accent);color:var(--ink)}
+.bolb.pri{background:var(--brand);border-color:var(--brand);color:var(--ground)}
+.rodape-bol{margin-top:12px;font-size:11.5px;color:var(--ink-3)}
+/* modal do boleto */
+.bm{padding:0;overflow:hidden}
+.bm .bmtopo{display:flex;align-items:flex-start;gap:12px;justify-content:space-between;
+  padding:15px 18px 13px;border-bottom:1px solid var(--line);background:var(--surface)}
+.bm .bmtopo h2{font-size:17px;line-height:1.2;color:var(--brand)}
+.bm .bmsub{font-size:11.5px;color:var(--ink-3);margin-top:3px}
+.bm .bmtopo button{font:inherit;font-size:19px;line-height:1;border:0;background:transparent;color:var(--ink-3);cursor:pointer;padding:2px 6px;border-radius:6px}
+.bmbody{padding:16px 18px 18px;display:flex;flex-direction:column;gap:18px}
+.bloco > h4{margin:0 0 9px;font-family:var(--mono);font-size:10.5px;text-transform:uppercase;
+  letter-spacing:.07em;color:var(--ink-3);font-weight:500}
+.bloco > h4 .obs{text-transform:none;letter-spacing:0;font-style:italic;font-weight:400;margin-left:7px}
+.bgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(186px,1fr));gap:11px 20px}
+.pf{min-width:0}
+.pf .r{font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-3)}
+.pf .v{display:flex;gap:7px;align-items:baseline;margin-top:2px}
+.pf .v span{font-size:13px;color:var(--ink);overflow-wrap:anywhere}
+.pf .v .cp{margin-left:0}
+.carne{border:1px solid var(--line);border-radius:var(--r);overflow:hidden;background:var(--surface-2)}
+.carne-sc{max-height:238px;overflow-y:auto}
+.ch,.cr{display:grid;grid-template-columns:30px 62px 96px 108px 1fr;gap:10px;align-items:center;
+  padding:7px 12px;font-variant-numeric:tabular-nums}
+.ch{font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-3);
+  background:var(--surface);border-bottom:1px solid var(--line);position:sticky;top:0}
+.cr{font-size:12.5px;border-bottom:1px solid var(--line);cursor:pointer}
+.cr:last-child{border-bottom:0}
+.cr:hover{background:var(--surface)}
+.cr.feito{color:var(--ink-3)}
+.cr.naoboleto{color:var(--ink-3);cursor:default;font-style:italic}
+.cr.naoboleto:hover{background:transparent}
+.cr.escolhida{background:var(--accent-soft)}
+.cr .est{font-size:11px}
+.cr .est.fez{color:var(--ok)} .cr .est.abre{color:var(--ink-3)}
+.cr .est.tarde{color:var(--crit);font-weight:500} .cr .est.exc{color:var(--warn);font-style:italic}
+.cr .est.conf{color:var(--warn);font-weight:500}
+.cr input[type=radio]{accent-color:var(--brand);margin:0;cursor:pointer}
+.reg{display:flex;flex-direction:column;gap:10px}
+.opts{display:flex;gap:8px;flex-wrap:wrap}
+.opt{font:inherit;font-size:12.5px;padding:6px 13px;border-radius:999px;cursor:pointer;
+  border:1px solid var(--line-strong);background:var(--surface-2);color:var(--ink-2)}
+.opt:hover{border-color:var(--accent)}
+.opt[aria-pressed="true"]{background:var(--brand);border-color:var(--brand);color:var(--ground);font-weight:500}
+.opt.del[aria-pressed="true"]{background:var(--crit);border-color:var(--crit)}
+.extra{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.extra input[type=date],.extra input[type=text],.extra select{font:inherit;font-size:12.5px;
+  padding:5px 9px;border-radius:8px;border:1px solid var(--line-strong);background:var(--surface-2);color:var(--ink)}
+.extra input[type=text]{flex:1 1 220px;min-width:0}
+.nota{font-size:11px;color:var(--ink-3);line-height:1.4;margin:0}
+.bmrodape{display:flex;gap:9px;align-items:center;flex-wrap:wrap;padding:13px 18px;
+  border-top:1px solid var(--line);background:var(--surface)}
+.bmrodape .sp{flex:1 1 auto}
+.mb{font:inherit;font-size:13px;padding:7px 16px;border-radius:999px;cursor:pointer;
+  border:1px solid var(--line-strong);background:var(--surface-2);color:var(--ink-2)}
+.mb:hover{border-color:var(--accent);color:var(--ink)}
+.mb.pri{background:var(--brand);border-color:var(--brand);color:var(--ground);font-weight:500}
+.mb:disabled{opacity:.6;cursor:progress}
+.mresumo{font-size:11.5px;color:var(--ink-2)}
+.mresumo b{font-weight:600;color:var(--brand)}
+.mresumo.erro{color:var(--crit)}
+@media (max-width:760px){
+  .mesbar{align-items:stretch}
+  .lote{position:static}
+  .ch,.cr{grid-template-columns:26px 54px 86px 96px 1fr;gap:7px;font-size:11.5px}
+}
 @media (max-width:620px){
   .head h1{font-size:20px}
   .tracks{grid-template-columns:1fr}
@@ -415,6 +536,12 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
     Os meses abertos ficam nesta aba até ela fechar; <b>Recarregar</b> busca de novo.
     As datas no alto são da cópia, não da abertura da página.</p>
 
+  <div class="tabs" role="tablist" aria-label="Escopo">
+    <button class="tab" role="tab" id="tab-v" aria-selected="true" aria-controls="pane-v" type="button">Vendas<span id="tab-v-rot"></span><span class="n" id="tab-v-n">—</span></button>
+    <button class="tab" role="tab" id="tab-b" aria-selected="false" aria-controls="pane-b" type="button">Boletos do mês<span class="n" id="tab-b-n">—</span></button>
+  </div>
+
+  <section id="pane-v" role="tabpanel" aria-labelledby="tab-v">
   <div class="filters">
     <div class="fgroup" id="g-mes">
       <span class="flabel" title="mês da Data da Venda no Cofre">Competência</span>
@@ -511,20 +638,82 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
     <div class="scroller">
       <div class="thead">
         <div></div><div>Jazigo</div><div>Cliente</div><div>Vendedor</div><div>Venda</div>
-        <div>Valor</div><div>Contrato</div><div>Ivertex</div>
+        <div>Valor</div><div>Contrato</div><div>Ivertex</div><div>Boleto</div>
       </div>
       <div id="rows"></div>
     </div>
     <div class="empty" id="empty" hidden>Nenhuma venda neste recorte.</div>
   </div>
   </div>
+  </section>
+
+  <section id="pane-b" role="tabpanel" aria-labelledby="tab-b" hidden>
+    <div class="mesbar">
+      <div class="campo">
+        <label for="mesSel">Vencimento em</label>
+        <select id="mesSel"></select>
+      </div>
+      <div class="campo">
+        <label for="sitSel">Situação</label>
+        <select id="sitSel">
+          <option value="tudo">Tudo</option>
+          <option value="aenviar">A enviar</option>
+          <option value="vencido">Vencidos sem envio</option>
+          <option value="enviado">Enviados</option>
+          <option value="excecao">Exceções</option>
+          <option value="indef">Meio não informado</option>
+          <option value="mudou">Carnê mudou</option>
+          <option value="antes">Antes da Ponte</option>
+        </select>
+      </div>
+      <p class="aviso-eixo">Este seletor é o <b>mês de vencimento do boleto</b> — não a competência da venda. <span id="eixoTxt"></span></p>
+    </div>
+    <div id="avisosB"></div>
+    <div class="lendo" id="lendoB" hidden>Lendo os boletos do Cofre…</div>
+    <div id="conteudoB" hidden>
+      <div class="kpis">
+        <div class="kpi lead"><div class="k">A enviar</div><div class="v" id="kb-aenv">0</div><div class="d" id="kb-aenv-d">—</div></div>
+        <div class="kpi"><div class="k">Enviados</div><div class="v ok" id="kb-env">0</div><div class="d" id="kb-env-d">—</div></div>
+        <div class="kpi"><div class="k">Vencidos sem envio</div><div class="v crit" id="kb-venc">0</div><div class="d" id="kb-venc-d">—</div></div>
+        <div class="kpi"><div class="k">Exceções</div><div class="v" id="kb-exc">0</div><div class="d" id="kb-exc-d">—</div></div>
+      </div>
+      <div class="lote" id="lote" hidden>
+        <div class="cnt" id="loteN"></div>
+        <div class="sp"></div>
+        <button class="lb pri" type="button" id="loteHoje">Marcar como enviados hoje</button>
+        <button class="lb" type="button" id="loteData">Em outro dia…</button>
+        <span id="loteDia" hidden><input type="date" id="loteDt" aria-label="Data do envio"> <button class="lb pri" type="button" id="loteDiaOk">Marcar nesse dia</button></span>
+        <button class="lb" type="button" id="loteLimpa">Limpar</button>
+        <div class="lmsg" id="loteMsg" hidden></div>
+      </div>
+      <div class="tablewrap g-bol">
+        <div class="scroller">
+          <div class="thead">
+            <div><input class="chk" type="checkbox" id="chkAll" aria-label="Selecionar todos os a enviar"></div>
+            <div>Jazigo</div><div>Cliente</div><div>Parcela</div><div>Vencimento</div>
+            <div>Valor</div><div>Situação</div><div></div>
+          </div>
+          <div id="rowsB"></div>
+        </div>
+        <div class="empty" id="emptyB" hidden>Nenhuma parcela neste recorte.</div>
+      </div>
+      <p class="rodape-bol" id="rodapeB"></p>
+    </div>
+  </section>
 
   <footer>
-    <div>Vendas: <b>Vendas_Facilita</b> · Assinaturas: <b>Contratos_D4Sign</b> · Lançamento: <b>Controle_ERP</b><span id="ft-extra"></span></div>
+    <div>Vendas: <b>Vendas_Facilita</b> · Assinaturas: <b>Contratos_D4Sign</b> · Lançamento: <b>Controle_ERP</b> · Boletos: <b>Vendas_Facilita_Parcelas</b> e <b>Controle_Boletos</b><span id="ft-extra"></span></div>
     <div>Competência = mês da <b>Data da Venda</b> · marcação grava por <b>Deal ID</b>, com autor e hora</div>
     <div><span id="ft-voce"></span> <button type="button" id="btTrocar">trocar token</button></div>
   </footer>
 </div>
+</div>
+
+<div class="modal" id="modalBol" hidden role="dialog" aria-modal="true" aria-labelledby="bmTit">
+  <div class="mcaixa bm">
+    <div class="bmtopo"><div><h2 id="bmTit">Boleto</h2><div class="bmsub" id="bmSub"></div></div><button type="button" id="bmX" aria-label="Fechar">×</button></div>
+    <div id="bmCorpo"></div>
+  </div>
 </div>
 
 <div class="modal" id="modal" hidden role="dialog" aria-modal="true" aria-labelledby="modalTit">
@@ -624,7 +813,8 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
   function token() { try { return localStorage.getItem(CHAVE_TOKEN) || ''; } catch (e) { return ''; } }
   function abrirPortao(msg) {
     R = null; VENDAS = []; MEMO = {};
-    $('#rows').textContent = '';
+    MEMO_B = {}; B.r = null; B.sel = {};
+    $('#rows').textContent = ''; $('#rowsB').textContent = '';
     $('#app').hidden = true; $('#gate').hidden = false;
     $('#gateErro').textContent = msg || '';
     setTimeout(function () { $('#tk').focus(); }, 50);
@@ -638,7 +828,10 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
     $('#tk').value = ''; carregar(F.mes);
   };
   $('#tk').addEventListener('keydown', function (e) { if (e.key === 'Enter') $('#btEntrar').click(); });
-  $('#btRecarregar').onclick = function () { MEMO = {}; carregar(F.mes, true); };
+  $('#btRecarregar').onclick = function () {
+    MEMO = {}; MEMO_B = {};
+    if (TAB === 'b') carregarBoletos(B.mes, true); else { B.r = null; carregar(F.mes, true); }
+  };
   $('#btTrocar').onclick = function () {
     try { localStorage.removeItem(CHAVE_TOKEN); } catch (e) {}
     abrirPortao('');
@@ -800,6 +993,14 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
       aviso('Sem data de corte da D4Sign.', '<p>A Config do Cofre não tem <code>d4sign.corte</code> (AAAA-MM-DD). ' +
         'Sem ela, venda anterior ao início do cofre da D4Sign aparece como <b>sem contrato</b>, o que não é verdade.</p>', true);
     }
+    // (22/09) boletos: o corte e o carnê que não veio
+    CORTE_BOL = corteDe(r);
+    if (r.mes !== 'tudo' && !r.boletos && r.boletos_motivo) {
+      aviso('O carnê não veio: a coluna Boleto fica em branco.', '<p>' + esc(r.boletos_motivo) + '</p>', true);
+    } else if (r.boletos && !CORTE_BOL) {
+      aviso('Corte do boleto não definido.', '<p>A Config do Cofre não tem <code>boleto.corte</code> (AAAA-MM-DD). ' +
+        'Sem ela a coluna Boleto <b>não calcula atraso nenhum</b> — senão todo boleto antigo, controlado na planilha, apareceria vencido.</p>', true);
+    }
     if ((r.lancadas_sem_venda || []).length) {
       aviso(plural(r.lancadas_sem_venda.length, 'lançamento no Ivertex sem venda viva', 'lançamentos no Ivertex sem venda viva') + '.',
         '<p>Marcados como lançados e ausentes da Vendas_Facilita — estorno no ERP? Deal ' +
@@ -842,6 +1043,8 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
       return v;
     };
     VENDAS = (r.vendas || []).map(umaVenda);
+    $('#tab-v-rot').textContent = r.mes === 'tudo' ? ' · todas' : ' · ' + MESES_L[+r.mes.slice(5, 7) - 1];
+    $('#tab-v-n').textContent = VENDAS.length;
     FILA_FORA = (r.fila || []).map(function (o) { var v = umaVenda(o); v.foraRecorte = true; return v; });
 
     // ---- filtros que dependem do recorte
@@ -1143,6 +1346,7 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
           '</span>' : (c.fraco ? '<span class="sigtxt fraco" title="Documento casado com a venda só pelo jazigo escrito no nome — o casamento mais fraco.">pelo jazigo no nome</span>' : '')) +
         '</span>' +
         '<span class="ivc"></span>' +
+        '<span class="bolc bolcel"></span>' +
       '</div>' +
       '<div class="detail" hidden></div>';
 
@@ -1241,6 +1445,16 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
       }
     });
     pintarIv();
+
+    // (22/09) a célula do boleto: trata o próprio clique, para não abrir/fechar a linha
+    var cb = el.querySelector('.bolcel');
+    cb.innerHTML = celulaBoleto(v);
+    cb.addEventListener('click', function (e) {
+      e.stopPropagation();
+      var b = e.target.closest('button[data-bol]');
+      if (b) abrirBoleto(v.id, Number(b.dataset.parc) || 0, b);
+    });
+    cb.addEventListener('keydown', function (e) { e.stopPropagation(); });
 
     var head = el.querySelector('.row-head'), det = el.querySelector('.detail');
     var abrir = function () {
@@ -1457,7 +1671,7 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
                        : secao('Contrato na D4Sign', null)) +
           secao('Lançamento · Controle_ERP', r.controle) +
           ((r.avisos || []).length ? '<p class="ivmsg erro">' + esc(r.avisos.join(' · ')) + '</p>' : '') +
-          '<p class="mnota">Lido agora do Cofre. Fora, por decisão: o carnê (parcela a parcela). RG e nascimento aparecem desde 22/09.</p>';
+          '<p class="mnota">Lido agora do Cofre. O carnê parcela a parcela e os boletos estão no botão <b>Registrar boleto</b> (22/09). RG e nascimento aparecem desde 22/09.</p>';
       })
       .catch(function (e) {
         if (meu !== PEDIDO_TUDO) return;
@@ -1526,6 +1740,515 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
       '</div>' +
     '</div>' + pagamento(v);
   }
+
+  // ================================================================ BOLETOS (22/09)
+  /* Layout: artefato WUuWtAz6zm8we7cQkvz4zS. Duas superfícies: a CÉLULA na linha da venda (para
+     consultar um cliente) e a aba BOLETOS DO MÊS (para trabalhar o mês). Eixos diferentes: a
+     aba Vendas é a competência (mês da Data da Venda); a lista de boletos é o mês de VENCIMENTO.
+     A tela não gera boleto, não concilia pagamento ("enviado" não é "pago") e não deixa digitar
+     parcela, vencimento nem valor: o carnê é o do Facilita.
+     O CORTE (`boleto.corte`, digitado pelo Ricardo no dia da estreia): parcela vencida antes
+     dele e sem marcação é "antes da Ponte — ver a planilha", cinza, nunca atraso. Sem a chave,
+     tarja amarela e NENHUM atraso calculado. Tudo em memória, como o resto da página. */
+  var MESES_L = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+  var CORTE_BOL = '';
+  var TAB = 'v';
+  var B = { r: null, mes: null, sit: 'tudo', sel: {} };
+  var MEMO_B = {};
+
+  function mesLongo(ym) { return MESES_L[+ym.slice(5, 7) - 1] + ' / ' + ym.slice(0, 4); }
+  function proxMes() {
+    var d = new Date(); d.setDate(1); d.setMonth(d.getMonth() + 1);
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+  }
+  function corteDe(r) { var c = String((r && r.corte_boleto) || ''); return /^\d{4}-\d{2}-\d{2}$/.test(c) ? c : ''; }
+  function nT(it) { return it.parcela + '/' + it.total; }
+  function marcado(m) { return !!m && (m.estado === 'enviado' || m.estado === 'outro'); }
+
+  /* O estado de UMA parcela-boleto: enviado · excecao · antes · vencido · aenviar. */
+  function estadoParcela(venc, m, corte) {
+    if (m && m.estado === 'enviado') return 'enviado';
+    if (m && m.estado === 'outro') return 'excecao';
+    if (!corte) return 'aenviar';            // sem corte: nenhum atraso
+    if (venc < corte) return 'antes';
+    if (venc < hojeISO()) return 'vencido';
+    return 'aenviar';
+  }
+  function mudouLocal(m, venc, valor) {
+    if (!m || m.estado === 'nao_enviado') return false;
+    var f = String(m.venc_foto || '').slice(0, 7);
+    return (f && f !== String(venc || '').slice(0, 7)) ||
+           (m.valor_foto !== null && m.valor_foto !== undefined && Math.round(Number(valor) * 100) !== Math.round(Number(m.valor_foto) * 100));
+  }
+
+  /* ---------- a célula na linha da venda ---------- */
+  function celulaBoleto(v) {
+    if (v.foraRecorte) return '<span class="bol-lin"><span class="neutro" title="O carnê aparece na competência da venda">abra a competência da venda</span></span>';
+    if (!R || !R.boletos) return '<span class="bol-lin"><span class="neutro">' + (R && R.mes === 'tudo' ? 'escolha um mês' : 'carnê não lido') + '</span></span>';
+    var x = R.boletos[v.id];
+    if (!x || !x.tem_carne) return '<span class="bol-lin"><span class="neutro">sem carnê no Cofre</span></span>';
+    if (!x.boletos.length) return '<span class="bol-lin"><span class="neutro">' + (x.tem_mensal ? 'cartão · sem boleto' : 'à vista · sem carnê') + '</span></span>';
+    var bs = x.boletos;
+    var env = bs.filter(function (e) { return e.marcacao && e.marcacao.estado === 'enviado'; });
+    var ult = env.length ? env.reduce(function (a, b) { return b.parcela > a.parcela ? b : a; }) : null;
+    var pend = bs.filter(function (e) { return !marcado(e.marcacao); });
+    var pre = CORTE_BOL ? pend.filter(function (e) { return e.vencimento < CORTE_BOL; }) : [];
+    var pos = pend.filter(function (e) { return pre.indexOf(e) < 0; })
+                  .sort(function (a, b) { return a.vencimento.localeCompare(b.vencimento) || a.parcela - b.parcela; });
+    var prox = pos[0] || null;
+    var atras = !!(prox && CORTE_BOL && prox.vencimento < hojeISO());
+    var mudou = bs.some(function (e) { return e.carne_mudou; });
+    var partes = [];
+    if (ult) partes.push('<span class="fez">' + esc(nT(ult)) + ' enviado ' + esc(dbr(ult.marcacao.data_envio)) + '</span>');
+    if (prox) {
+      partes.push(atras
+        ? '<span class="tarde">' + esc(nT(prox)) + ' venceu há ' + plural(idade(prox.vencimento), 'dia', 'dias') + '</span>'
+        : '<span class="vem">' + (ult ? '' : 'nada enviado · ') + esc(nT(prox)) + ' vence ' + esc(dbr(prox.vencimento)) + '</span>');
+    } else if (pre.length && !ult) partes.push('<span class="neutro">antes da Ponte — ver a planilha</span>');
+    else if (!pend.length) partes.push('<span class="neutro">carnê todo marcado</span>');
+    if (mudou) partes.push('<span class="conf">o carnê mudou depois do envio — confira</span>');
+    return '<span class="bol-lin">' + partes.join('<br>') + '</span>' +
+      '<button class="bolb' + (atras || (!ult && prox) ? ' pri' : '') + '" type="button" data-bol="' + esc(v.id) + '"' +
+      (prox ? ' data-parc="' + esc(prox.parcela) + '"' : '') + '>Registrar boleto</button>';
+  }
+
+  /* ---------- as abas ---------- */
+  function mostrarAba(t) {
+    TAB = t;
+    $('#tab-v').setAttribute('aria-selected', String(t === 'v'));
+    $('#tab-b').setAttribute('aria-selected', String(t === 'b'));
+    $('#pane-v').hidden = t !== 'v';
+    $('#pane-b').hidden = t !== 'b';
+    if (t === 'b' && !B.r) carregarBoletos(B.mes);
+  }
+  $('#tab-v').onclick = function () { mostrarAba('v'); };
+  $('#tab-b').onclick = function () { mostrarAba('b'); };
+
+  /* ---------- a lista do mês ---------- */
+  function bloqueiaB(t, c) {
+    $('#avisosB').innerHTML = '<div class="tarja" role="status"><div class="t">' + esc(t) + '</div>' + c + '</div>';
+    $('#conteudoB').hidden = true; $('#lendoB').hidden = true;
+  }
+  function carregarBoletos(mes, forcar) {
+    var tk = token();
+    if (!tk) { abrirPortao(''); return; }
+    mes = mes || B.mes || proxMes();
+    if (!forcar && MEMO_B[mes]) { montarBoletos(MEMO_B[mes]); return; }
+    $('#conteudoB').hidden = true; $('#lendoB').hidden = false; $('#avisosB').innerHTML = '';
+    comPrazo(API + '?app=controladoria&fn=boletos&mes=' + encodeURIComponent(mes) + '&token=' + encodeURIComponent(tk),
+             { cache: 'no-store', credentials: 'omit' }, 60000)
+      .then(function (r) {
+        if (recusado(r)) { try { localStorage.removeItem(CHAVE_TOKEN); } catch (e) {} abrirPortao('Token recusado. Digite de novo.'); return; }
+        if (!r || r.ok !== true) { bloqueiaB('O Cofre respondeu, mas sem dado.', '<p>' + esc((r && r.error) || 'resposta vazia') + '</p>'); return; }
+        if (r.truncado !== false) {
+          bloqueiaB('Esta página não vai desenhar: a lista de boletos veio cortada (ou sem dizer se cortou).',
+            '<p>' + esc(r.n) + ' parcelas servidas. Aumentar <code>CTL_TETO</code> em <code>Controladoria.gs</code> e republicar.</p>');
+          return;
+        }
+        var ruim = reciboRuim(r);
+        if (ruim) { bloqueiaB(ruim.t, ruim.c); return; }
+        MEMO_B[r.mes] = r;
+        montarBoletos(r);
+      })
+      .catch(function (e) {
+        bloqueiaB('Não consegui falar com o Cofre.', '<p>' + esc(e.message || e) + '</p>');
+      });
+  }
+
+  function montarBoletos(r) {
+    B.r = r; B.mes = r.mes; B.sel = {};
+    CORTE_BOL = corteDe(r);
+    var ms = (r.meses || []).map(function (m) { return m.mes; });
+    if (ms.indexOf(r.mes) < 0) ms.push(r.mes);
+    ms.sort();
+    $('#mesSel').innerHTML = ms.map(function (m) {
+      return '<option value="' + esc(m) + '"' + (m === r.mes ? ' selected' : '') + '>' + esc(mesLongo(m)) + '</option>';
+    }).join('');
+    var comps = {};
+    (r.itens || []).forEach(function (it) { if (it.data_venda) comps[it.data_venda.slice(0, 7)] = 1; });
+    var cs = Object.keys(comps).sort();
+    $('#eixoTxt').textContent = cs.length ? MESES_L[+r.mes.slice(5, 7) - 1].replace(/^./, function (c) { return c.toUpperCase(); }) +
+      ' traz parcelas de vendas feitas de ' + MESES_L[+cs[0].slice(5, 7) - 1] + ' a ' + MESES_L[+cs[cs.length - 1].slice(5, 7) - 1] + '.' : '';
+    $('#avisosB').innerHTML = CORTE_BOL ? '' :
+      '<div class="tarja amarela" role="status"><div class="t">Corte do boleto não definido.</div>' +
+      '<p>A Config do Cofre não tem <code>boleto.corte</code> (AAAA-MM-DD, o dia em que a Ponte passou a registrar os envios). ' +
+      'Sem ela a tela <b>não calcula atraso nenhum</b> — senão todo boleto antigo, controlado na planilha, apareceria vencido.</p></div>';
+    var cf = String(r.corte_facilita || '');
+    var dia = quando(cf); if (dia) dia.setDate(dia.getDate() + 1);
+    $('#rodapeB').textContent = (dia ? 'Carnês de vendas anteriores a ' + String(dia.getDate()).padStart(2, '0') + '/' +
+      String(dia.getMonth() + 1).padStart(2, '0') + '/' + dia.getFullYear() + ' não estão no Cofre — continuam na planilha até acabar.' : '') +
+      (r.fora_da_regra && r.fora_da_regra.n ? ' · ' + plural(r.fora_da_regra.n, 'parcela', 'parcelas') + ' deste mês não é boleto (cartão, entrada) e fica fora.' : '') +
+      ' · "Enviado" é envio, não pagamento.';
+    $('#lendoB').hidden = true; $('#conteudoB').hidden = false;
+    renderBoletos();
+  }
+
+  function pillParcela(it) {
+    var m = it.marcacao, e = it._e, h = '';
+    if (e === 'enviado') h = '<span class="pill p-ok"><i></i>Enviado ' + esc(dataBR(m.data_envio)) + '</span><span class="sigtxt">' + esc(m.quem) + '</span>';
+    else if (e === 'excecao') h = '<span class="pill p-warn" title="' + esc(m.obs || '') + '"><i></i>' + esc(m.motivo) + '</span>' + (m.obs ? '<span class="sigtxt">' + esc(m.obs) + '</span>' : '');
+    else if (e === 'antes') h = '<span class="pill p-mute"><i></i>Antes da Ponte — ver a planilha</span>';
+    else if (e === 'vencido') h = '<span class="pill p-crit"><i></i>Venceu há ' + plural(idade(it.vencimento), 'dia', 'dias') + '</span>';
+    else h = '<span class="pill p-mute"><i></i>A enviar</span>';
+    if (it.meio_indefinido) h += '<span class="pill p-warn"><i></i>meio não informado — confira</span>';
+    if (it.carne_mudou) h += '<span class="pill p-warn"><i></i>o carnê mudou depois do envio — confira</span>';
+    return '<span class="pills">' + h + '</span>';
+  }
+
+  function renderBoletos() {
+    var r = B.r; if (!r) return;
+    var its = (r.itens || []).map(function (it) { it._e = estadoParcela(it.vencimento, it.marcacao, CORTE_BOL); return it; });
+    var por = function (e) { return its.filter(function (it) { return it._e === e; }); };
+    var aenv = por('aenviar'), env = por('enviado'), venc = por('vencido'), exc = por('excecao'), antes = por('antes');
+    $('#tab-b-n').textContent = its.length;
+    $('#kb-aenv').textContent = aenv.length;
+    $('#kb-aenv-d').textContent = 'de ' + plural(its.length, 'parcela do mês', 'parcelas do mês') + (antes.length ? ' · ' + antes.length + ' antes da Ponte' : '');
+    $('#kb-env').textContent = env.length;
+    var ultEnv = env.map(function (it) { return it.marcacao.data_envio; }).sort().pop();
+    $('#kb-env-d').textContent = ultEnv ? 'último em ' + dbr(ultEnv) : 'nenhum ainda';
+    if (!CORTE_BOL) { $('#kb-venc').textContent = '—'; $('#kb-venc-d').textContent = 'sem corte definido: atraso não é calculado'; }
+    else {
+      $('#kb-venc').textContent = venc.length;
+      var velho = Math.max.apply(null, [-1].concat(venc.map(function (it) { return idade(it.vencimento); })));
+      $('#kb-venc-d').textContent = venc.length ? 'o mais antigo há ' + plural(velho, 'dia', 'dias') : 'nenhum';
+    }
+    $('#kb-exc').textContent = exc.length;
+    $('#kb-exc-d').textContent = exc.length ? uniq(exc.map(function (it) { return it.marcacao.motivo.toLowerCase(); })).join(', ') : 'nenhuma';
+
+    var L = its.filter(function (it) {
+      switch (B.sit) {
+        case 'tudo': return true;
+        case 'indef': return it.meio_indefinido;
+        case 'mudou': return it.carne_mudou;
+        default: return it._e === B.sit;
+      }
+    });
+    var box = $('#rowsB'); box.textContent = '';
+    L.forEach(function (it) {
+      var k = it.deal + '|' + it.parcela;
+      var pode = it._e === 'aenviar' || it._e === 'vencido';
+      if (!pode) delete B.sel[k];
+      var el = document.createElement('div');
+      el.className = 'row' + (B.sel[k] ? ' sel' : '');
+      el.dataset.k = k;
+      el.innerHTML = '<div class="row-head">' +
+        '<span>' + (pode ? '<input class="chk" type="checkbox"' + (B.sel[k] ? ' checked' : '') + ' aria-label="Selecionar ' + esc(it.cliente) + ' ' + esc(nT(it)) + '">' : '') + '</span>' +
+        '<span class="jaz">' + esc(it.jazigo) + '</span>' +
+        '<span class="cli">' + esc(it.cliente || '(sem nome)') + '<span>deal ' + esc(it.deal) + ' · ' + esc(it.modalidade || '—') + '</span></span>' +
+        '<span class="num">' + esc(nT(it)) + '</span>' +
+        '<span class="num dim">' + esc(dataBR(it.vencimento)) + '</span>' +
+        '<span class="num">' + esc(it.valor === null ? '—' : brl(it.valor)) + '</span>' +
+        '<span>' + pillParcela(it) + '</span>' +
+        '<span><button class="bolb" type="button" data-bol="' + esc(it.deal) + '" data-parc="' + esc(it.parcela) + '">Abrir</button></span>' +
+        '</div>';
+      box.appendChild(el);
+    });
+    $('#emptyB').hidden = L.length > 0;
+    B.visiveis = L;
+    atualizarLote();
+  }
+
+  function atualizarLote() {
+    var ks = Object.keys(B.sel);
+    var somaSel = ks.reduce(function (s, k) { return s + (Number(B.sel[k].valor) || 0); }, 0);
+    $('#lote').hidden = ks.length === 0;
+    $('#loteN').innerHTML = esc(plural(ks.length, 'selecionado', 'selecionados')) + '<small>' + esc(brl(somaSel)) + ' em boletos</small>';
+    var caixas = [].slice.call(document.querySelectorAll('#rowsB .chk'));
+    var marc = caixas.filter(function (c) { return c.checked; }).length;
+    var todas = $('#chkAll');
+    todas.checked = caixas.length > 0 && marc === caixas.length;
+    todas.indeterminate = marc > 0 && marc < caixas.length;
+    todas.disabled = caixas.length === 0;
+  }
+
+  $('#rowsB').addEventListener('change', function (e) {
+    if (!e.target.classList.contains('chk')) return;
+    var row = e.target.closest('.row'), k = row.dataset.k;
+    var it = (B.visiveis || []).filter(function (x) { return x.deal + '|' + x.parcela === k; })[0];
+    if (e.target.checked && it) B.sel[k] = it; else delete B.sel[k];
+    row.classList.toggle('sel', e.target.checked);
+    atualizarLote();
+  });
+  $('#chkAll').addEventListener('change', function () {
+    var on = $('#chkAll').checked;
+    [].forEach.call(document.querySelectorAll('#rowsB .chk'), function (c) {
+      c.checked = on;
+      var row = c.closest('.row'), k = row.dataset.k;
+      var it = (B.visiveis || []).filter(function (x) { return x.deal + '|' + x.parcela === k; })[0];
+      if (on && it) B.sel[k] = it; else delete B.sel[k];
+      row.classList.toggle('sel', on);
+    });
+    atualizarLote();
+  });
+  $('#mesSel').addEventListener('change', function (e) { carregarBoletos(e.target.value); });
+  $('#sitSel').addEventListener('change', function (e) { B.sit = e.target.value; renderBoletos(); });
+  $('#loteLimpa').onclick = function () { B.sel = {}; $('#loteDia').hidden = true; $('#loteMsg').hidden = true; renderBoletos(); };
+  $('#loteData').onclick = function () {
+    var d = $('#loteDt'); d.max = hojeISO(); if (!d.value) d.value = hojeISO();
+    $('#loteDia').hidden = false; d.focus();
+  };
+  $('#loteHoje').onclick = function () { marcarLote(''); };
+  $('#loteDiaOk').onclick = function () {
+    var d = $('#loteDt').value;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) { msgLote('escolha a data', true); return; }
+    if (d > hojeISO()) { msgLote('data no futuro', true); return; }
+    marcarLote(d);
+  };
+  function msgLote(t, erro) { var m = $('#loteMsg'); m.hidden = !t; m.textContent = t || ''; m.style.color = erro ? 'var(--crit-soft)' : ''; }
+
+  function marcarLote(data) {
+    var tk = token(); if (!tk) { abrirPortao(''); return; }
+    var ks = Object.keys(B.sel); if (!ks.length) return;
+    var corpo = { token: tk, itens: ks.map(function (k) { return { deal: B.sel[k].deal, parcela: B.sel[k].parcela }; }) };
+    if (data) corpo.data_envio = data;
+    var bts = [].slice.call(document.querySelectorAll('#lote button'));
+    bts.forEach(function (b) { b.disabled = true; });
+    msgLote('gravando ' + plural(ks.length, 'parcela', 'parcelas') + '…');
+    comPrazo(API + '?app=controladoria&fn=boleto_lote', {
+      method: 'POST', cache: 'no-store', credentials: 'omit',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(corpo)
+    }, 60000).then(function (r) {
+      bts.forEach(function (b) { b.disabled = false; });
+      if (recusado(r)) { try { localStorage.removeItem(CHAVE_TOKEN); } catch (e) {} abrirPortao('Token recusado ao gravar. Digite de novo.'); return; }
+      if (!r || r.ok !== true) { msgLote('não gravou: ' + ((r && r.error) || '?'), true); return; }
+      aplicarMarcacoes(r.marcacoes || []);
+      B.sel = {}; $('#loteDia').hidden = true;
+      renderBoletos();
+      msgLote('');
+    }).catch(function (e) {
+      bts.forEach(function (b) { b.disabled = false; });
+      msgLote('não gravou: ' + (e.message || e), true);
+    });
+  }
+
+  /* A marcação gravada vale para TODO lugar da memória que mostra aquela parcela: os meses de
+     boleto já abertos e a célula das vendas. A foto é a do carnê de agora — "mudou" zera. */
+  function aplicarMarcacoes(ms) {
+    ms.forEach(function (m) {
+      var f = function (it) { if (it.parcela === m.parcela) { it.marcacao = m; it.carne_mudou = false; } };
+      Object.keys(MEMO_B).forEach(function (k) {
+        (MEMO_B[k].itens || []).forEach(function (it) { if (it.deal === m.deal) f(it); });
+      });
+      var vs = [R].concat(Object.keys(MEMO).map(function (k) { return MEMO[k]; }));
+      vs.forEach(function (x) {
+        var b = x && x.boletos && x.boletos[m.deal];
+        if (b) b.boletos.forEach(f);
+      });
+    });
+    if (R) render();
+  }
+
+  /* ---------- o modal do boleto ---------- */
+  var BM = { pedido: 0, r: null, parc: 0, modo: 'hoje', volta: null };
+  function fecharBoleto() {
+    BM.pedido++; BM.r = null;
+    $('#modalBol').hidden = true;
+    $('#bmCorpo').innerHTML = ''; $('#bmSub').textContent = '';   // nada fica na página depois de fechar
+    if (BM.volta) { try { BM.volta.focus(); } catch (e) {} }
+  }
+  function abrirBoleto(deal, parc, bt) {
+    var tk = token(); if (!tk) { abrirPortao(''); return; }
+    BM.volta = bt; BM.parc = parc || 0; BM.modo = 'hoje';
+    var meu = ++BM.pedido;
+    $('#bmTit').textContent = 'Boleto · deal ' + deal;
+    $('#bmSub').textContent = '';
+    $('#bmCorpo').innerHTML = '<div class="bmbody"><p class="lendo">Lendo do Cofre…</p></div>';
+    $('#modalBol').hidden = false; $('#bmX').focus();
+    comPrazo(API + '?app=controladoria&fn=venda&deal=' + encodeURIComponent(deal) + '&token=' + encodeURIComponent(tk),
+             { cache: 'no-store', credentials: 'omit' }, 45000)
+      .then(function (r) {
+        if (meu !== BM.pedido) return;
+        if (recusado(r)) { fecharBoleto(); try { localStorage.removeItem(CHAVE_TOKEN); } catch (e) {} abrirPortao('Token recusado. Digite de novo.'); return; }
+        if (!r || r.ok !== true) { $('#bmCorpo').innerHTML = '<div class="bmbody"><p class="ivmsg erro">' + esc((r && r.error) || 'resposta vazia') + '</p></div>'; return; }
+        var ruim = reciboRuim(r);
+        if (ruim) { $('#bmCorpo').innerHTML = '<div class="bmbody"><div class="tarja"><div class="t">' + esc(ruim.t) + '</div>' + ruim.c + '</div></div>'; return; }
+        if (!r.carne) { $('#bmCorpo').innerHTML = '<div class="bmbody"><p class="ivmsg erro">O carnê não pôde ser lido: ' + esc((r.avisos || []).join(' · ') || '?') + '</p></div>'; return; }
+        BM.r = r;
+        CORTE_BOL = corteDe(r) || CORTE_BOL;
+        var marcas = {};
+        (r.boletos || []).forEach(function (m) { marcas[m.parcela] = m; });
+        BM.marcas = marcas;
+        if (!BM.parc || !linhaCarne(BM.parc) || !linhaCarne(BM.parc).classe) {
+          var pend = r.carne.filter(function (p) {
+            return p.classe && !marcado(marcas[Number(p['Nº Parcela'])]) && (!CORTE_BOL || String(p['Vencimento']) >= CORTE_BOL);
+          });
+          var qualquer = r.carne.filter(function (p) { return p.classe; });
+          BM.parc = pend.length ? Number(pend[0]['Nº Parcela']) : qualquer.length ? Number(qualquer[0]['Nº Parcela']) : 0;
+        }
+        pintarBoleto();
+      })
+      .catch(function (e) {
+        if (meu !== BM.pedido) return;
+        $('#bmCorpo').innerHTML = '<div class="bmbody"><p class="ivmsg erro">Não consegui falar com o Cofre: ' + esc(e.message || e) + '</p></div>';
+      });
+  }
+  function linhaCarne(n) { return ((BM.r && BM.r.carne) || []).filter(function (p) { return Number(p['Nº Parcela']) === Number(n); })[0] || null; }
+
+  function tipoTxt(p) {
+    var t = String(p['Tipo'] || '').toLowerCase(), m = String(p['Meio'] || '').trim();
+    var nome = t === 'signal' ? 'entrada' : t === 'act' ? 'ato' : t === 'unique' ? 'à vista' : t === 'financing' ? 'financiamento' : t === 'monthly' ? 'mensal' : (t || '?');
+    return 'não é boleto · ' + nome + (m && m !== '(indefinido)' ? ' · ' + m.toLowerCase() : '');
+  }
+
+  function pintarBoleto() {
+    var r = BM.r, v = r.venda || {}, p = r.pessoal, T = r.carne_total;
+    var q = String(v['Quadra'] || '').trim(), j = String(v['Jazigo'] || '').trim();
+    var jaz = q && j ? q + '-' + j : (q || j || '—');
+    var nome = String((p && p['Cliente']) || v['Cliente'] || '').trim();
+    $('#bmTit').textContent = 'Boleto · ' + (nome || 'deal ' + r.deal);
+    $('#bmSub').textContent = jaz + ' · deal ' + r.deal + ' · ' + (v['Modalidade'] || '—') +
+      (v['Nº Parcelas'] ? ' ' + v['Nº Parcelas'] + 'x' : '') + ' · buscado no Cofre agora';
+
+    var pf = function (rot, val, copia) {
+      val = String(val == null ? '' : val).trim();
+      return '<div class="pf"><div class="r">' + esc(rot) + '</div><div class="v"><span>' + (val ? esc(val) : '—') + '</span>' +
+        (val ? '<button class="cp" type="button" data-copiar="' + esc(copia != null ? copia : val) + '" aria-label="Copiar ' + esc(rot) + '">copiar</button>' : '') + '</div></div>';
+    };
+    var dados;
+    if (!p) dados = '<p class="nota">Sem cadastro na Vendas_Facilita_Pessoal para este deal.</p>';
+    else {
+      var nasc = String(p['Nascimento'] || '').trim();
+      var nascOk = /^\d{4}-\d{2}-\d{2}$/.test(nasc);
+      var end = [String(p['Logradouro'] || '').trim() + (p['Número'] ? ', ' + p['Número'] : '') + (p['Complemento'] ? ' ' + p['Complemento'] : ''),
+                 p['Bairro'], [p['Cidade'], p['UF']].filter(Boolean).join(' / ')]
+        .map(function (s) { return String(s || '').trim(); }).filter(Boolean).join(' · ');
+      dados = '<div class="bgrid">' + pf('Nome', nome) + pf('CPF', p['CPF']) +
+        (nascOk || !nasc ? pf('Nascimento', nascOk ? dataBR(nasc) : '') :
+          '<div class="pf"><div class="r">Nascimento</div><div class="v"><span>' + esc(nasc) + ' <span class="ivmsg aviso">confira</span></span>' +
+          '<button class="cp" type="button" data-copiar="' + esc(nasc) + '" aria-label="Copiar Nascimento">copiar</button></div></div>') +
+        pf('RG', p['RG']) + pf('Celular', p['Celular']) + pf('E-mail', p['E-mail']) + pf('CEP', p['CEP']) +
+        pf('Endereço', end) + pf('Jazigo', jaz) + pf('Vendedor', v['Vendedor']) + '</div>';
+    }
+
+    var linhas = r.carne.map(function (c) {
+      var n = Number(c['Nº Parcela']), venc = String(c['Vencimento'] || ''), val = Number(c['Valor']);
+      var base = '<span>' + n + '/' + T + '</span><span>' + esc(dataBR(venc) || '—') + '</span><span>' + esc(isFinite(val) ? brl(val) : '—') + '</span>';
+      if (!c.classe) return '<div class="cr naoboleto"><span></span>' + base + '<span class="est">' + esc(tipoTxt(c)) + '</span></div>';
+      var m = BM.marcas[n], e = estadoParcela(venc, m, CORTE_BOL), cls = 'abre', txt;
+      if (e === 'enviado') { cls = 'fez'; txt = 'enviado ' + dbr(m.data_envio) + ' · ' + m.quem; }
+      else if (e === 'excecao') { cls = 'exc'; txt = m.motivo + (m.obs ? ' · ' + m.obs : ''); }
+      else if (e === 'antes') txt = 'antes da Ponte — ver a planilha';
+      else if (e === 'vencido') { cls = 'tarde'; txt = 'venceu há ' + plural(idade(venc), 'dia', 'dias'); }
+      else txt = 'a enviar';
+      if (c.classe === 'indefinido') txt += ' · meio não informado';
+      if (mudouLocal(m, venc, val)) { cls = 'conf'; txt += ' · o carnê mudou depois do envio — confira'; }
+      return '<label class="cr' + (e === 'enviado' ? ' feito' : '') + (n === BM.parc ? ' escolhida' : '') + '">' +
+        '<input type="radio" name="bmparc" value="' + n + '"' + (n === BM.parc ? ' checked' : '') + '>' + base +
+        '<span class="est ' + cls + '">' + esc(txt) + '</span></label>';
+    }).join('');
+
+    var sel = linhaCarne(BM.parc), msel = BM.marcas[BM.parc];
+    var saldo = sel ? Number(sel['Saldo Devedor']) : NaN;
+    var dv = String(v['Data da Venda'] || '').slice(0, 10);
+    var motivos = (r.motivos || []).map(function (x) { return '<option>' + esc(x) + '</option>'; }).join('');
+
+    $('#bmCorpo').innerHTML = '<div class="bmbody">' +
+      '<div class="bloco"><h4>Dados para o banco <span class="obs">copiar campo a campo — o portal se preenche um por um</span></h4>' + dados + '</div>' +
+      '<div class="bloco"><h4>O carnê <span class="obs">do Facilita · escolha a parcela que você emitiu</span></h4>' +
+        '<div class="carne"><div class="ch"><div></div><div>Parc.</div><div>Vencimento</div><div>Valor</div><div>Situação</div></div>' +
+        '<div class="carne-sc" id="bmCarne">' + linhas + '</div></div>' +
+        '<p class="nota" style="margin-top:7px">' + (sel && isFinite(saldo) ? 'Saldo devedor após esta parcela: <b>' + esc(brl(saldo)) + '</b> · ' : '') +
+        'lido do Cofre agora.' + (r.carne.some(function (c) { return c.classe; }) ? '' : ' <b>Esta venda não tem parcela-boleto no carnê.</b>') + '</p></div>' +
+      (sel && sel.classe ? '<div class="bloco"><h4>Registrar</h4><div class="reg">' +
+        '<div class="opts" id="bmOpts">' +
+          '<button class="opt" type="button" data-o="hoje">Enviado hoje</button>' +
+          '<button class="opt" type="button" data-o="dia">Enviado em outro dia…</button>' +
+          '<button class="opt" type="button" data-o="outro">Outro…</button>' +
+          (marcado(msel) ? '<button class="opt del" type="button" data-o="desfazer">Não enviado (desfazer)</button>' : '') +
+        '</div>' +
+        '<div class="extra" id="bmDia" hidden><input type="date" id="bmDt" aria-label="Data do envio" max="' + hojeISO() + '"' +
+          (/^\d{4}-\d{2}-\d{2}$/.test(dv) ? ' min="' + dv + '"' : '') + ' value="' + hojeISO() + '"></div>' +
+        '<div class="extra" id="bmOutro" hidden><select id="bmMotivo" aria-label="Motivo"><option value="">— motivo —</option>' + motivos + '</select>' +
+          '<input type="text" id="bmObs" maxlength="200" placeholder="Observação (opcional)" aria-label="Observação"></div>' +
+        '<p class="nota">"Enviado" é envio, não pagamento. A tela não concilia recebimento.</p>' +
+      '</div></div>' : '') +
+      '</div>' +
+      '<div class="bmrodape"><div class="mresumo" id="bmResumo"></div><div class="sp"></div>' +
+        '<button class="mb" type="button" id="bmCancelar">Cancelar</button>' +
+        (sel && sel.classe ? '<button class="mb pri" type="button" id="bmSalvar">Salvar</button>' : '') + '</div>';
+    if (msel && msel.estado === 'outro' && BM.modo === 'hoje') BM.modo = 'outro';
+    modoBoleto(BM.modo);
+    if (msel && msel.estado === 'outro') {
+      var ms = $('#bmMotivo'); if (ms) ms.value = msel.motivo;
+      var ob = $('#bmObs'); if (ob) ob.value = msel.obs || '';
+    }
+  }
+
+  function modoBoleto(o) {
+    BM.modo = o;
+    [].forEach.call(document.querySelectorAll('#bmOpts .opt'), function (b) { b.setAttribute('aria-pressed', String(b.dataset.o === o)); });
+    if ($('#bmDia')) $('#bmDia').hidden = o !== 'dia';
+    if ($('#bmOutro')) $('#bmOutro').hidden = o !== 'outro';
+    resumoBoleto();
+  }
+  function resumoBoleto(erro) {
+    var el = $('#bmResumo'); if (!el) return;
+    el.className = 'mresumo' + (erro ? ' erro' : '');
+    if (erro) { el.textContent = erro; return; }
+    var sel = linhaCarne(BM.parc);
+    if (!sel || !sel.classe) { el.textContent = ''; return; }
+    var o = BM.modo, quando = o === 'hoje' ? dataBR(hojeISO()) : o === 'dia' ? dataBR(($('#bmDt') || {}).value) : '';
+    var mot = ($('#bmMotivo') || {}).value;
+    el.innerHTML = 'Vai gravar: <b>' + esc(BM.parc + '/' + BM.r.carne_total) + '</b> · vencimento ' + esc(dataBR(sel['Vencimento'])) + ' · ' +
+      (o === 'outro' ? esc(mot || 'escolha o motivo') : o === 'desfazer' ? 'não enviado (desfaz a marcação)' : 'enviado em ' + esc(quando || '?'));
+  }
+
+  function salvarBoleto() {
+    var tk = token(); if (!tk) { abrirPortao(''); return; }
+    var r = BM.r, o = BM.modo;
+    var corpo = { token: tk, deal: r.deal, parcela: BM.parc };
+    if (o === 'hoje') corpo.estado = 'enviado';
+    else if (o === 'dia') {
+      var d = $('#bmDt').value, dv = String((r.venda || {})['Data da Venda'] || '').slice(0, 10);
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) { resumoBoleto('escolha a data do envio'); return; }
+      if (d > hojeISO()) { resumoBoleto('data no futuro — nada gravado'); return; }
+      if (dv && d < dv) { resumoBoleto('antes da venda (' + dataBR(dv) + ') — nada gravado'); return; }
+      corpo.estado = 'enviado'; corpo.data_envio = d;
+    } else if (o === 'outro') {
+      var mot = $('#bmMotivo').value;
+      if (!mot) { resumoBoleto('"Outro" precisa de um motivo — nada gravado'); return; }
+      corpo.estado = 'outro'; corpo.motivo = mot;
+      var ob = $('#bmObs').value.trim(); if (ob) corpo.obs = ob;
+    } else if (o === 'desfazer') {
+      if (!confirm('Desfazer a marcação da parcela ' + BM.parc + '/' + r.carne_total + '?\n\nO registro guarda quem desfez e quando.')) return;
+      corpo.estado = 'nao_enviado';
+    }
+    var bt = $('#bmSalvar'); bt.disabled = true;
+    resumoBoleto(); $('#bmResumo').textContent = 'gravando…';
+    comPrazo(API + '?app=controladoria&fn=boleto', {
+      method: 'POST', cache: 'no-store', credentials: 'omit',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(corpo)
+    }, 45000).then(function (x) {
+      if (bt) bt.disabled = false;
+      if (recusado(x)) { fecharBoleto(); try { localStorage.removeItem(CHAVE_TOKEN); } catch (e) {} abrirPortao('Token recusado ao gravar. Digite de novo.'); return; }
+      if (!x || x.ok !== true) { resumoBoleto('não gravou: ' + ((x && x.error) || '?')); return; }
+      aplicarMarcacoes([x.marcacao]);
+      if (B.r) renderBoletos();
+      fecharBoleto();
+    }).catch(function (e) {
+      if (bt) bt.disabled = false;
+      resumoBoleto('não gravou: ' + (e.message || e));
+    });
+  }
+
+  $('#bmX').onclick = fecharBoleto;
+  $('#modalBol').addEventListener('click', function (e) {
+    if (e.target === $('#modalBol')) { fecharBoleto(); return; }
+    var op = e.target.closest && e.target.closest('#bmOpts .opt[data-o]');
+    if (op) { modoBoleto(op.dataset.o); return; }
+    if (e.target.id === 'bmCancelar') { fecharBoleto(); return; }
+    if (e.target.id === 'bmSalvar') { salvarBoleto(); return; }
+  });
+  $('#modalBol').addEventListener('change', function (e) {
+    if (e.target.name === 'bmparc') { BM.parc = Number(e.target.value); if (BM.modo === 'desfazer') BM.modo = 'hoje'; pintarBoleto(); return; }
+    if (e.target.id === 'bmDt' || e.target.id === 'bmMotivo') resumoBoleto();
+  });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !$('#modalBol').hidden) fecharBoleto(); });
+  /* "Abrir" na lista do mês (a célula da venda trata o próprio clique, dentro de linha()) */
+  $('#rowsB').addEventListener('click', function (e) {
+    var b = e.target.closest && e.target.closest('button[data-bol]');
+    if (b) abrirBoleto(Number(b.dataset.bol), Number(b.dataset.parc) || 0, b);
+  });
 
   // ================================================================ eventos
   [].forEach.call(document.querySelectorAll('.chip[data-f="sit"]'), function (c) {
