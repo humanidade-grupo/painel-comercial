@@ -81,6 +81,9 @@
    2. `truncado` true OU AUSENTE bloqueia o desenho inteiro.
    3. a lista de fases é ORDEM, não filtro: fase que a D4Sign criar depois aparece com o
       rótulo dela, listrada, e uma invariante avisa se as contagens não fecharem.
+   4. (22/09) o RECIBO DE ESCRITA: a rota devolve `contagem` [{aba, esperado, lido}] — o nº de
+      linhas que a importação diz ter gravado × o que foi lido. Diferente, ou ausente, bloqueia
+      o desenho inteiro (e o "ver tudo"): é a aba lida no meio da regravação.
 -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -686,7 +689,7 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
           return;
         }
         r._lido = new Date();
-        if (r.truncado === false) MEMO[r.mes] = r;
+        if (r.truncado === false && !reciboRuim(r)) MEMO[r.mes] = r;
         montar(r);
       })
       .catch(function (e) {
@@ -694,6 +697,27 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
           '<p>' + esc(e.message || e) + '</p><p>Nenhum número aparece enquanto isso: tela vazia é melhor ' +
           'que tela desatualizada com cara de atual.</p>');
       });
+  }
+
+  /* O RECIBO DE ESCRITA (22/09): a importação grava a aba e SÓ DEPOIS o número de linhas na
+     Config. Se o que a rota leu difere do recibo, a aba está sendo regravada ou a última
+     gravação morreu no meio — e 17 vendas a menos passariam por qualquer outra trava. Mesmo
+     molde do `truncado`: contagem AUSENTE também bloqueia. Devolve {t, c} ou null. */
+  function reciboRuim(r) {
+    var cs = r && r.contagem;
+    if (!Array.isArray(cs) || !cs.length) {
+      return { t: 'Esta página não vai desenhar: a rota não diz quantas linhas leu.',
+        c: '<p>O Cofre respondeu sem o campo <code>contagem</code> (o recibo de escrita). Está servindo uma ' +
+           'implantação antiga — republicar (Implantar ▸ Gerenciar ▸ ✏️ ▸ Nova versão).</p>' };
+    }
+    var mal = cs.filter(function (c) { return !c || c.esperado === null || c.esperado === undefined || c.lido !== c.esperado; });
+    if (!mal.length) return null;
+    return { t: 'O Cofre está gravando ou a última gravação foi interrompida.',
+      c: mal.map(function (c) {
+        return '<p>' + esc((c && c.aba) || '?') + ': esperado <b>' + esc(c && c.esperado != null ? c.esperado : '?') +
+               '</b>, lido <b>' + esc(c && c.lido != null ? c.lido : '?') + '</b>' +
+               (c && c.esperado == null ? ' (a chave <code>' + esc(c.chave || '?') + '</code> não está na Config)' : '') + '.</p>';
+      }).join('') + '<p>Tente de novo em alguns minutos. Se continuar, avise o Ricardo.</p>' };
   }
 
   // ================================================================ montagem
@@ -716,6 +740,8 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
         '<code>Controladoria.gs</code> e republicar.</p>');
       return;
     }
+    var ruim = reciboRuim(r);
+    if (ruim) { bloqueia(ruim.t, ruim.c); return; }
 
     R = r;
     F.mes = r.mes;
@@ -1407,6 +1433,8 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
         if (meu !== PEDIDO_TUDO) return;   // fechou (ou abriu outra) enquanto lia
         if (recusado(r)) { fecharTudo(); try { localStorage.removeItem(CHAVE_TOKEN); } catch (e) {} abrirPortao('Token recusado. Digite de novo.'); return; }
         if (!r || r.ok !== true) { $('#modalCorpo').innerHTML = '<p class="ivmsg erro">' + esc((r && r.error) || 'resposta vazia') + '</p>'; return; }
+        var ruim = reciboRuim(r);
+        if (ruim) { $('#modalCorpo').innerHTML = '<div class="tarja"><div class="t">' + esc(ruim.t) + '</div>' + ruim.c + '</div>'; return; }
         var docs = r.contratos || [];
         $('#modalCorpo').innerHTML =
           secao('Venda · Vendas_Facilita', r.venda) +
