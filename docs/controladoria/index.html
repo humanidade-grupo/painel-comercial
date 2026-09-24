@@ -525,6 +525,14 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
 .toast.alerta{border-left-color:var(--warn)}
 .toast button{font:inherit;font-size:16px;line-height:1;border:0;background:transparent;color:var(--ink-3);
   cursor:pointer;padding:0 2px;margin-left:auto}
+/* ---- (24/09, Fase 1) "há novidade" ---- */
+/* vendas novas no Cofre / contratos novos da D4Sign: a tela avisa e nunca troca a tabela sozinha */
+.novidade{display:flex;gap:10px;align-items:center;flex-wrap:wrap;border:1px solid var(--warn);background:var(--warn-soft);
+  border-radius:8px;padding:7px 12px;margin:10px 0 0;font-size:12.5px;color:var(--ink)}
+.novidade[hidden]{display:none}
+.novidade .chip{padding:3px 11px;font-size:12px}
+/* a linha que um colega acabou de mudar: um fio verde à esquerda por alguns segundos */
+.row.mudou{box-shadow:inset 4px 0 0 var(--ok);transition:box-shadow .6s}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 </head>
@@ -553,6 +561,7 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
       <div id="st-cofre-w" title="Última cópia do Facilita no Cofre — não é a hora em que esta página abriu">Cofre<b id="st-cofre">—</b></div>
       <div id="st-d4-w" title="Última passada do espelho da D4Sign (diária, 8h, no PC do Ricardo)">D4Sign<b id="st-d4">—</b></div>
       <div title="Quando esta página buscou este mês no Cofre. Voltar a um mês já aberto usa a memória da página.">Lido na tela<b id="st-lido">—</b></div>
+      <div id="st-conf-w" title="A última vez que esta página conferiu no Cofre o que os colegas gravaram — a cada 2 minutos, e quando você volta para ela. Os lançamentos e boletos deles entram nas linhas sozinhos.">Conferido<b id="st-conf">—</b></div>
       <button class="chip" id="btRecarregar" type="button" title="Busca este mês de novo no Cofre e esquece os outros meses já abertos">Recarregar</button>
     </div>
   </div>
@@ -560,9 +569,11 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
 
 <div class="wrap">
 
+  <div class="novidade" id="novidade" role="status" hidden></div>
+
   <p class="ritmo"><b>Vendas</b>: cópia do Facilita no Cofre a cada 5 min (completa a cada 2 h) ·
     <b>Contratos</b>: espelho da D4Sign às 8h, 14h e 20h, só com o PC do Ricardo ligado e a sessão da D4Sign aberta ·
-    <b>Lançamentos</b>: gravados na hora, com autor e data ·
+    <b>Lançamentos</b>: gravados na hora, com autor e data — os dos colegas aparecem aqui em até 2 min, e na hora em que você volta para esta aba ·
     Os meses abertos ficam nesta aba até ela fechar; <b>Recarregar</b> busca de novo.
     As datas no alto são da cópia, não da abertura da página.</p>
 
@@ -869,6 +880,7 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
     MEMO_B = {}; B.r = null; B.sel = {};
     SEQ++; SEQ_B++; CARGA = null; CARGA_B = null;  // (24/09) resposta em voo não desenha mais nada
     GRAVANDO = {}; MSG_IV = {}; AVISO_IV = {}; BOLS = {}; MARCAS_SESSAO = {};
+    novZerar();   // (24/09, Fase 1) sem token, a tela para de conferir as novidades
     // os modais fecham e esvaziam (nada fica na página), e as leituras deles perdem a vez
     PEDIDO_TUDO++; BM.pedido++; BM.r = null; BM.salvando = false;
     $('#modal').hidden = true; $('#modalCorpo').innerHTML = '';
@@ -1087,6 +1099,7 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
       r._lido = new Date();
       if (r.truncado === false && !ruim) MEMO[r.mes] = r;
       montar(r);
+      if (R === r) novBase(r);   // (24/09, Fase 1) a base do "há novidade" é a leitura que está na tela
     }, function (e) {
       if (meu !== SEQ || e.tipo === 'token') return;
       CARGA = null; carregando(false);
@@ -1841,6 +1854,7 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
     if (quer && ref) corpo.referencia = ref;
     if (forcar) corpo.forcar = true;
     GRAVANDO[v.id] = true; delete MSG_IV[v.id];
+    delete NOV.adiadas[v.id];   // (24/09, Fase 1) a novidade que esperava esta linha: agora quem responde é o Cofre
     pintarIv();   // "gravando…"
     api('marcar', { corpo: corpo }).then(function (r) {
       delete GRAVANDO[v.id];
@@ -2506,6 +2520,206 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
     el.querySelector('button').onclick = function () { el.parentNode && el.parentNode.removeChild(el); };
     $('#toasts').appendChild(el);
     if (tipo === 'ok') setTimeout(function () { el.parentNode && el.parentNode.removeChild(el); }, 6000);
+  }
+
+  /* ================================================================ "há novidade" (24/09, Fase 1)
+     Várias pessoas na mesma tela: o que um colega grava tem de aparecer para os outros ANTES do
+     próximo lançamento — a conferência de conflito só pega no clique, e aí o contrato já foi feito
+     no Ivertex (ou o boleto já foi mandado). A cada 2 min com a página à vista, e quando a pessoa
+     volta para ela (do Ivertex, do banco), uma consulta leve (fn=novidades) traz os lançamentos e
+     os boletos gravados desde a última: eles entram nas linhas pelo MESMO caminho das gravações
+     daqui (aplicarIv, lembrarMarcacao, aplicarMarcacoes), sem recarregar nada. A linha em que a
+     pessoa está mexendo espera ela sair dali. Venda nova no Cofre e contrato novo da D4Sign viram
+     um aviso com "Recarregar" — a tela nunca troca a tabela sozinha. */
+  var NOV_INTERVALO = 120000, NOV_AO_VOLTAR = 30000, NOV_VELHO = 600000;
+  var NOV;
+  function novZerar() {
+    NOV = { desde: '', base: 0, ultima: 0, ok: 0, emVoo: false, adiadas: {}, vistos: {},
+            total: null, d4: null, totalAgora: null, d4Agora: '', truncado: false };
+  }
+  novZerar();
+  function dois(n) { return String(n).padStart(2, '0'); }
+  function carimboLocal(d) { return d.getFullYear() + '-' + dois(d.getMonth() + 1) + '-' + dois(d.getDate()) + ' ' + dois(d.getHours()) + ':' + dois(d.getMinutes()); }
+  function hhmm(t) { var d = new Date(t); return dois(d.getHours()) + ':' + dois(d.getMinutes()); }
+
+  /* A base: o que esta página leu por último do Cofre. O `desde` nasce na PRIMEIRA leitura — o mais
+     antigo entre a hora do computador menos 5 min e o carimbo da cópia das vendas (que é relógio do
+     Cofre): computador adiantado não faz ninguém perder as primeiras marcações; repetir é inofensivo.
+     Depois ele anda com o relógio do Cofre (`agora`). Meses abertos depois também recebem as
+     mudanças: lembrarMarcacao vale para todo mês na memória. */
+  function novBase(r) {
+    if (!NOV.desde && r._lido) {
+      var local = carimboLocal(new Date(r._lido.getTime() - 5 * 60000));
+      var doCofre = /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}/.test(String(r.carimbo_vendas || '')) ? String(r.carimbo_vendas).slice(0, 16) : '';
+      NOV.desde = doCofre && doCofre < local ? doCofre : local;
+    }
+    var cv = (r.contagem || []).filter(function (c) { return c && c.aba === 'Vendas_Facilita'; })[0];
+    NOV.total = cv && cv.esperado != null ? Number(cv.esperado) : null;
+    NOV.d4 = String((r.d4sign && r.d4sign.carimbo) || '');
+    NOV.totalAgora = null; NOV.d4Agora = ''; NOV.truncado = false;
+    if (!NOV.base) NOV.base = Date.now();
+    if (!NOV.ultima) NOV.ultima = Date.now();
+    pintarNovidade();
+  }
+
+  function novidades() {
+    if (!NOV.desde || NOV.emVoo || CARGA || !R || document.hidden || !$('#gate').hidden) return;
+    NOV.emVoo = true;
+    api('novidades', { params: { desde: NOV.desde } }).then(function (r) {
+      NOV.emVoo = false; NOV.ultima = Date.now();
+      if (!r || r.ok !== true) return;   // falha fica para o próximo ciclo; não tira ninguém da tela
+      NOV.ok = Date.now();
+      aplicarNovidades(r);
+    }, function () {
+      NOV.emVoo = false; NOV.ultima = Date.now();
+    }).then(pintarNovidade);
+  }
+
+  function aplicarNovidades(r) {
+    if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/.test(String(r.agora || ''))) NOV.desde = r.agora;
+    var feitos = [], tocou = false;
+    (r.controle || []).forEach(function (c) {
+      var deal = Number(c['Deal ID']);
+      if (!deal || GRAVANDO[deal]) return;   // gravação daqui em voo: a resposta dela é que manda
+      var lanc = /^(SIM|TRUE)$/i.test(String(c['lancado']));
+      var nr = { lancado: lanc, data_ivertex: lanc ? String(c['data_ivertex'] || '') : '', quem: String(c['quem'] || ''),
+                 quando: String(c['quando'] || ''), referencia: lanc ? String(c['Referência Ivertex'] || '').trim().toUpperCase() : '',
+                 fonte: String(c['Fonte'] || '') };
+      var v = achaVenda(deal), antes = v ? v.iv : ivGuardado(deal);
+      if (antes && mesmoIv(antes, nr)) { delete NOV.adiadas[deal]; return; }
+      if (v) { if (aplicarNaLinha(v, nr)) tocou = true; }
+      else { if (antes) contarReferencia(antes, nr); lembrarMarcacao(deal, nr); tocou = true; }
+      var chave = 'c|' + deal + '|' + nr.quando + '|' + nr.lancado + '|' + nr.referencia;
+      if (!NOV.vistos[chave] && nr.quem && R && nr.quem !== R.voce) {
+        feitos.push(nr.quem + (nr.lancado ? ' lançou o deal ' : ' desmarcou o lançamento do deal ') + deal +
+                    (v ? ' (' + v.jaz + ')' : '') + (nr.lancado && nr.referencia ? ' · ' + nr.referencia : ''));
+      }
+      NOV.vistos[chave] = true;
+    });
+    var ms = (r.boletos || []).filter(function (m) { return m && !mesmaMarca(m); });
+    if (ms.length) {
+      aplicarMarcacoes(ms);
+      if (TAB === 'b' && B.r) renderBoletos();
+      ms.forEach(function (m) {
+        var chave = 'b|' + m.deal + '|' + m.parcela + '|' + m.quando + '|' + m.estado;
+        if (!NOV.vistos[chave] && m.quem && R && m.quem !== R.voce) feitos.push(m.quem + ' ' + textoMarca(m));
+        NOV.vistos[chave] = true;
+      });
+    }
+    if (tocou) { renderResumo(); pintarRodape(); }
+    if (feitos.length) {
+      toast((feitos.length > 3 ? feitos.slice(0, 3).join(' · ') + ' · e mais ' + plural(feitos.length - 3, 'mudança', 'mudanças')
+                               : feitos.join(' · ')) + '.', 'ok');
+    }
+    NOV.truncado = r.truncado === true;
+    NOV.totalAgora = r.total_vendas != null && String(r.total_vendas) !== '' && isFinite(Number(r.total_vendas)) ? Number(r.total_vendas) : null;
+    NOV.d4Agora = String(r.carimbo_d4 || '');
+  }
+
+  /* O lançamento guardado na memória de um mês que não está na tela (null: nenhum mês tem a venda). */
+  function ivGuardado(deal) {
+    var achado = null;
+    Object.keys(MEMO).forEach(function (k) {
+      var m = MEMO[k];
+      if (achado || !(m.vendas || []).concat(m.fila || []).some(function (o) { return Number(o['Deal ID']) === deal; })) return;
+      var c = (m.controle || []).filter(function (x) { return Number(x['Deal ID']) === deal; })[0];
+      var lanc = !!c && /^(SIM|TRUE)$/i.test(String(c['lancado']));
+      achado = { lancado: lanc, data: lanc ? String(c['data_ivertex'] || '') : '', quem: c ? String(c['quem'] || '') : '',
+                 quando: c ? String(c['quando'] || '') : '', ref: lanc ? String(c['Referência Ivertex'] || '').trim().toUpperCase() : '' };
+    });
+    return achado;
+  }
+  function mesmoIv(a, r) {
+    return !!a.lancado === !!r.lancado && String(a.data || '') === r.data_ivertex && String(a.ref || '') === r.referencia &&
+           String(a.quem || '') === r.quem && String(a.quando || '') === r.quando;
+  }
+  /* A marcação de boleto que esta página já conhece para a parcela (a da sessão vale mais). */
+  function marcaConhecida(deal, n) {
+    if (MARCAS_SESSAO[deal + '|' + n]) return MARCAS_SESSAO[deal + '|' + n];
+    var achada = null;
+    var olha = function (it) { if (!achada && it.parcela === n && it.marcacao) achada = it.marcacao; };
+    [R].concat(Object.keys(MEMO).map(function (k) { return MEMO[k]; })).forEach(function (x) {
+      var b = x && x.boletos && x.boletos[deal];
+      if (b) b.boletos.forEach(olha);
+    });
+    Object.keys(MEMO_B).forEach(function (k) { (MEMO_B[k].itens || []).forEach(function (it) { if (it.deal === deal) olha(it); }); });
+    return achada;
+  }
+  function mesmaMarca(m) {
+    var a = marcaConhecida(Number(m.deal), Number(m.parcela));
+    return !!a && ['estado', 'data_envio', 'motivo', 'obs', 'quem', 'quando'].every(function (k) { return String(a[k] || '') === String(m[k] || ''); });
+  }
+  function textoMarca(m) {
+    var p = 'o boleto ' + m.parcela + ' do deal ' + m.deal;
+    return m.estado === 'enviado' ? 'marcou ' + p + ' como enviado'
+         : m.estado === 'outro' ? 'marcou ' + p + ' como ' + String(m.motivo || 'outro').toLowerCase()
+         : 'desfez o envio d' + p;
+  }
+
+  /* O lançamento que um colega gravou, na venda e na linha dela — a não ser que a pessoa esteja
+     mexendo nessa linha (o foco está nela, há referência digitada, a data está aberta). Aí a
+     novidade ESPERA À PARTE (NOV.adiadas) e a venda continua com o estado que a pessoa está VENDO:
+     se ela clicar antes, o `visto` que vai para o Cofre é o da tela, e ele devolve o conflito. Mudar
+     o estado por baixo da linha velha faria o `visto` mentir e a gravação passar por cima do colega.
+     Devolve true quando aplicou. */
+  function aplicarNaLinha(v, nr) {
+    var el = document.querySelector('#rows .row[data-deal="' + v.id + '"]');
+    if (el && emUso(el)) { NOV.adiadas[v.id] = nr; return false; }
+    delete NOV.adiadas[v.id];
+    contarReferencia(v.iv, nr);
+    aplicarIv(v, nr);
+    var novo = el ? atualizarLinha(v) : null;
+    if (novo) { novo.classList.add('mudou'); setTimeout(function () { novo.classList.remove('mudou'); }, 4000); }
+    return true;
+  }
+  function emUso(el) {
+    var a = document.activeElement;
+    if (a && a !== document.body && el.contains(a)) return true;
+    if (el.querySelector('.ivc input[type=date]')) return true;
+    return [].some.call(el.querySelectorAll('.ivc input.ivref'), function (i) { return i.value.trim() !== ''; });
+  }
+  function tentarAdiadas() {
+    var aplicou = false;
+    Object.keys(NOV.adiadas).forEach(function (d) {
+      var v = achaVenda(d);
+      if (!v || GRAVANDO[v.id]) { delete NOV.adiadas[d]; return; }   // a gravação daqui manda na linha
+      if (aplicarNaLinha(v, NOV.adiadas[d])) aplicou = true;
+    });
+    if (aplicou) { renderResumo(); pintarRodape(); }
+  }
+
+  function pintarNovidade() {
+    $('#st-conf').textContent = NOV.ok ? hhmm(NOV.ok) : '—';
+    var ref = NOV.ok || NOV.base;
+    $('#st-conf-w').className = ref && Date.now() - ref >= NOV_VELHO ? 'old' : '';
+    var msgs = [];
+    if (NOV.truncado) msgs.push('Muita coisa mudou no Cofre desde a última conferência');
+    if (NOV.totalAgora !== null && NOV.total !== null && NOV.totalAgora !== NOV.total) {
+      msgs.push('O Cofre tem ' + plural(NOV.totalAgora, 'venda', 'vendas') + ' agora — eram ' + NOV.total + ' quando esta página leu');
+    }
+    if (NOV.d4Agora && NOV.d4 !== null && NOV.d4Agora !== NOV.d4) msgs.push('Os contratos da D4Sign foram atualizados (' + fmtCarimbo(NOV.d4Agora) + ')');
+    var box = $('#novidade');
+    box.hidden = !msgs.length;
+    box.innerHTML = msgs.length ? '<span>' + esc(msgs.join(' · ')) + '.</span>' +
+      '<button type="button" class="chip" data-a="recarregar">Recarregar para ver</button>' : '';
+  }
+
+  setInterval(function () {
+    if (NOV.desde && Date.now() - NOV.ultima >= NOV_INTERVALO) novidades();
+    tentarAdiadas();
+    pintarNovidade();
+  }, 20000);
+  var aoVoltar = function () { if (!document.hidden && NOV.desde && Date.now() - NOV.ultima >= NOV_AO_VOLTAR) novidades(); };
+  document.addEventListener('visibilitychange', aoVoltar);
+  window.addEventListener('focus', aoVoltar);
+  $('#rows').addEventListener('focusout', function () { setTimeout(tentarAdiadas, 0); });
+  $('#novidade').addEventListener('click', function (e) {
+    if (e.target.closest && e.target.closest('[data-a="recarregar"]')) $('#btRecarregar').click();
+  });
+  // só no teste local (testes/ponteapp): dispara a consulta sem esperar os 2 min
+  if (/^(localhost|127\.0\.0\.1)$/.test(location.hostname)) {
+    window.__PONTE = { novidades: function () { NOV.ultima = 0; novidades(); },
+                       nov: function () { return { desde: NOV.desde, adiadas: Object.keys(NOV.adiadas), ok: NOV.ok, emVoo: NOV.emVoo }; } };
   }
 
   /* ---------- o modal do boleto ---------- */

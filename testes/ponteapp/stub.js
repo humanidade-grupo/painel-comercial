@@ -7,11 +7,13 @@
      CENA.token = 'recusado' | 'config'
      CENA.boleto = 'ok' | 'conflito' ; CENA.atrasoBoleto = ms
      CENA.semVenda = [{ deal, data_ivertex, quem }] → lançamentos de negócio que deixou de ser venda
+     CENA.novidades = [{ controle: [...linhas da Controle_ERP], boletos: [...marcações], total, d4, truncado } | 'html']
+                                        → a fila das respostas do fn=novidades (vazia: nada novo)
    window.LOG guarda cada chamada (rota, corpo) para a prova. */
 (function () {
   'use strict';
   try { localStorage.setItem('hub_token_controladoria', 'TOKEN-DE-TESTE-1234567890'); } catch (e) {}
-  window.CENA = { dados: [], carne: [], marcar: {}, atraso: {}, boleto: 'ok', atrasoBoleto: 300 };
+  window.CENA = { dados: [], carne: [], marcar: {}, atraso: {}, boleto: 'ok', atrasoBoleto: 300, novidades: [] };
   window.LOG = [];
   var pad = function (n) { return String(n).padStart(2, '0'); };
   var hoje = new Date(), iso = function (d) { return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); };
@@ -102,6 +104,16 @@
         contagem: [{ aba: 'Vendas_Facilita', chave: 'x', esperado: 5, lido: 5 },
                    { aba: 'Vendas_Facilita_Parcelas', chave: 'facilita.total_parcelas', esperado: 11850, lido: cc === 'recibo' ? 11000 : 11850 }], ms: 700 }),
         C.atrasoCarne != null ? C.atrasoCarne : 1500, opts.signal);
+    }
+    /* (24/09, Fase 1) "há novidade": o que os colegas gravaram desde `desde` (CENA.novidades, em fila) */
+    if (q.fn === 'novidades') {
+      var nv = C.novidades && C.novidades.length ? C.novidades.shift() : {};
+      if (nv === 'html') return resposta(HTML, 300, opts.signal);
+      var ag = new Date();
+      return resposta(JSON.stringify({ ok: true, desde: q.desde, agora: iso(ag) + ' ' + pad(ag.getHours()) + ':' + pad(ag.getMinutes()),
+        controle: nv.controle || [], boletos: nv.boletos || [], truncado: !!nv.truncado,
+        total_vendas: nv.total != null ? String(nv.total) : '5', carimbo_vendas: carimbo, carimbo_d4: nv.d4 || carimbo, ms: 400 }),
+        C.atrasoNovidades != null ? C.atrasoNovidades : 300, opts.signal);
     }
     if (q.fn === 'marcar') {
       var deal = corpo.deal, cena = C.marcar[deal] || 'ok', atraso = C.atrasoMarcar ? C.atrasoMarcar[deal] || 400 : 400;
