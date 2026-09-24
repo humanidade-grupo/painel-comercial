@@ -1,6 +1,11 @@
 /* Painel Comercial — Parque da Saudade + Estrela Urbanidade
    Service worker: instalação PWA + reserva offline.
-   Atualizado em: 21/09/2026 (noite) — PONTEAPP: a tarja diz POR QUE o espelho
+   Atualizado em: 24/09/2026 — PONTEAPP AGUENTA O COFRE INSTÁVEL (véspera da estreia para a
+   equipe): uma porta de rede só, espera de até 2 min com contador e nova tentativa sozinha
+   quando o Google devolve página de erro; só o token recusado de verdade desloga; cada carga
+   numerada; gravação redesenha só a linha dela e avisa quando outra pessoa já tinha mexido
+   (conflito, Cofre @99+). Sem bump, a equipe abriria amanhã a tela de 60 s.
+   Antes, 21/09/2026 (noite) — PONTEAPP: a tarja diz POR QUE o espelho
    da D4Sign parou ("a sessão da D4Sign caiu"), com a hora da última tentativa,
    em vez de só "mais de 48 horas" (rota d4sign&fn=falha, @86); e a passada
    passou a rodar às 8h, 14h e 20h.
@@ -204,7 +209,7 @@
    links dos arquivos são drive.google.com, externos, e NÃO entram no cache).
    Estratégia: rede primeiro (pega versão nova quando online), cache como
    reserva offline. A cada deploy, bumpar a versão em CACHE. */
-const CACHE = 'painel-comercial-260922-4';
+const CACHE = 'painel-comercial-260924-1';
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(['./'])).then(() => self.skipWaiting()));

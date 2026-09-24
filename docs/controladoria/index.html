@@ -95,6 +95,20 @@
    4. (22/09) o RECIBO DE ESCRITA: a rota devolve `contagem` [{aba, esperado, lido}] — o nº de
       linhas que a importação diz ter gravado × o que foi lido. Diferente, ou ausente, bloqueia
       o desenho inteiro (e o "ver tudo"): é a aba lida no meio da regravação.
+
+  (24/09) A TELA AGUENTA O COFRE INSTÁVEL — diagnóstico em `02-parque-da-saudade/sistemas/PonteApp —
+  diagnóstico e plano para a estreia (24-09-2026).md`. Dava "o Cofre não respondeu em 60s": a rota
+  custava 20 s e a ENTREGA do /exec oscila (medido: respostas prontas chegando em 60–120 s, ou
+  trocadas pela página de erro do Google — 21% dos pings numa manhã).
+   - api(): UMA porta de rede. Espera até 2 min com contador; página de erro ou rede caída → tenta
+     de novo sozinha (3×); recibo diferente → espera 20 s e busca de novo. Quem decide é o `codigo`
+     da resposta: só `token` desloga e apaga o token (antes, qualquer erro com a palavra "token").
+   - Cada carga numerada (vale o último clique, não a última resposta); Recarregar não empilha.
+   - Gravação redesenha SÓ a linha dela; a que sai do filtro fica no lugar, apagada; o foco só anda
+     se ainda estiver na linha marcada. `visto` vai junto: se outra pessoa mexeu na venda ou na
+     parcela depois, o Cofre devolve `conflito` e a linha diz quem — "Gravar a minha mesmo assim".
+   - Prazo de gravação estourado diz "não sei se gravou — repetir é seguro"; resultado que chega
+     com o modal fechado vira aviso no canto.
 -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -495,6 +509,22 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
   .step:first-child,.step:last-child,.step{border-radius:var(--r)}
   .kpi .v{font-size:25px}
 }
+/* ---- (24/09) a porta aguenta a estreia ---- */
+/* linha que saiu do filtro depois de gravada: fica no lugar, apagada, até o próximo redesenho */
+.row.sai{opacity:.5}
+.ivmsg.alerta{color:var(--crit);font-weight:500}
+.ivmsg .ivb{font-size:10.5px;padding:1px 8px;margin-left:4px}
+.tarja .tec{font-size:11px;color:var(--ink-3)}
+#btRecarregar:disabled{opacity:.6;cursor:progress}
+/* resultado que chega quando a pessoa já saiu dali: aviso no canto; erro não some sozinho */
+#toasts{position:fixed;right:16px;bottom:16px;z-index:70;display:flex;flex-direction:column;gap:8px;
+  max-width:min(380px,calc(100vw - 32px))}
+.toast{display:flex;gap:10px;align-items:flex-start;background:var(--surface-2);border:1px solid var(--line-strong);
+  border-left:4px solid var(--ok);border-radius:8px;padding:9px 12px;font-size:12.5px;color:var(--ink);box-shadow:var(--shadow)}
+.toast.erro{border-left-color:var(--crit)}
+.toast.alerta{border-left-color:var(--warn)}
+.toast button{font:inherit;font-size:16px;line-height:1;border:0;background:transparent;color:var(--ink-3);
+  cursor:pointer;padding:0 2px;margin-left:auto}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 </head>
@@ -709,6 +739,8 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
 </div>
 </div>
 
+<div id="toasts" aria-live="polite"></div>
+
 <div class="modal" id="modalBol" hidden role="dialog" aria-modal="true" aria-labelledby="bmTit">
   <div class="mcaixa bm">
     <div class="bmtopo"><div><h2 id="bmTit">Boleto</h2><div class="bmsub" id="bmSub"></div></div><button type="button" id="bmX" aria-label="Fechar">×</button></div>
@@ -730,7 +762,10 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
   var API = 'https://script.google.com/macros/s/AKfycbydLmUEX3g6FeojFGAcVHfNKoPsr4d9oTBUdi7GtcfsirQL6xHJM0BELVGcCrcqrICY/exec';
   var CHAVE_TOKEN = 'hub_token_controladoria';   // PRÓPRIO — nunca o hub_token_gestao
   var DIAS_ALERTA = 7;          // vermelho a partir de 7 dias em aberto
-  var HORAS_VELHO_VENDAS = 6;   // a cópia do Facilita anda de hora em hora
+  /* (24/09) A cópia do Facilita anda a cada 5 min (o batimento carimba mesmo sem venda nova):
+     mais de 1 hora sem carimbo é importação parada. Com 6 h, a tela passava meio dia dizendo
+     "fila zerada" sem as vendas novas e sem aviso nenhum. */
+  var HORAS_VELHO_VENDAS = 1;
   var HORAS_VELHO_D4 = 48;      // a passada da D4Sign é diária, e depende do PC do Ricardo
   var MESES = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
 
@@ -807,17 +842,41 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
   /* Aviso da última gravação por venda (prefixo x modalidade, referência repetida): fica
      na memória da página para sobreviver ao redesenho da tabela. Só texto, sem dado pessoal. */
   var AVISO_IV = {};
+  /* (24/09) O estado de cada gravação em voo e a última mensagem dela (erro, conflito, "já estava
+     lançada por…"), por Deal ID — a linha redesenhada a qualquer momento mostra o que é verdade. */
+  var GRAVANDO = {};
+  var MSG_IV = {};
   var RODAPE_BASE = [];
+  /* (24/09) Cada carga numerada: a resposta de um pedido que outro já substituiu é descartada.
+     Antes vencia a última resposta a CHEGAR, não o último clique — a tabela trocava de mês no
+     meio do trabalho. */
+  var SEQ = 0, SEQ_B = 0;
+  var CARGA = null, CARGA_B = null;   // { mes } do pedido em voo em cada aba
+  var ULTIMO_PEDIDO = null;           // o mês pedido por último na aba Vendas (null = o do Cofre)
+  var RECIBO_TENTATIVAS = 3, RECIBO_ESPERA_S = 20;
 
   // ================================================================ portão
   function token() { try { return localStorage.getItem(CHAVE_TOKEN) || ''; } catch (e) { return ''; } }
   function abrirPortao(msg) {
     R = null; VENDAS = []; MEMO = {};
     MEMO_B = {}; B.r = null; B.sel = {};
+    SEQ++; SEQ_B++; CARGA = null; CARGA_B = null;  // (24/09) resposta em voo não desenha mais nada
+    GRAVANDO = {}; MSG_IV = {}; AVISO_IV = {};
+    // os modais fecham e esvaziam (nada fica na página), e as leituras deles perdem a vez
+    PEDIDO_TUDO++; BM.pedido++; BM.r = null; BM.salvando = false;
+    $('#modal').hidden = true; $('#modalCorpo').innerHTML = '';
+    $('#modalBol').hidden = true; $('#bmCorpo').innerHTML = '';
+    carregando(false);
     $('#rows').textContent = ''; $('#rowsB').textContent = '';
     $('#app').hidden = true; $('#gate').hidden = false;
     $('#gateErro').textContent = msg || '';
     setTimeout(function () { $('#tk').focus(); }, 50);
+  }
+  /* (24/09) Token recusado DE VERDADE (codigo 'token'): apaga e volta ao portão. É o único
+     caminho que apaga o token — erro de rede, página de erro do Google e cadastro ilegível não. */
+  function sair(msg) {
+    try { localStorage.removeItem(CHAVE_TOKEN); } catch (e) {}
+    abrirPortao(msg);
   }
   $('#btEntrar').onclick = function () {
     var v = $('#tk').value.trim();
@@ -829,8 +888,10 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
   };
   $('#tk').addEventListener('keydown', function (e) { if (e.key === 'Enter') $('#btEntrar').click(); });
   $('#btRecarregar').onclick = function () {
+    if (TAB === 'b' ? CARGA_B : CARGA) return;   // (24/09) já está buscando: um clique ansioso não vira outra chamada
     MEMO = {}; MEMO_B = {};
-    if (TAB === 'b') carregarBoletos(B.mes, true); else { B.r = null; carregar(F.mes, true); }
+    // (24/09) Recarregar busca o que a pessoa PEDIU por último — inclusive o mês que falhou
+    if (TAB === 'b') carregarBoletos(B.pedido || B.mes, true); else { B.r = null; carregar(ULTIMO_PEDIDO, true); }
   };
   $('#btTrocar').onclick = function () {
     try { localStorage.removeItem(CHAVE_TOKEN); } catch (e) {}
@@ -846,53 +907,182 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
         '</div>' + x.c + '</div>';
     }).join('');
   }
-  function bloqueia(titulo, corpo) {
-    AVISOS = [{ t: titulo, c: corpo }]; pintarAvisos();
+  /* `repetir` (24/09): a tarja ganha "Tentar de novo", que busca de novo O QUE FALHOU. */
+  var TENTAR = { v: null, b: null };
+  function bloqueia(titulo, corpo, repetir) {
+    TENTAR.v = repetir || null;
+    AVISOS = [{ t: titulo, c: corpo + (repetir ? '<p><button type="button" class="chip tenta" data-tenta="v">Tentar de novo</button></p>' : '') }];
+    pintarAvisos();
     $('#conteudo').hidden = true; $('#lendo').hidden = true;
   }
+  document.addEventListener('click', function (e) {
+    var bt = e.target.closest && e.target.closest('button[data-tenta]');
+    if (bt && TENTAR[bt.dataset.tenta]) TENTAR[bt.dataset.tenta]();
+  });
 
   // ================================================================ rede
-  function comPrazo(url, opts, ms) {
+  /* A PORTA DE REDE (24/09). Toda chamada ao Cofre passa por aqui — antes eram 7 cópias de
+     fetch + prazo + "token recusado" + erro, com prazos diferentes, e uma regra frágil: qualquer
+     erro com a palavra "token" deslogava e APAGAVA o token do aparelho (a página de erro do Google
+     vira "Unexpected token '<'…"; um JSON torto na Config dizia "token ausente ou inválido").
+     O /exec do Apps Script tem ENTREGA instável: medido em 24/09, respostas prontas chegaram em
+     60–120 s, ou foram trocadas pela página HTML "Não foi possível abrir o arquivo" — até no ping.
+     Por isso: espera longa com contador, e nova tentativa sozinha quando a resposta não é JSON ou
+     a rede cai. Gravação também repete sozinha nesses casos: toda gravação da porta é segura de
+     repetir (a segunda volta sem_mudanca). O que NÃO se repete sozinho é gravação cujo prazo
+     estourou — não dá para saber se pegou; a pessoa decide (e repetir é seguro).
+     Quem decide é o `codigo` da resposta (token · config · trava · gravando · conflito ·
+     invalido), nunca o texto. */
+  var PRAZO_LER = 120000, PRAZO_GRAVAR = 90000, TENTATIVAS = 3;
+  var ESPERAS = [4000, 12000];                    // antes da 2ª e da 3ª tentativa
+  var ERRO_TOKEN = 'token ausente ou inválido';   // a recusa da @98 (sem `codigo`), para a transição
+  function falha(tipo, msg) { var e = new Error(msg); e.tipo = tipo; return e; }
+
+  /* Uma tentativa: resolve com o JSON; rejeita com e.tipo = 'prazo' | 'html' | 'rede'. */
+  function umaTentativa(url, opts, prazo) {
+    var ctl = typeof AbortController === 'function' ? new AbortController() : null;
+    if (ctl) opts.signal = ctl.signal;
     return new Promise(function (resolve, reject) {
       var venceu = false;
-      var t = setTimeout(function () { venceu = true; reject(new Error('o Cofre não respondeu em ' + (ms / 1000) + 's')); }, ms);
-      fetch(url, opts)
-        .then(function (r) { return r.json(); })
-        .then(function (j) { if (!venceu) { clearTimeout(t); resolve(j); } })
-        .catch(function (e) { if (!venceu) { clearTimeout(t); reject(e); } });
+      var t = setTimeout(function () {
+        venceu = true; if (ctl) ctl.abort();
+        reject(falha('prazo', 'o Cofre não respondeu em ' + Math.round(prazo / 1000) + ' s'));
+      }, prazo);
+      fetch(url, opts).then(function (r) { return r.text(); }).then(function (txt) {
+        if (venceu) return;
+        clearTimeout(t);
+        var j = null; try { j = JSON.parse(txt); } catch (e) {}
+        if (j && typeof j === 'object') resolve(j);
+        else reject(falha('html', 'o Google devolveu uma página de erro no lugar da resposta do Cofre'));
+      }).catch(function (e) {
+        if (venceu) return;
+        clearTimeout(t);
+        reject(falha('rede', 'a conexão com o Cofre caiu (' + String((e && e.message) || e).slice(0, 80) + ')'));
+      });
     });
   }
-  function recusado(r) { return r && r.ok !== true && /token/i.test(String(r.error || '')); }
 
-  function carregar(mes, forcar) {
+  /* api(fn, o) — o = { params (GET), corpo (POST), aoEsperar(segundos, tentativa, motivo) }.
+     Resolve com o JSON do Cofre, inclusive ok:false com `codigo`. Rejeita (e.tipo) com 'prazo',
+     'html' ou 'rede' depois das tentativas, ou com 'token' quando o token foi recusado — e aí a
+     pessoa JÁ está no portão. */
+  function api(fn, o) {
+    o = o || {};
+    var tk = token();
+    if (!tk) { abrirPortao(''); return Promise.reject(falha('token', 'sem token')); }
+    var grava = !!o.corpo, prazo = grava ? PRAZO_GRAVAR : PRAZO_LER;
+    var url = API + '?app=controladoria&fn=' + encodeURIComponent(fn);
+    Object.keys(o.params || {}).forEach(function (k) {
+      if (o.params[k] != null) url += '&' + k + '=' + encodeURIComponent(o.params[k]);
+    });
+    var t0 = Date.now(), tentativa = 1, motivo = '', relogio = null;
+    var avisa = function () { if (o.aoEsperar) o.aoEsperar(Math.floor((Date.now() - t0) / 1000), tentativa, motivo); };
+    if (o.aoEsperar) { avisa(); relogio = setInterval(avisa, 1000); }
+    var fim = function () { if (relogio) { clearInterval(relogio); relogio = null; } };
+    var espera = function (ms) {   // a contagem já diz "tentativa 2 de 3" durante a espera
+      tentativa++; avisa();
+      return new Promise(function (res) { setTimeout(res, ms); }).then(tenta);
+    };
+    var tenta = function () {
+      var opts = grava
+        ? { method: 'POST', cache: 'no-store', credentials: 'omit',
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },   // sem preflight de CORS
+            body: JSON.stringify(Object.assign({ token: tk }, o.corpo)) }
+        : { cache: 'no-store', credentials: 'omit' };
+      return umaTentativa(grava ? url : url + '&token=' + encodeURIComponent(tk), opts, prazo).then(function (r) {
+        // outra gravação da controladoria segurando a trava: repetir é seguro
+        if (r && r.ok !== true && r.codigo === 'trava' && tentativa < TENTATIVAS) {
+          motivo = 'outra gravação em andamento'; return espera(3000);
+        }
+        return r;
+      }, function (e) {
+        var repete = tentativa < TENTATIVAS && (e.tipo === 'html' || e.tipo === 'rede' || (e.tipo === 'prazo' && !grava));
+        if (!repete) throw e;
+        motivo = e.tipo === 'html' ? 'o Google devolveu uma página de erro'
+               : e.tipo === 'rede' ? 'a conexão caiu' : 'o Cofre demorou demais';
+        return espera(ESPERAS[Math.min(tentativa - 1, ESPERAS.length - 1)]);
+      });
+    };
+    return tenta().then(function (r) {
+      fim();
+      if (r && r.ok !== true && (r.codigo === 'token' || (!r.codigo && r.error === ERRO_TOKEN))) {
+        sair(grava ? 'Token recusado ao gravar. Digite de novo.' : 'Token recusado. Confira e digite de novo — o token do Painel não serve aqui.');
+        throw falha('token', 'token recusado');
+      }
+      return r;
+    }, function (e) { fim(); throw e; });
+  }
+
+  /* O que a espera diz, enquanto espera. */
+  function textoEspera(base, s, tentativa, motivo) {
+    var t = base + ' ' + s + ' s';
+    if (tentativa > 1) t = base + ' tentativa ' + tentativa + ' de ' + TENTATIVAS + ' (' + motivo + ') · ' + s + ' s';
+    else if (s >= 30) t += ' — o Cofre está lento agora; continuo esperando (até 2 min)';
+    return t;
+  }
+  /* Mensagem de falha de rede para quem usa a tela — nunca o texto técnico cru. */
+  function textoFalha(e) {
+    if (e.tipo === 'prazo') return 'O Cofre não respondeu depois de ' + TENTATIVAS + ' tentativas. Ele costuma voltar em poucos minutos.';
+    if (e.tipo === 'html') return 'O Google devolveu uma página de erro no lugar da resposta, ' + TENTATIVAS + ' vezes seguidas. Costuma passar em poucos minutos.';
+    if (e.tipo === 'rede') return 'A conexão caiu. Confira a internet deste computador.';
+    return String(e.message || e);
+  }
+
+  function carregar(mes, forcar, rodada) {
     var tk = token();
     if (!tk) { abrirPortao(''); return; }
     $('#gate').hidden = true; $('#app').hidden = false;
-    if (!forcar && mes && MEMO[mes]) { montar(MEMO[mes]); return; }
+    ULTIMO_PEDIDO = mes || null;
+    if (!forcar && mes && MEMO[mes]) { SEQ++; CARGA = null; carregando(false); montar(MEMO[mes]); return; }
+    var meu = ++SEQ;
+    rodada = rodada || 1;
+    CARGA = { mes: mes };
+    carregando(true);
     $('#conteudo').hidden = true; $('#lendo').hidden = false;
     AVISOS = []; pintarAvisos();
-    var url = API + '?app=controladoria&fn=dados' + (mes ? '&mes=' + encodeURIComponent(mes) : '') +
-              '&token=' + encodeURIComponent(tk);
-    comPrazo(url, { cache: 'no-store', credentials: 'omit' }, 60000)
-      .then(function (r) {
-        if (recusado(r)) {
-          try { localStorage.removeItem(CHAVE_TOKEN); } catch (e) {}
-          abrirPortao('Token recusado. Confira e digite de novo — o token do Painel não serve aqui.');
-          return;
-        }
-        if (!r || r.ok !== true) {
-          bloqueia('O Cofre respondeu, mas sem dado.', '<p>' + esc((r && r.error) || 'resposta vazia') + '</p>');
-          return;
-        }
-        r._lido = new Date();
-        if (r.truncado === false && !reciboRuim(r)) MEMO[r.mes] = r;
-        montar(r);
-      })
-      .catch(function (e) {
-        bloqueia('Não consegui falar com o Cofre.',
-          '<p>' + esc(e.message || e) + '</p><p>Nenhum número aparece enquanto isso: tela vazia é melhor ' +
-          'que tela desatualizada com cara de atual.</p>');
-      });
+    var denovo = function () { carregar(mes, true); };
+    api('dados', { params: { mes: mes }, aoEsperar: function (s, t, m) {
+      if (meu === SEQ) $('#lendo').textContent = textoEspera('Lendo os dados do Cofre…', s, t, m);
+    } }).then(function (r) {
+      if (meu !== SEQ) return;                    // outro pedido passou na frente
+      if (!r || r.ok !== true) {
+        CARGA = null; carregando(false);
+        bloqueia(r && r.codigo === 'config' ? 'O cadastro da PonteApp está com problema.' : 'O Cofre respondeu, mas sem dado.',
+          '<p>' + esc((r && r.error) || 'resposta vazia') + '</p>', denovo);
+        return;
+      }
+      /* (24/09) RECIBO DIFERENTE = a importação está regravando as abas agora. Em vez da tarja
+         vermelha pedindo para a pessoa tentar à mão, a tela espera e busca de novo sozinha. */
+      var ruim = r.truncado === false && reciboRuim(r);
+      if (ruim && rodada < RECIBO_TENTATIVAS) {
+        var falta = RECIBO_ESPERA_S;
+        var tick = function () {
+          if (meu !== SEQ) return;
+          if (falta <= 0) { carregar(mes, true, rodada + 1); return; }
+          $('#lendo').textContent = 'O Cofre está gravando uma importação do Facilita agora — busco de novo em ' + falta +
+            ' s (' + (rodada + 1) + 'ª tentativa de ' + RECIBO_TENTATIVAS + ').';
+          falta--; setTimeout(tick, 1000);
+        };
+        tick();
+        return;
+      }
+      CARGA = null; carregando(false);
+      r._lido = new Date();
+      if (r.truncado === false && !ruim) MEMO[r.mes] = r;
+      montar(r);
+    }, function (e) {
+      if (meu !== SEQ || e.tipo === 'token') return;
+      CARGA = null; carregando(false);
+      bloqueia('Não consegui falar com o Cofre.',
+        '<p>' + esc(textoFalha(e)) + '</p><p>Nenhum número aparece enquanto isso: tela vazia é melhor ' +
+        'que tela desatualizada com cara de atual.</p>', denovo);
+    });
+  }
+
+  /* Enquanto carrega: Recarregar não empilha outra chamada; o mês pedido fica marcado. */
+  function carregando(sim) {
+    $('#btRecarregar').disabled = !!sim;
+    $('#btRecarregar').textContent = sim ? 'Buscando…' : 'Recarregar';
   }
 
   /* O RECIBO DE ESCRITA (22/09): a importação grava a aba e SÓ DEPOIS o número de linhas na
@@ -903,8 +1093,8 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
     var cs = r && r.contagem;
     if (!Array.isArray(cs) || !cs.length) {
       return { t: 'Esta página não vai desenhar: a rota não diz quantas linhas leu.',
-        c: '<p>O Cofre respondeu sem o campo <code>contagem</code> (o recibo de escrita). Está servindo uma ' +
-           'implantação antiga — republicar (Implantar ▸ Gerenciar ▸ ✏️ ▸ Nova versão).</p>' };
+        c: '<p><b>Avise o Ricardo:</b> o Cofre está numa versão antiga.</p>' +
+           '<p class="tec">Sem o campo <code>contagem</code> (o recibo de escrita). Republicar: Implantar ▸ Gerenciar ▸ ✏️ ▸ Nova versão.</p>' };
     }
     var mal = cs.filter(function (c) { return !c || c.esperado === null || c.esperado === undefined || c.lido !== c.esperado; });
     if (!mal.length) return null;
@@ -923,21 +1113,22 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
 
     /* GUARDA DE TRUNCAMENTO: `truncado` ausente é pior que true — rota que não sabe dizer se
        cortou é indistinguível de rota que cortou. Nos dois casos, nada é desenhado. */
+    var denovo = function () { carregar(ULTIMO_PEDIDO, true); };
     if (typeof r.truncado === 'undefined') {
       bloqueia('Esta página não vai desenhar: a rota não diz se cortou a resposta.',
-        '<p>O <code>?app=controladoria&amp;fn=dados</code> respondeu sem o campo <code>truncado</code>. ' +
-        'O Cofre está servindo uma implantação antiga — republicar (Implantar ▸ Gerenciar ▸ ✏️ ▸ Nova versão).</p>');
+        '<p><b>Avise o Ricardo:</b> o Cofre está numa versão antiga.</p>' +
+        '<p class="tec">O <code>fn=dados</code> respondeu sem o campo <code>truncado</code>. Republicar: Implantar ▸ Gerenciar ▸ ✏️ ▸ Nova versão.</p>');
       return;
     }
     if (r.truncado === true) {
       bloqueia('Esta página não vai desenhar: a resposta veio cortada.',
-        '<p>O Cofre devolveu <b>' + esc(r.n) + '</b> vendas de <b>' + esc(r.no_recorte) + '</b> no recorte. ' +
-        'Toda conta sairia sobre um pedaço, com cara de completa. Aumentar <code>CTL_TETO</code> em ' +
-        '<code>Controladoria.gs</code> e republicar.</p>');
+        '<p>O Cofre devolveu <b>' + esc(r.n) + '</b> vendas de <b>' + esc(r.no_recorte) + '</b> no recorte, e toda conta ' +
+        'sairia sobre um pedaço, com cara de completa. <b>Avise o Ricardo.</b></p>' +
+        '<p class="tec">Aumentar <code>CTL_TETO</code> em <code>Controladoria.gs</code> e republicar.</p>');
       return;
     }
     var ruim = reciboRuim(r);
-    if (ruim) { bloqueia(ruim.t, ruim.c); return; }
+    if (ruim) { bloqueia(ruim.t, ruim.c, denovo); return; }
 
     R = r;
     F.mes = r.mes;
@@ -959,9 +1150,10 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
       aviso('As vendas chegaram sem data.', '<p>Não dá para saber de quando é a cópia do Facilita ' +
         '(<code>facilita.ultima_importacao</code> vazio na Config do Cofre).</p>', true);
     } else if (hV >= HORAS_VELHO_VENDAS) {
-      aviso('A cópia das vendas tem mais de ' + HORAS_VELHO_VENDAS + ' horas.',
+      aviso('A cópia das vendas tem mais de ' + plural(HORAS_VELHO_VENDAS, 'hora', 'horas') + '.',
         '<p>É de <b>' + esc(fmtCarimbo(r.carimbo_vendas)) + '</b>. Venda fechada depois disso ainda não ' +
-        'aparece aqui. A importação do Facilita roda de hora em hora — parada quer dizer que falhou.</p>', true);
+        'aparece aqui. A cópia do Facilita anda a cada 5 minutos — parada há mais de uma hora quer dizer que a ' +
+        'importação falhou. <b>Avise o Ricardo.</b></p>', true);
     }
     if (!D4OK) {
       var porque = d4.estado === 'vazia' ? 'a aba <code>Contratos_D4Sign</code> está vazia'
@@ -997,6 +1189,8 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
     CORTE_BOL = corteDe(r);
     if (r.mes !== 'tudo' && !r.boletos && r.boletos_motivo) {
       aviso('O carnê não veio: a coluna Boleto fica em branco.', '<p>' + esc(r.boletos_motivo) + '</p>', true);
+    } else if (r.boletos && r.corte_boleto_bruto) {
+      aviso('O corte do boleto está digitado errado.', corteTorto(r.corte_boleto_bruto), true);
     } else if (r.boletos && !CORTE_BOL) {
       aviso('Corte do boleto não definido.', '<p>A Config do Cofre não tem <code>boleto.corte</code> (AAAA-MM-DD). ' +
         'Sem ela a coluna Boleto <b>não calcula atraso nenhum</b> — senão todo boleto antigo, controlado na planilha, apareceria vencido.</p>', true);
@@ -1052,14 +1246,15 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
     var TODAS = VENDAS.concat(FILA_FORA);
     var selV = $('#f-vend'), vends = uniq(TODAS.map(function (v) { return v.vend; }));
     if (F.vend !== 'tudo' && vends.indexOf(F.vend) < 0) F.vend = 'tudo';
+    // (24/09) `value` explícito: sem ele o navegador junta espaços duplos do nome e o filtro não casa
     selV.innerHTML = '<option value="tudo">Todos</option>' + vends.map(function (n) {
-      return '<option' + (n === F.vend ? ' selected' : '') + '>' + esc(n) + '</option>';
+      return '<option value="' + esc(n) + '"' + (n === F.vend ? ' selected' : '') + '>' + esc(n) + '</option>';
     }).join('');
     var mods = ['Perpétuo', 'Temporário', 'Reserva'];
     uniq(TODAS.map(function (v) { return v.mod; })).forEach(function (m) { if (mods.indexOf(m) < 0) mods.push(m); });
     if (F.mod !== 'tudo' && mods.indexOf(F.mod) < 0) F.mod = 'tudo';
     $('#f-mod').innerHTML = '<option value="tudo">Todas</option>' + mods.map(function (m) {
-      return '<option' + (m === F.mod ? ' selected' : '') + '>' + esc(m) + '</option>';
+      return '<option value="' + esc(m) + '"' + (m === F.mod ? ' selected' : '') + '>' + esc(m) + '</option>';
     }).join('');
 
     $('#ft-voce').textContent = 'Você: ' + (r.voce || '?') + ' ·';
@@ -1108,7 +1303,13 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
       }).join('') +
       '<button class="chip" data-mes="tudo" aria-pressed="' + (r.mes === 'tudo') + '" title="todas as competências — sem dado de cadastro do cliente">Tudo</button>';
     [].forEach.call(g.querySelectorAll('.chip'), function (c) {
-      c.onclick = function () { if (c.dataset.mes !== F.mes) carregar(c.dataset.mes); };
+      c.onclick = function () {
+        var m = c.dataset.mes;
+        if (CARGA && CARGA.mes === m) return;                           // (24/09) já está buscando este
+        if (m === F.mes && !CARGA && !$('#conteudo').hidden) return;    // já está na tela
+        [].forEach.call(g.querySelectorAll('.chip'), function (o) { o.setAttribute('aria-pressed', String(o === c)); });
+        carregar(m);
+      };
     });
   }
 
@@ -1166,7 +1367,14 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
 
   // ================================================================ desenho
   function render() {
-    if (!R) return;
+    if (!R || $('#conteudo').hidden) return;   // (24/09) tela bloqueada (carga que falhou): o aviso fica
+    renderResumo();
+    renderTabela();
+  }
+  /* (24/09) O resumo (cartões, pernas, trilhas, contadores) separado da tabela: uma gravação refaz
+     o resumo e SÓ a linha dela (atualizarLinha) — redesenhar a tabela inteira atropelava as
+     marcações que ainda estavam gravando, subia as linhas sob o mouse e roubava o foco. */
+  function renderResumo() {
     AVISOS = AVISOS_CARGA.slice();
     var B = base();
     var T = function (id, txt) { $('#' + id).textContent = txt; };
@@ -1296,15 +1504,46 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
     T('n-assin', D4OK ? ass.length : '—');
     T('n-sem', D4OK ? pend.length : '—');
     T('n-lanc', lanc.length);
+    pintarAvisos();
+  }
 
-    // ---- tabela
+  function renderTabela() {
     var daFila = F.sit === 'assinatura' || F.sit === 'semcontrato';
     $('#escopoTab').hidden = !(daFila && FILA_FORA.length);
-    var L = filtrar(daFila ? BF : B);
+    var L = filtrar(daFila ? baseFila() : base());
     var box = $('#rows'); box.textContent = '';
     L.forEach(function (v) { box.appendChild(linha(v)); });
     $('#empty').hidden = L.length > 0;
-    pintarAvisos();
+  }
+
+  /* A venda ainda cabe no recorte que está na tela? (o mesmo critério do renderTabela) */
+  function passaFiltro(v) {
+    if (F.vend !== 'tudo' && v.vend !== F.vend) return false;
+    if (F.mod !== 'tudo' && v.mod !== F.mod) return false;
+    var daFila = F.sit === 'assinatura' || F.sit === 'semcontrato';
+    if (daFila ? v.ct.k === 'foracorte' : v.foraRecorte) return false;
+    return filtrar([v]).length > 0;
+  }
+
+  /* (24/09) Redesenha SÓ a linha desta venda, onde ela estiver. Se ela saiu do filtro (ex.: "A
+     lançar" depois de lançada), FICA no lugar, apagada, até o próximo redesenho da tabela: sumir
+     empurraria as de baixo para cima bem na hora do próximo clique. Detalhe aberto continua aberto. */
+  function atualizarLinha(v) {
+    var velho = document.querySelector('#rows .row[data-deal="' + v.id + '"]');
+    if (!velho) return null;
+    var novo = linha(v);
+    if (!passaFiltro(v)) {
+      novo.classList.add('sai');
+      novo.title = 'Saiu deste filtro — some quando a tabela for redesenhada';
+    }
+    velho.parentNode.replaceChild(novo, velho);
+    if (velho.dataset.open === 'true' && novo._abrir) novo._abrir();
+    return novo;
+  }
+  function achaVenda(deal) {
+    var d = Number(deal), x = null;
+    VENDAS.concat(FILA_FORA).forEach(function (v) { if (v.id === d) x = v; });
+    return x;
   }
 
   function pill(v) {
@@ -1359,13 +1598,20 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
     el.dataset.deal = v.id;
     cel.addEventListener('click', function (e) { e.stopPropagation(); });
     cel.addEventListener('keydown', function (e) { e.stopPropagation(); });
+    /* (24/09) maxlength 10: com 6, colar " P20444" (com espaço, como sai do ERP) cortava antes de o
+       espaço ser removido — virava "P2044" e dava erro de formato. */
     var campoRef = function (valor, rot) {
-      return '<input class="ivref" type="text" inputmode="text" autocomplete="off" spellcheck="false" maxlength="6" ' +
+      return '<input class="ivref" type="text" inputmode="text" autocomplete="off" spellcheck="false" maxlength="10" ' +
         'placeholder="' + (rot || 'Ref. Ivertex') + '" aria-label="Referência do contrato no Ivertex (opcional), ex.: P20444" value="' + esc(valor || '') + '">';
     };
     var pintarIv = function (modo, erro, refDigitada) {
-      var av = AVISO_IV[v.id];
+      if (GRAVANDO[v.id]) {   // (24/09) gravação em voo: a linha redesenhada mostra isso, sem botões
+        cel.innerHTML = '<div class="ivbox"><span class="ivmsg">gravando…</span></div>';
+        return;
+      }
+      var av = AVISO_IV[v.id], mi = MSG_IV[v.id];
       var msg = erro ? '<span class="ivmsg erro">' + esc(erro) + '</span>'
+              : mi ? msgIv(mi)
               : av ? '<span class="ivmsg aviso">' + esc(av) + '</span>' : '';
       if (modo === 'data' || modo === 'editar') {
         var val = v.iv.lancado && v.iv.data ? v.iv.data : hojeISO();
@@ -1411,7 +1657,7 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
     };
     var lerRef = function () {
       var inp = cel.querySelector('input.ivref');
-      return inp ? inp.value.trim().toUpperCase() : '';
+      return inp ? inp.value.replace(/\s+/g, '').toUpperCase() : '';
     };
     var refValida = function (r) { return !r || /^[A-Z]\d{5}$/.test(r); };
     var ERRO_REF = 'uma letra e 5 dígitos (ex.: P20444)';
@@ -1442,6 +1688,11 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
         if (!confirm('Desmarcar o lançamento do deal ' + v.id + ' (' + v.jaz + ')?\n\n' +
             'Só faça isso se ele NÃO está lançado no Ivertex. A data e a referência do lançamento são apagadas; o registro guarda quem desmarcou e quando.')) return;
         marcar(v, false, '', '', cel, pintarIv);
+      } else if (acao === 'dispensar') {   // (24/09) o aviso fica até a pessoa dispensar
+        delete MSG_IV[v.id]; pintarIv();
+      } else if (acao === 'forcar') {      // (24/09) conflito: a pessoa conferiu e grava a dela
+        var p = MSG_IV[v.id] && MSG_IV[v.id].pedido;
+        if (p) { delete MSG_IV[v.id]; marcar(v, p.quer, p.data, p.ref, cel, pintarIv, true); }
       }
     });
     pintarIv();
@@ -1468,49 +1719,83 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
       if (e.target !== head) return;
       if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); abrir(); }
     });
+    el._abrir = abrir;   // (24/09) atualizarLinha reabre o detalhe que estava aberto
     return el;
   }
 
-  function marcar(v, quer, data, ref, cel, pintarIv) {
-    var tk = token();
-    if (!tk) { abrirPortao(''); return; }
+  /* (24/09) A mensagem que fica na linha até a pessoa dispensar: erro, "já estava lançada por…",
+     e o conflito — com "Gravar a minha mesmo assim". */
+  function msgIv(mi) {
+    return '<span class="ivmsg ' + (mi.tipo === 'erro' ? 'erro' : 'alerta') + '">' + esc(mi.txt) +
+      (mi.tipo === 'conflito' ? ' <button type="button" class="ivb" data-a="forcar">Gravar a minha mesmo assim</button>' : '') +
+      ' <button type="button" class="ivb" data-a="dispensar" aria-label="Dispensar o aviso">ok</button></span>';
+  }
+
+  /* (24/09) A gravação manda o que a pessoa VIU (`visto`): se outra pessoa mexeu na venda depois
+     que a tela abriu, o Cofre devolve `conflito` com o estado atual e não grava — a linha mostra
+     quem fez o quê, e a pessoa decide ("Gravar a minha mesmo assim" manda `forcar`). Durante a
+     gravação só ESTA linha fica em "gravando…"; na resposta, só ela é redesenhada. */
+  function marcar(v, quer, data, ref, cel, pintarIv, forcar) {
+    if (GRAVANDO[v.id]) return;   // já está gravando esta venda
     var modo = !quer ? 'editar' : data ? (v.iv.lancado ? 'editar' : 'data') : undefined;
-    // o próximo da fila, capturado ANTES de redesenhar: é para lá que o foco vai depois
-    var depois = [], vi = false;
-    [].forEach.call(document.querySelectorAll('#rows .row'), function (r) {
-      if (vi) depois.push(r.dataset.deal);
-      if (r.dataset.deal === String(v.id)) vi = true;
-    });
-    [].forEach.call(cel.querySelectorAll('button, input'), function (x) { x.disabled = true; });
-    var gr = document.createElement('span'); gr.className = 'ivmsg'; gr.textContent = 'gravando…';
-    cel.querySelector('.ivbox').appendChild(gr);
-    var corpo = { token: tk, deal: v.id, lancado: quer };
+    var corpo = { deal: v.id, lancado: quer, visto: { lancado: !!v.iv.lancado, referencia: v.iv.lancado ? (v.iv.ref || '') : '' } };
     if (quer && data) corpo.data_ivertex = data;
     if (quer && ref) corpo.referencia = ref;
-    comPrazo(API + '?app=controladoria&fn=marcar', {
-      method: 'POST', cache: 'no-store', credentials: 'omit',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' },   // sem preflight de CORS
-      body: JSON.stringify(corpo)
-    }, 45000).then(function (r) {
-      if (recusado(r)) { try { localStorage.removeItem(CHAVE_TOKEN); } catch (e) {} abrirPortao('Token recusado ao gravar. Digite de novo.'); return; }
-      if (!r || r.ok !== true) { pintarIv(modo, 'não gravou: ' + ((r && r.error) || '?'), ref); return; }
-      contarReferencia(v.iv, r);
-      v.iv = { lancado: r.lancado, data: r.data_ivertex || '', quem: r.quem || '', quando: r.quando || '',
-               ref: r.lancado ? String(r.referencia || '').toUpperCase() : '', fonte: r.fonte || '' };
-      if (r.avisos && r.avisos.length) AVISO_IV[v.id] = r.avisos.join(' · '); else delete AVISO_IV[v.id];
-      lembrarMarcacao(v.id, r);
-      render();
-      pintarRodape();
-      // lançamento é repetitivo: o foco segue para o campo da próxima venda da lista
-      if (quer && !data) {
-        for (var i = 0; i < depois.length; i++) {
-          var prox = document.querySelector('#rows .row[data-deal="' + depois[i] + '"] input.ivref');
-          if (prox) { prox.focus(); break; }
+    if (forcar) corpo.forcar = true;
+    GRAVANDO[v.id] = true; delete MSG_IV[v.id];
+    pintarIv();   // "gravando…"
+    api('marcar', { corpo: corpo }).then(function (r) {
+      delete GRAVANDO[v.id];
+      if (!r || r.ok !== true) {
+        if (r && r.codigo === 'conflito' && r.atual) {
+          contarReferencia(v.iv, r.atual);
+          aplicarIv(v, r.atual);
+          MSG_IV[v.id] = { tipo: 'conflito', txt: 'Esta venda foi ' + r.error + '. Confira no Ivertex.', pedido: { quer: quer, data: data, ref: ref } };
+          renderResumo(); atualizarLinha(v); pintarRodape();
+          return;
         }
+        erroNaLinha(v, cel, pintarIv, modo, r && r.codigo === 'gravando' ? r.error : 'não gravou: ' + ((r && r.error) || 'resposta vazia'), ref);
+        return;
       }
-    }).catch(function (e) {
-      pintarIv(modo, 'não gravou: ' + (e.message || e), ref);
+      contarReferencia(v.iv, r);
+      aplicarIv(v, r);
+      if (r.avisos && r.avisos.length) AVISO_IV[v.id] = r.avisos.join(' · '); else delete AVISO_IV[v.id];
+      if (r.sem_mudanca && r.quem && R && r.quem !== R.voce) {
+        MSG_IV[v.id] = { tipo: 'alerta', txt: 'já estava ' + (r.lancado ? 'lançada' : 'desmarcada') + ' por ' + r.quem +
+          (r.quando ? ' em ' + fmtCarimbo(r.quando) : '') + ' — confira no Ivertex se não houve lançamento em dobro' };
+      }
+      // lançamento é repetitivo: o foco segue para a próxima venda — mas SÓ se ele ainda estiver
+      // nesta linha (ou solto); se a pessoa já foi digitar em outra, o foco fica onde ela está
+      var velho = document.querySelector('#rows .row[data-deal="' + v.id + '"]');
+      var a = document.activeElement;
+      var seguir = quer && !data && velho && (!a || a === document.body || velho.contains(a));
+      var depois = [];
+      if (seguir) for (var x = velho.nextElementSibling; x; x = x.nextElementSibling) depois.push(x.dataset.deal);
+      renderResumo(); atualizarLinha(v); pintarRodape();
+      for (var i = 0; seguir && i < depois.length; i++) {
+        var prox = document.querySelector('#rows .row[data-deal="' + depois[i] + '"]:not(.sai) input.ivref');
+        if (prox) { prox.focus(); break; }
+      }
+    }, function (e) {
+      delete GRAVANDO[v.id];
+      if (e.tipo === 'token') return;
+      erroNaLinha(v, cel, pintarIv, modo, e.tipo === 'prazo'
+        ? 'não sei se gravou — o Cofre não confirmou em ' + Math.round(PRAZO_GRAVAR / 1000) + ' s. Clique de novo: repetir é seguro.'
+        : 'não gravou: ' + textoFalha(e), ref);
     });
+  }
+  /* O estado de lançamento que o Cofre devolveu, na venda e em todo mês guardado na memória. */
+  function aplicarIv(v, r) {
+    v.iv = { lancado: r.lancado, data: r.data_ivertex || '', quem: r.quem || '', quando: r.quando || '',
+             ref: r.lancado ? String(r.referencia || '').toUpperCase() : '', fonte: r.fonte || '' };
+    lembrarMarcacao(v.id, r);
+  }
+  /* O erro vai para a célula que foi clicada, se ela ainda estiver na tela (guarda o que foi
+     digitado); senão, para a linha redesenhada da venda. */
+  function erroNaLinha(v, cel, pintarIv, modo, txt, ref) {
+    if (document.body.contains(cel)) { pintarIv(modo, txt, ref); return; }
+    MSG_IV[v.id] = { tipo: 'erro', txt: txt };
+    atualizarLinha(v);
   }
 
   /* O contador do rodapé anda junto com o clique, em todos os meses guardados na memória. */
@@ -1576,7 +1861,8 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
   }
   function pagamento(v) {
     var o = v.pg || {};
-    var face = num2(o['Valor Face']), venda = num2(v.valor), desc = num2(o['Desconto %']);
+    // (24/09) o valor CRU da venda: vazio aparece "—" e não se copia (v.valor vira 0 para as somas)
+    var face = num2(o['Valor Face']), venda = num2(o['Valor Venda']), desc = num2(o['Desconto %']);
     var ent = num2(o['Entrada']), parc = num2(o['Valor Parcela']);
     var n = String(o['Nº Parcelas'] == null ? '' : o['Nº Parcelas']);
     var mod = String(o['Modelo de Contrato'] == null ? '' : o['Modelo de Contrato']).trim();
@@ -1647,19 +1933,18 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
     if (fecharTudo.volta) { try { fecharTudo.volta.focus(); } catch (e) {} }
   }
   function abrirTudo(deal, bt) {
-    var tk = token();
-    if (!tk) { abrirPortao(''); return; }
+    if (!token()) { abrirPortao(''); return; }
     fecharTudo.volta = bt;
     var meu = ++PEDIDO_TUDO;
     $('#modalTit').textContent = 'Tudo desta venda · deal ' + deal;
-    $('#modalCorpo').innerHTML = '<p class="lendo">Lendo do Cofre…</p>';
+    $('#modalCorpo').innerHTML = '<p class="lendo" id="tudoLendo">Lendo do Cofre…</p>';
     $('#modal').hidden = false;
     $('#modalX').focus();
-    comPrazo(API + '?app=controladoria&fn=venda&deal=' + encodeURIComponent(deal) + '&token=' + encodeURIComponent(tk),
-             { cache: 'no-store', credentials: 'omit' }, 45000)
+    api('venda', { params: { deal: deal }, aoEsperar: function (s, t, m) {
+      var el = meu === PEDIDO_TUDO && $('#tudoLendo'); if (el) el.textContent = textoEspera('Lendo do Cofre…', s, t, m);
+    } })
       .then(function (r) {
         if (meu !== PEDIDO_TUDO) return;   // fechou (ou abriu outra) enquanto lia
-        if (recusado(r)) { fecharTudo(); try { localStorage.removeItem(CHAVE_TOKEN); } catch (e) {} abrirPortao('Token recusado. Digite de novo.'); return; }
         if (!r || r.ok !== true) { $('#modalCorpo').innerHTML = '<p class="ivmsg erro">' + esc((r && r.error) || 'resposta vazia') + '</p>'; return; }
         var ruim = reciboRuim(r);
         if (ruim) { $('#modalCorpo').innerHTML = '<div class="tarja"><div class="t">' + esc(ruim.t) + '</div>' + ruim.c + '</div>'; return; }
@@ -1674,8 +1959,8 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
           '<p class="mnota">Lido agora do Cofre. O carnê parcela a parcela e os boletos estão no botão <b>Registrar boleto</b> (22/09). RG e nascimento aparecem desde 22/09.</p>';
       })
       .catch(function (e) {
-        if (meu !== PEDIDO_TUDO) return;
-        $('#modalCorpo').innerHTML = '<p class="ivmsg erro">Não consegui falar com o Cofre: ' + esc(e.message || e) + '</p>';
+        if (meu !== PEDIDO_TUDO || e.tipo === 'token') return;
+        $('#modalCorpo').innerHTML = '<p class="ivmsg erro">Não consegui falar com o Cofre: ' + esc(textoFalha(e)) + '</p>';
       });
   }
   document.addEventListener('click', function (e) {
@@ -1762,6 +2047,11 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
     return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
   }
   function corteDe(r) { var c = String((r && r.corte_boleto) || ''); return /^\d{4}-\d{2}-\d{2}$/.test(c) ? c : ''; }
+  /* (24/09) boleto.corte digitado mas que não é data: o Cofre manda o que está escrito, e a tela diz. */
+  function corteTorto(bruto) {
+    return '<p>A Config do Cofre tem <code>boleto.corte</code> = “' + esc(bruto) + '”, que não é uma data — use ' +
+      'AAAA-MM-DD (ex.: 2026-09-25). Enquanto isso a tela <b>não calcula atraso nenhum</b>. Avise o Ricardo.</p>';
+  }
   function nT(it) { return it.parcela + '/' + it.total; }
   function marcado(m) { return !!m && (m.estado === 'enviado' || m.estado === 'outro'); }
 
@@ -1819,40 +2109,69 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
     $('#tab-b').setAttribute('aria-selected', String(t === 'b'));
     $('#pane-v').hidden = t !== 'v';
     $('#pane-b').hidden = t !== 'b';
-    if (t === 'b' && !B.r) carregarBoletos(B.mes);
+    if (t === 'b' && !B.r && !CARGA_B) carregarBoletos(B.mes);
   }
   $('#tab-v').onclick = function () { mostrarAba('v'); };
   $('#tab-b').onclick = function () { mostrarAba('b'); };
 
   /* ---------- a lista do mês ---------- */
-  function bloqueiaB(t, c) {
-    $('#avisosB').innerHTML = '<div class="tarja" role="status"><div class="t">' + esc(t) + '</div>' + c + '</div>';
+  function bloqueiaB(t, c, repetir) {
+    TENTAR.b = repetir || null;
+    $('#avisosB').innerHTML = '<div class="tarja" role="status"><div class="t">' + esc(t) + '</div>' + c +
+      (repetir ? '<p><button type="button" class="chip tenta" data-tenta="b">Tentar de novo</button></p>' : '') + '</div>';
     $('#conteudoB').hidden = true; $('#lendoB').hidden = true;
   }
-  function carregarBoletos(mes, forcar) {
-    var tk = token();
-    if (!tk) { abrirPortao(''); return; }
+  /* (24/09) Mesmo molde da aba Vendas: carga numerada (vale o último pedido, não a última
+     resposta), nova tentativa sozinha pela api(), recibo diferente espera e busca de novo. */
+  function carregarBoletos(mes, forcar, rodada) {
+    if (!token()) { abrirPortao(''); return; }
     mes = mes || B.mes || proxMes();
-    if (!forcar && MEMO_B[mes]) { montarBoletos(MEMO_B[mes]); return; }
+    B.pedido = mes;
+    if (!forcar && MEMO_B[mes]) { SEQ_B++; CARGA_B = null; montarBoletos(MEMO_B[mes]); return; }
+    var meu = ++SEQ_B;
+    rodada = rodada || 1;
+    CARGA_B = { mes: mes };
     $('#conteudoB').hidden = true; $('#lendoB').hidden = false; $('#avisosB').innerHTML = '';
-    comPrazo(API + '?app=controladoria&fn=boletos&mes=' + encodeURIComponent(mes) + '&token=' + encodeURIComponent(tk),
-             { cache: 'no-store', credentials: 'omit' }, 60000)
-      .then(function (r) {
-        if (recusado(r)) { try { localStorage.removeItem(CHAVE_TOKEN); } catch (e) {} abrirPortao('Token recusado. Digite de novo.'); return; }
-        if (!r || r.ok !== true) { bloqueiaB('O Cofre respondeu, mas sem dado.', '<p>' + esc((r && r.error) || 'resposta vazia') + '</p>'); return; }
-        if (r.truncado !== false) {
-          bloqueiaB('Esta página não vai desenhar: a lista de boletos veio cortada (ou sem dizer se cortou).',
-            '<p>' + esc(r.n) + ' parcelas servidas. Aumentar <code>CTL_TETO</code> em <code>Controladoria.gs</code> e republicar.</p>');
-          return;
-        }
-        var ruim = reciboRuim(r);
-        if (ruim) { bloqueiaB(ruim.t, ruim.c); return; }
-        MEMO_B[r.mes] = r;
-        montarBoletos(r);
-      })
-      .catch(function (e) {
-        bloqueiaB('Não consegui falar com o Cofre.', '<p>' + esc(e.message || e) + '</p>');
-      });
+    var denovo = function () { carregarBoletos(mes, true); };
+    api('boletos', { params: { mes: mes }, aoEsperar: function (s, t, m) {
+      if (meu === SEQ_B) $('#lendoB').textContent = textoEspera('Lendo os boletos do Cofre…', s, t, m);
+    } }).then(function (r) {
+      if (meu !== SEQ_B) return;
+      if (!r || r.ok !== true) {
+        CARGA_B = null;
+        bloqueiaB(r && r.codigo === 'config' ? 'O cadastro da PonteApp está com problema.' : 'O Cofre respondeu, mas sem dado.',
+          '<p>' + esc((r && r.error) || 'resposta vazia') + '</p>', denovo);
+        return;
+      }
+      if (r.truncado !== false) {
+        CARGA_B = null;
+        bloqueiaB('Esta página não vai desenhar: a lista de boletos veio cortada (ou sem dizer se cortou).',
+          '<p>' + esc(r.n) + ' parcelas servidas. <b>Avise o Ricardo.</b></p>' +
+          '<p class="tec">Aumentar <code>CTL_TETO</code> em <code>Controladoria.gs</code> e republicar.</p>');
+        return;
+      }
+      var ruim = reciboRuim(r);
+      if (ruim && rodada < RECIBO_TENTATIVAS) {
+        var falta = RECIBO_ESPERA_S;
+        var tick = function () {
+          if (meu !== SEQ_B) return;
+          if (falta <= 0) { carregarBoletos(mes, true, rodada + 1); return; }
+          $('#lendoB').textContent = 'O Cofre está gravando uma importação do Facilita agora — busco de novo em ' + falta +
+            ' s (' + (rodada + 1) + 'ª tentativa de ' + RECIBO_TENTATIVAS + ').';
+          falta--; setTimeout(tick, 1000);
+        };
+        tick();
+        return;
+      }
+      CARGA_B = null;
+      if (ruim) { bloqueiaB(ruim.t, ruim.c, denovo); return; }
+      MEMO_B[r.mes] = r;
+      montarBoletos(r);
+    }, function (e) {
+      if (meu !== SEQ_B || e.tipo === 'token') return;
+      CARGA_B = null;
+      bloqueiaB('Não consegui falar com o Cofre.', '<p>' + esc(textoFalha(e)) + '</p>', denovo);
+    });
   }
 
   function montarBoletos(r) {
@@ -1869,7 +2188,9 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
     var cs = Object.keys(comps).sort();
     $('#eixoTxt').textContent = cs.length ? MESES_L[+r.mes.slice(5, 7) - 1].replace(/^./, function (c) { return c.toUpperCase(); }) +
       ' traz parcelas de vendas feitas de ' + MESES_L[+cs[0].slice(5, 7) - 1] + ' a ' + MESES_L[+cs[cs.length - 1].slice(5, 7) - 1] + '.' : '';
-    $('#avisosB').innerHTML = CORTE_BOL ? '' :
+    $('#avisosB').innerHTML = r.corte_boleto_bruto
+      ? '<div class="tarja amarela" role="status"><div class="t">O corte do boleto está digitado errado.</div>' + corteTorto(r.corte_boleto_bruto) + '</div>'
+      : CORTE_BOL ? '' :
       '<div class="tarja amarela" role="status"><div class="t">Corte do boleto não definido.</div>' +
       '<p>A Config do Cofre não tem <code>boleto.corte</code> (AAAA-MM-DD, o dia em que a Ponte passou a registrar os envios). ' +
       'Sem ela a tela <b>não calcula atraso nenhum</b> — senão todo boleto antigo, controlado na planilha, apareceria vencido.</p></div>';
@@ -1924,6 +2245,11 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
         default: return it._e === B.sit;
       }
     });
+    /* (24/09) O lote leva só o que está NA TELA: a seleção que ficou fora do filtro de situação
+       sai dela (antes ia junto, invisível — marcava como enviado o que a pessoa não via). */
+    var naTela = {};
+    L.forEach(function (it) { naTela[it.deal + '|' + it.parcela] = true; });
+    Object.keys(B.sel).forEach(function (k) { if (!naTela[k]) delete B.sel[k]; });
     var box = $('#rowsB'); box.textContent = '';
     L.forEach(function (it) {
       var k = it.deal + '|' + it.parcela;
@@ -1997,35 +2323,57 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
   };
   function msgLote(t, erro) { var m = $('#loteMsg'); m.hidden = !t; m.textContent = t || ''; m.style.color = erro ? 'var(--crit-soft)' : ''; }
 
+  /* (24/09) Cada parcela vai com o estado que a pessoa VIU; se alguém marcou alguma delas depois,
+     o Cofre recusa o lote inteiro (nada gravado) e diz quais — elas recebem o estado de verdade,
+     saem da seleção, e o resto pode ir de novo com um clique. */
   function marcarLote(data) {
-    var tk = token(); if (!tk) { abrirPortao(''); return; }
     var ks = Object.keys(B.sel); if (!ks.length) return;
-    var corpo = { token: tk, itens: ks.map(function (k) { return { deal: B.sel[k].deal, parcela: B.sel[k].parcela }; }) };
+    var corpo = { itens: ks.map(function (k) {
+      var it = B.sel[k];
+      return { deal: it.deal, parcela: it.parcela, visto: it.marcacao ? it.marcacao.estado : '' };
+    }) };
     if (data) corpo.data_envio = data;
     var bts = [].slice.call(document.querySelectorAll('#lote button'));
     bts.forEach(function (b) { b.disabled = true; });
-    msgLote('gravando ' + plural(ks.length, 'parcela', 'parcelas') + '…');
-    comPrazo(API + '?app=controladoria&fn=boleto_lote', {
-      method: 'POST', cache: 'no-store', credentials: 'omit',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(corpo)
-    }, 60000).then(function (r) {
-      bts.forEach(function (b) { b.disabled = false; });
-      if (recusado(r)) { try { localStorage.removeItem(CHAVE_TOKEN); } catch (e) {} abrirPortao('Token recusado ao gravar. Digite de novo.'); return; }
-      if (!r || r.ok !== true) { msgLote('não gravou: ' + ((r && r.error) || '?'), true); return; }
-      aplicarMarcacoes(r.marcacoes || []);
-      B.sel = {}; $('#loteDia').hidden = true;
-      renderBoletos();
-      msgLote('');
-    }).catch(function (e) {
-      bts.forEach(function (b) { b.disabled = false; });
-      msgLote('não gravou: ' + (e.message || e), true);
-    });
+    var rot = 'gravando ' + plural(ks.length, 'parcela', 'parcelas') + '…';
+    msgLote(rot);
+    api('boleto_lote', { corpo: corpo, aoEsperar: function (s, t, m) { if (s >= 3 || t > 1) msgLote(textoEspera(rot, s, t, m)); } })
+      .then(function (r) {
+        bts.forEach(function (b) { b.disabled = false; });
+        if (!r || r.ok !== true) {
+          if (r && r.codigo === 'conflito') {
+            var cs = r.conflitos || [];
+            aplicarMarcacoes(cs.map(function (c) { return c.marcacao; }).filter(Boolean));
+            cs.forEach(function (c) { delete B.sel[c.deal + '|' + c.parcela]; });
+            renderBoletos();
+            msgLote(r.error + '. ' + (cs.length === 1 ? 'Essa parcela saiu' : 'Essas ' + cs.length + ' parcelas saíram') +
+              ' da seleção — confira e clique de novo para gravar o resto.', true);
+            return;
+          }
+          msgLote('não gravou: ' + ((r && r.error) || 'resposta vazia'), true);
+          return;
+        }
+        aplicarMarcacoes(r.marcacoes || []);
+        B.sel = {}; $('#loteDia').hidden = true;
+        renderBoletos();
+        msgLote('');
+        if (r.sem_mudanca) toast(plural(r.sem_mudanca, 'parcela já estava', 'parcelas já estavam') + ' marcada(s) assim — nada mudou nelas.', 'alerta');
+      }, function (e) {
+        bts.forEach(function (b) { b.disabled = false; });
+        if (e.tipo === 'token') return;
+        msgLote(e.tipo === 'prazo' ? 'não sei se gravou — o Cofre não confirmou a tempo. Clique de novo: repetir é seguro.'
+                                   : 'não gravou: ' + textoFalha(e), true);
+      });
   }
 
   /* A marcação gravada vale para TODO lugar da memória que mostra aquela parcela: os meses de
-     boleto já abertos e a célula das vendas. A foto é a do carnê de agora — "mudou" zera. */
+     boleto já abertos e a célula das vendas. A foto é a do carnê de agora — "mudou" zera.
+     (24/09) Na aba Vendas, redesenha só a célula Boleto das vendas tocadas — não a tabela. */
   function aplicarMarcacoes(ms) {
+    var tocadas = {};
     ms.forEach(function (m) {
+      if (!m) return;
+      tocadas[m.deal] = true;
       var f = function (it) { if (it.parcela === m.parcela) { it.marcacao = m; it.carne_mudou = false; } };
       Object.keys(MEMO_B).forEach(function (k) {
         (MEMO_B[k].itens || []).forEach(function (it) { if (it.deal === m.deal) f(it); });
@@ -2036,30 +2384,48 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
         if (b) b.boletos.forEach(f);
       });
     });
-    if (R) render();
+    Object.keys(tocadas).forEach(function (d) {
+      var cel = document.querySelector('#rows .row[data-deal="' + d + '"] .bolcel'), v = achaVenda(d);
+      if (cel && v) cel.innerHTML = celulaBoleto(v);
+    });
+  }
+
+  /* (24/09) Resultado que chega quando a pessoa já saiu dali (fechou o modal, trocou de mês):
+     um aviso no canto, que o erro não some sozinho. */
+  function toast(msg, tipo) {
+    var el = document.createElement('div');
+    el.className = 'toast ' + (tipo || 'ok');
+    el.setAttribute('role', tipo === 'erro' ? 'alert' : 'status');
+    el.innerHTML = '<span>' + esc(msg) + '</span><button type="button" aria-label="Fechar o aviso">×</button>';
+    el.querySelector('button').onclick = function () { el.parentNode && el.parentNode.removeChild(el); };
+    $('#toasts').appendChild(el);
+    if (tipo === 'ok') setTimeout(function () { el.parentNode && el.parentNode.removeChild(el); }, 6000);
   }
 
   /* ---------- o modal do boleto ---------- */
-  var BM = { pedido: 0, r: null, parc: 0, modo: 'hoje', volta: null };
+  var BM = { pedido: 0, r: null, parc: 0, modo: 'hoje', volta: null, deal: 0, salvando: false };
   function fecharBoleto() {
     BM.pedido++; BM.r = null;
     $('#modalBol').hidden = true;
     $('#bmCorpo').innerHTML = ''; $('#bmSub').textContent = '';   // nada fica na página depois de fechar
-    if (BM.volta) { try { BM.volta.focus(); } catch (e) {} }
+    // (24/09) o botão de origem pode ter sido redesenhado: volta ao "Registrar boleto" da mesma venda
+    var volta = BM.volta && document.body.contains(BM.volta) ? BM.volta
+      : document.querySelector('#rows .row[data-deal="' + BM.deal + '"] button[data-bol], #rowsB button[data-bol="' + BM.deal + '"]');
+    if (volta) { try { volta.focus(); } catch (e) {} }
   }
   function abrirBoleto(deal, parc, bt) {
-    var tk = token(); if (!tk) { abrirPortao(''); return; }
-    BM.volta = bt; BM.parc = parc || 0; BM.modo = 'hoje';
+    if (!token()) { abrirPortao(''); return; }
+    BM.volta = bt; BM.parc = parc || 0; BM.modo = 'hoje'; BM.deal = deal; BM.salvando = false;
     var meu = ++BM.pedido;
     $('#bmTit').textContent = 'Boleto · deal ' + deal;
     $('#bmSub').textContent = '';
-    $('#bmCorpo').innerHTML = '<div class="bmbody"><p class="lendo">Lendo do Cofre…</p></div>';
+    $('#bmCorpo').innerHTML = '<div class="bmbody"><p class="lendo" id="bmLendo">Lendo do Cofre…</p></div>';
     $('#modalBol').hidden = false; $('#bmX').focus();
-    comPrazo(API + '?app=controladoria&fn=venda&deal=' + encodeURIComponent(deal) + '&token=' + encodeURIComponent(tk),
-             { cache: 'no-store', credentials: 'omit' }, 45000)
+    api('venda', { params: { deal: deal }, aoEsperar: function (s, t, m) {
+      var el = meu === BM.pedido && $('#bmLendo'); if (el) el.textContent = textoEspera('Lendo do Cofre…', s, t, m);
+    } })
       .then(function (r) {
         if (meu !== BM.pedido) return;
-        if (recusado(r)) { fecharBoleto(); try { localStorage.removeItem(CHAVE_TOKEN); } catch (e) {} abrirPortao('Token recusado. Digite de novo.'); return; }
         if (!r || r.ok !== true) { $('#bmCorpo').innerHTML = '<div class="bmbody"><p class="ivmsg erro">' + esc((r && r.error) || 'resposta vazia') + '</p></div>'; return; }
         var ruim = reciboRuim(r);
         if (ruim) { $('#bmCorpo').innerHTML = '<div class="bmbody"><div class="tarja"><div class="t">' + esc(ruim.t) + '</div>' + ruim.c + '</div></div>'; return; }
@@ -2079,8 +2445,8 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
         pintarBoleto();
       })
       .catch(function (e) {
-        if (meu !== BM.pedido) return;
-        $('#bmCorpo').innerHTML = '<div class="bmbody"><p class="ivmsg erro">Não consegui falar com o Cofre: ' + esc(e.message || e) + '</p></div>';
+        if (meu !== BM.pedido || e.tipo === 'token') return;
+        $('#bmCorpo').innerHTML = '<div class="bmbody"><p class="ivmsg erro">Não consegui falar com o Cofre: ' + esc(textoFalha(e)) + '</p></div>';
       });
   }
   /* A numeração pode recomeçar por plano (o ato e a 1ª mensal são os dois nº 1): com o nº repetido,
@@ -2199,10 +2565,14 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
       (o === 'outro' ? esc(mot || 'escolha o motivo') : o === 'desfazer' ? 'não enviado (desfaz a marcação)' : 'enviado em ' + esc(quando || '?'));
   }
 
-  function salvarBoleto() {
-    var tk = token(); if (!tk) { abrirPortao(''); return; }
+  /* (24/09) A gravação fica presa ao pedido que a abriu: se a pessoa fechar o modal (ou abrir o de
+     outra venda) enquanto grava, o resultado vira um aviso no canto — antes o "sucesso" fechava o
+     modal da OUTRA venda, e o erro aparecia nele. Manda o estado que a pessoa viu (`visto`). */
+  function salvarBoleto(forcar) {
+    if (!token()) { abrirPortao(''); return; }
     var r = BM.r, o = BM.modo;
-    var corpo = { token: tk, deal: r.deal, parcela: BM.parc };
+    if (!r || BM.salvando) return;
+    var corpo = { deal: r.deal, parcela: BM.parc };
     if (o === 'hoje') corpo.estado = 'enviado';
     else if (o === 'dia') {
       var d = $('#bmDt').value, dv = String((r.venda || {})['Data da Venda'] || '').slice(0, 10);
@@ -2219,21 +2589,49 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
       if (!confirm('Desfazer a marcação da parcela ' + BM.parc + '/' + r.carne_total + '?\n\nO registro guarda quem desfez e quando.')) return;
       corpo.estado = 'nao_enviado';
     }
-    var bt = $('#bmSalvar'); bt.disabled = true;
+    var marca = BM.marcas[BM.parc];
+    corpo.visto = marca ? marca.estado : '';
+    if (forcar) corpo.forcar = true;
+    var pedido = BM.pedido, rotulo = 'parcela ' + BM.parc + '/' + r.carne_total + ' do deal ' + r.deal;
+    var aqui = function () { return pedido === BM.pedido; };   // o modal ainda é o desta gravação?
+    var destrava = function () { var b = aqui() && $('#bmSalvar'); if (b) b.disabled = false; };
+    BM.salvando = true;
+    var bt = $('#bmSalvar'); if (bt) bt.disabled = true;
     resumoBoleto(); $('#bmResumo').textContent = 'gravando…';
-    comPrazo(API + '?app=controladoria&fn=boleto', {
-      method: 'POST', cache: 'no-store', credentials: 'omit',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(corpo)
-    }, 45000).then(function (x) {
-      if (bt) bt.disabled = false;
-      if (recusado(x)) { fecharBoleto(); try { localStorage.removeItem(CHAVE_TOKEN); } catch (e) {} abrirPortao('Token recusado ao gravar. Digite de novo.'); return; }
-      if (!x || x.ok !== true) { resumoBoleto('não gravou: ' + ((x && x.error) || '?')); return; }
+    api('boleto', { corpo: corpo, aoEsperar: function (s, t, m) {
+      if (aqui() && $('#bmResumo') && (s >= 3 || t > 1)) $('#bmResumo').textContent = textoEspera('gravando…', s, t, m);
+    } }).then(function (x) {
+      BM.salvando = false;
+      if (!x || x.ok !== true) {
+        if (x && x.codigo === 'conflito') {
+          var ms = (x.conflitos || []).map(function (c) { return c.marcacao; }).filter(Boolean);
+          aplicarMarcacoes(ms);
+          if (B.r) renderBoletos();
+          if (aqui()) {
+            ms.forEach(function (m) { BM.marcas[m.parcela] = m; });
+            pintarBoleto();
+            var el = $('#bmResumo');
+            el.className = 'mresumo erro';
+            el.innerHTML = esc(x.error) + '. <button type="button" class="ivb" id="bmForcar">Gravar a minha mesmo assim</button>';
+          } else toast('Boleto da ' + rotulo + ': ' + x.error + '.', 'erro');
+          return;
+        }
+        var txt = 'não gravou: ' + ((x && x.error) || 'resposta vazia');
+        if (aqui()) { destrava(); resumoBoleto(txt); } else toast('Boleto da ' + rotulo + ' — ' + txt, 'erro');
+        return;
+      }
       aplicarMarcacoes([x.marcacao]);
       if (B.r) renderBoletos();
-      fecharBoleto();
-    }).catch(function (e) {
-      if (bt) bt.disabled = false;
-      resumoBoleto('não gravou: ' + (e.message || e));
+      if (x.sem_mudanca && x.marcacao && R && x.marcacao.quem && x.marcacao.quem !== R.voce) {
+        toast('A ' + rotulo + ' já estava marcada assim por ' + x.marcacao.quem + '.', 'alerta');
+      }
+      if (aqui()) fecharBoleto(); else toast('Boleto da ' + rotulo + ' gravado.', 'ok');
+    }, function (e) {
+      BM.salvando = false;
+      if (e.tipo === 'token') return;
+      var txt = e.tipo === 'prazo' ? 'não sei se gravou — o Cofre não confirmou a tempo. Clique de novo: repetir é seguro.'
+                                   : 'não gravou: ' + textoFalha(e);
+      if (aqui()) { destrava(); resumoBoleto(txt); } else toast('Boleto da ' + rotulo + ' — ' + txt, 'erro');
     });
   }
 
@@ -2244,9 +2642,13 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
     if (op) { modoBoleto(op.dataset.o); return; }
     if (e.target.id === 'bmCancelar') { fecharBoleto(); return; }
     if (e.target.id === 'bmSalvar') { salvarBoleto(); return; }
+    if (e.target.id === 'bmForcar') { salvarBoleto(true); return; }   // (24/09) conflito: a pessoa conferiu
   });
   $('#modalBol').addEventListener('change', function (e) {
-    if (e.target.name === 'bmparc') { BM.parc = Number(e.target.value); if (BM.modo === 'desfazer') BM.modo = 'hoje'; pintarBoleto(); return; }
+    if (e.target.name === 'bmparc') {
+      if (BM.salvando) { pintarBoleto(); return; }   // (24/09) não troca de parcela no meio da gravação
+      BM.parc = Number(e.target.value); if (BM.modo === 'desfazer') BM.modo = 'hoje'; pintarBoleto(); return;
+    }
     if (e.target.id === 'bmDt' || e.target.id === 'bmMotivo') resumoBoleto();
   });
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !$('#modalBol').hidden) fecharBoleto(); });
