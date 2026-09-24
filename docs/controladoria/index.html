@@ -958,10 +958,12 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
   var ERRO_TOKEN = 'token ausente ou inválido';   // a recusa da @98 (sem `codigo`), para a transição
   function falha(tipo, msg) { var e = new Error(msg); e.tipo = tipo; return e; }
 
-  /* Uma tentativa: resolve com o JSON; rejeita com e.tipo = 'prazo' | 'html' | 'rede'. */
-  function umaTentativa(url, opts, prazo) {
+  /* Uma tentativa: resolve com o JSON; rejeita com e.tipo = 'prazo' | 'html' | 'rede'.
+     `alca` (opcional) recebe o AbortController — a corrida cancela os pedidos que perderam. */
+  function umaTentativa(url, opts, prazo, alca) {
     var ctl = typeof AbortController === 'function' ? new AbortController() : null;
     if (ctl) opts.signal = ctl.signal;
+    if (alca) alca.ctl = ctl;
     return new Promise(function (resolve, reject) {
       var venceu = false;
       var t = setTimeout(function () {
@@ -982,10 +984,60 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
     });
   }
 
-  /* api(fn, o) — o = { params (GET), corpo (POST), aoEsperar(segundos, tentativa, motivo) }.
-     Resolve com o JSON do Cofre, inclusive ok:false com `codigo`. Rejeita (e.tipo) com 'prazo',
-     'html' ou 'rede' depois das tentativas, ou com 'token' quando o token foi recusado — e aí a
-     pessoa JÁ está no portão. */
+  /* (24/09, Fase 1) A LEITURA EM PARALELO. Medido em 24/09 à tarde: o atraso da entrega do Google é
+     sorteado a cada chamada — com 3 chamadas ao mesmo tempo, a mais rápida chegou em 4–9 s e as
+     outras em 15–60 s, ou como página de erro (até o ping, que no servidor leva menos de 1 s). Um
+     pedido de cada vez fazia a pessoa esperar o erro chegar (26–62 s) e só então pedir de novo: o
+     Ricardo viu "tentativa 2 de 3 · 64 s". Então, na leitura que a pessoa está esperando: se a
+     resposta não chegou em 8 s, sai um segundo pedido igual SEM cancelar o primeiro; página de erro
+     ou rede caída puxam outro na hora. Vale o primeiro JSON que chegar; os outros são cancelados.
+     No máximo 2 no ar e 4 no total, e 2,5 min no geral. Leitura não grava nada: repetir não tem
+     efeito — e o custo é o Cofre responder a mesma leitura duas vezes (1–4 s de servidor cada).
+     Gravação NUNCA entra aqui: segue um pedido por vez (que também é seguro de repetir). */
+  var PARALELO_APOS = 8000, PARALELO_NO_AR = 2, PARALELO_TOTAL = 4, PRAZO_TOTAL_LER = 150000;
+  function corrida(url, opts0, aoLancar) {
+    return new Promise(function (resolve, reject) {
+      var noAr = [], lancados = 0, acabou = false, ultimoErro = null, timer = null;
+      var geral = setTimeout(function () {
+        if (acabou) return;
+        encerra();
+        var e = ultimoErro || falha('prazo', 'o Facilita não respondeu em ' + Math.round(PRAZO_TOTAL_LER / 1000) + ' s');
+        e.tentativas = lancados; reject(e);
+      }, PRAZO_TOTAL_LER);
+      function encerra() {
+        acabou = true; clearTimeout(timer); clearTimeout(geral);
+        noAr.forEach(function (x) { if (x.ctl) try { x.ctl.abort(); } catch (e) {} });
+        noAr = [];
+      }
+      function lanca(motivo) {
+        if (acabou || lancados >= PARALELO_TOTAL || noAr.length >= PARALELO_NO_AR) return false;
+        lancados++;
+        aoLancar(lancados, motivo);
+        var alca = { ctl: null };
+        noAr.push(alca);
+        umaTentativa(url, Object.assign({}, opts0), PRAZO_LER, alca).then(function (j) {
+          if (acabou) return;
+          noAr = noAr.filter(function (x) { return x !== alca; });   // o vencedor não é cancelado
+          encerra(); resolve(j);
+        }, function (e) {
+          if (acabou) return;
+          noAr = noAr.filter(function (x) { return x !== alca; });
+          ultimoErro = e;
+          var m = e.tipo === 'html' ? 'o Google devolveu uma página de erro' : e.tipo === 'rede' ? 'a conexão caiu' : 'o Facilita demorou demais';
+          if (!lanca(m) && !noAr.length) { encerra(); e.tentativas = lancados; reject(e); }
+        });
+        clearTimeout(timer);
+        timer = setTimeout(function () { lanca('o Google está lento'); }, PARALELO_APOS);
+        return true;
+      }
+      lanca('');
+    });
+  }
+
+  /* api(fn, o) — o = { params (GET), corpo (POST), aoEsperar(segundos, tentativa, motivo), paralelo }.
+     `paralelo` (só leitura): a corrida acima. Resolve com o JSON do Cofre, inclusive ok:false com
+     `codigo`. Rejeita (e.tipo) com 'prazo', 'html' ou 'rede' depois das tentativas, ou com 'token'
+     quando o token foi recusado — e aí a pessoa JÁ está no portão. */
   function api(fn, o) {
     o = o || {};
     var tk = token();
@@ -1023,7 +1075,11 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
         return espera(ESPERAS[Math.min(tentativa - 1, ESPERAS.length - 1)]);
       });
     };
-    return tenta().then(function (r) {
+    var caminho = !grava && o.paralelo
+      ? corrida(url + '&token=' + encodeURIComponent(tk), { cache: 'no-store', credentials: 'omit' },
+                function (n, m) { tentativa = n; if (m) motivo = m; avisa(); })
+      : tenta();
+    return caminho.then(function (r) {
       fim();
       if (r && r.ok !== true && (r.codigo === 'token' || (!r.codigo && r.error === ERRO_TOKEN))) {
         sair(grava ? 'Token recusado ao gravar. Digite de novo.' : 'Token recusado. Confira e digite de novo — o token do Painel não serve aqui.');
@@ -1033,17 +1089,19 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
     }, function (e) { fim(); throw e; });
   }
 
-  /* O que a espera diz, enquanto espera. */
+  /* O que a espera diz, enquanto espera. (24/09, Fase 1) Sem o "de 3": na leitura em paralelo os
+     pedidos vão a 4, e o segundo sai por demora, não por falha. */
   function textoEspera(base, s, tentativa, motivo) {
     var t = base + ' ' + s + ' s';
-    if (tentativa > 1) t = base + ' tentativa ' + tentativa + ' de ' + TENTATIVAS + ' (' + motivo + ') · ' + s + ' s';
+    if (tentativa > 1) t += ' · tentativa ' + tentativa + (motivo ? ' (' + motivo + ')' : '');
     else if (s >= 30) t += ' — o Facilita está lento agora; continuo esperando (até 2 min)';
     return t;
   }
   /* Mensagem de falha de rede para quem usa a tela — nunca o texto técnico cru. */
   function textoFalha(e) {
-    if (e.tipo === 'prazo') return 'O Facilita não respondeu depois de ' + TENTATIVAS + ' tentativas. Ele costuma voltar em poucos minutos.';
-    if (e.tipo === 'html') return 'O Google devolveu uma página de erro no lugar da resposta, ' + TENTATIVAS + ' vezes seguidas. Costuma passar em poucos minutos.';
+    var n = e.tentativas || TENTATIVAS;
+    if (e.tipo === 'prazo') return 'O Facilita não respondeu depois de ' + n + ' tentativas. Ele costuma voltar em poucos minutos.';
+    if (e.tipo === 'html') return 'O Google devolveu uma página de erro no lugar da resposta, ' + n + ' vezes seguidas. Costuma passar em poucos minutos.';
     if (e.tipo === 'rede') return 'A conexão caiu. Confira a internet deste computador.';
     return String(e.message || e);
   }
@@ -1070,7 +1128,7 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
     AVISOS = []; pintarAvisos();
     if (rodada === 1 && semCarne) carregarCarne(mes);   // em paralelo: a tabela não espera o carnê
     var denovo = function () { carregar(mes, true); };
-    api('dados', { params: { mes: mes, boletos: 'separado' }, aoEsperar: function (s, t, m) {
+    api('dados', { params: { mes: mes, boletos: 'separado' }, paralelo: true, aoEsperar: function (s, t, m) {
       if (meu === SEQ) $('#lendo').textContent = textoEspera('Lendo os dados do Facilita…', s, t, m);
     } }).then(function (r) {
       if (meu !== SEQ) return;                    // outro pedido passou na frente
@@ -2052,7 +2110,7 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
     $('#modalCorpo').innerHTML = '<p class="lendo" id="tudoLendo">Lendo do Facilita…</p>';
     $('#modal').hidden = false;
     $('#modalX').focus();
-    api('venda', { params: { deal: deal }, aoEsperar: function (s, t, m) {
+    api('venda', { params: { deal: deal }, paralelo: true, aoEsperar: function (s, t, m) {
       var el = meu === PEDIDO_TUDO && $('#tudoLendo'); if (el) el.textContent = textoEspera('Lendo do Facilita…', s, t, m);
     } })
       .then(function (r) {
@@ -2252,7 +2310,7 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
     CARGA_B = { mes: mes };
     $('#conteudoB').hidden = true; $('#lendoB').hidden = false; $('#avisosB').innerHTML = '';
     var denovo = function () { carregarBoletos(mes, true); };
-    api('boletos', { params: { mes: mes }, aoEsperar: function (s, t, m) {
+    api('boletos', { params: { mes: mes }, paralelo: true, aoEsperar: function (s, t, m) {
       if (meu === SEQ_B) $('#lendoB').textContent = textoEspera('Lendo os boletos do Facilita…', s, t, m);
     } }).then(function (r) {
       if (meu !== SEQ_B) return;
@@ -2741,7 +2799,7 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
     $('#bmSub').textContent = '';
     $('#bmCorpo').innerHTML = '<div class="bmbody"><p class="lendo" id="bmLendo">Lendo do Facilita…</p></div>';
     $('#modalBol').hidden = false; $('#bmX').focus();
-    api('venda', { params: { deal: deal }, aoEsperar: function (s, t, m) {
+    api('venda', { params: { deal: deal }, paralelo: true, aoEsperar: function (s, t, m) {
       var el = meu === BM.pedido && $('#bmLendo'); if (el) el.textContent = textoEspera('Lendo do Facilita…', s, t, m);
     } })
       .then(function (r) {

@@ -1,6 +1,9 @@
 /* Cofre SIMULADO para testar a PonteApp localmente — dados fictícios, nada real.
    window.CENA controla o próximo comportamento de cada rota:
      CENA.dados = ['html', 'ok']        → a 1ª chamada devolve página de erro, a 2ª responde
+                  (24/09) passos também podem ser 'nunca' (o Google segura a resposta), { atraso: ms }
+                  e { html: true, atraso: ms } (a página de erro que demora a chegar)
+     CENA.venda = ['nunca', 'ok']       → o mesmo para o modal (fn=venda)
      CENA.recibo = 1                    → a próxima resposta de dados vem com recibo diferente
      CENA.atraso = { '2026-08': 3000 }  → atraso por mês
      CENA.marcar = { 4001: 'erro', 4002: 'ok', 4003: 'conflito', 4100: 'sem_mudanca_outro' }
@@ -9,11 +12,11 @@
      CENA.semVenda = [{ deal, data_ivertex, quem }] → lançamentos de negócio que deixou de ser venda
      CENA.novidades = [{ controle: [...linhas da Controle_ERP], boletos: [...marcações], total, d4, truncado } | 'html']
                                         → a fila das respostas do fn=novidades (vazia: nada novo)
-   window.LOG guarda cada chamada (rota, corpo) para a prova. */
+   window.LOG guarda cada chamada (rota, corpo, hora `t`, e `abortado` quando a tela cancelou) para a prova. */
 (function () {
   'use strict';
   try { localStorage.setItem('hub_token_controladoria', 'TOKEN-DE-TESTE-1234567890'); } catch (e) {}
-  window.CENA = { dados: [], carne: [], marcar: {}, atraso: {}, boleto: 'ok', atrasoBoleto: 300, novidades: [] };
+  window.CENA = { dados: [], carne: [], venda: [], marcar: {}, atraso: {}, boleto: 'ok', atrasoBoleto: 300, novidades: [] };
   window.LOG = [];
   var pad = function (n) { return String(n).padStart(2, '0'); };
   var hoje = new Date(), iso = function (d) { return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); };
@@ -75,6 +78,12 @@
     });
   };
   var HTML = '<!DOCTYPE html><html><body>Não foi possível abrir o arquivo neste momento.</body></html>';
+  /* (24/09) a resposta que o Google segura: nunca chega — só termina se a tela cancelar */
+  var nunca = function (signal) {
+    return new Promise(function (resolve, reject) {
+      if (signal) signal.addEventListener('abort', function () { var e = new Error('aborted'); e.name = 'AbortError'; reject(e); });
+    });
+  };
   var fetchReal = window.fetch;
   window.fetch = function (url, opts) {
     url = String(url);
@@ -82,16 +91,20 @@
     opts = opts || {};
     var q = {}; url.split('?')[1].split('&').forEach(function (kv) { var p = kv.split('='); q[p[0]] = decodeURIComponent(p[1] || ''); });
     var corpo = opts.body ? JSON.parse(opts.body) : {};
-    window.LOG.push({ fn: q.fn, mes: q.mes, deal: q.deal || corpo.deal, corpo: corpo });
+    var entrada = { fn: q.fn, mes: q.mes, deal: q.deal || corpo.deal, corpo: corpo, t: Date.now() };
+    window.LOG.push(entrada);
+    if (opts.signal) opts.signal.addEventListener('abort', function () { entrada.abortado = true; });
     var C = window.CENA;
     if (C.token === 'recusado') return resposta(JSON.stringify({ ok: false, codigo: 'token', error: 'token ausente ou inválido' }), 200, opts.signal);
     if (C.token === 'config') return resposta(JSON.stringify({ ok: false, codigo: 'config', error: 'O cadastro de quem usa a PonteApp (Config controladoria.pessoas) está ilegível — avise o Ricardo (o texto não é uma lista JSON válida — confira vírgulas e aspas).' }), 200, opts.signal);
     if (q.fn === 'dados') {
       var passo = C.dados.length ? C.dados.shift() : 'ok';
       if (passo === 'html') return resposta(HTML, 400, opts.signal);
-      if (passo === 'nunca') return new Promise(function () {});
+      if (passo === 'nunca') return nunca(opts.signal);
+      if (passo && typeof passo === 'object' && passo.html) return resposta(HTML, passo.atraso || 400, opts.signal);
       var mes = q.mes || '2026-09';
-      return resposta(JSON.stringify(dados(mes, q.boletos === 'separado')), C.atraso[mes] || 300, opts.signal);
+      return resposta(JSON.stringify(dados(mes, q.boletos === 'separado')),
+        passo && typeof passo === 'object' && passo.atraso != null ? passo.atraso : C.atraso[mes] || 300, opts.signal);
     }
     /* (24/09, Fase 1) a coluna Boleto à parte. CENA.carne = fila de passos ('ok' | 'erro' | 'html' |
        'recibo'); CENA.atrasoCarne = ms (padrão 1500: a tabela chega antes). O corpo é montado NA
@@ -133,6 +146,9 @@
         fonte: 'tela', quem: 'Ana', quando: carimbo, avisos: [] }), atraso, opts.signal);
     }
     if (q.fn === 'venda') {
+      var pv = C.venda && C.venda.length ? C.venda.shift() : 'ok';
+      if (pv === 'html') return resposta(HTML, 400, opts.signal);
+      if (pv === 'nunca') return nunca(opts.signal);
       var d = Number(q.deal), v = null;
       Object.keys(VENDAS).forEach(function (k) { VENDAS[k].forEach(function (x) { if (x['Deal ID'] === d) v = x; }); });
       return resposta(JSON.stringify({ ok: true, deal: d, venda: v, pessoal: { 'Deal ID': d, 'Cliente': v ? v['Cliente'] : '', 'CPF': '000.000.000-00', 'Nascimento': '1980-02-01' },

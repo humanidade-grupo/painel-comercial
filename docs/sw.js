@@ -1,6 +1,9 @@
 /* Painel Comercial — Parque da Saudade + Estrela Urbanidade
    Service worker: instalação PWA + reserva offline.
-   Atualizado em: 24/09/2026 (tarde, 4ª) — PONTEAPP FALA EM FACILITA: "Cofre" é termo do backend
+   Atualizado em: 24/09/2026 (tarde, 5ª) — PONTEAPP, LEITURA EM PARALELO: a entrega do Google sorteia o
+   atraso a cada chamada; a leitura que a pessoa espera (tabela, modal do boleto, "Ver tudo", Boletos do
+   mês) pede de novo aos 8 s sem cancelar o primeiro pedido, e na hora quando vem a página de erro.
+   Antes, 24/09/2026 (tarde, 4ª) — PONTEAPP FALA EM FACILITA: "Cofre" é termo do backend
    (Ricardo) — "Lendo os dados do Facilita…", carimbo "Facilita" no alto, "Ver tudo do Facilita";
    a gravação, que não vai para o Facilita, diz "a confirmação não chegou". Os recados de Config
    para o Ricardo seguem dizendo Cofre.
@@ -223,7 +226,7 @@
    links dos arquivos são drive.google.com, externos, e NÃO entram no cache).
    Estratégia: rede primeiro (pega versão nova quando online), cache como
    reserva offline. A cada deploy, bumpar a versão em CACHE. */
-const CACHE = 'painel-comercial-260924-5';
+const CACHE = 'painel-comercial-260924-6';
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(['./'])).then(() => self.skipWaiting()));
