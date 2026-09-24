@@ -1,6 +1,9 @@
 /* Painel Comercial — Parque da Saudade + Estrela Urbanidade
    Service worker: instalação PWA + reserva offline.
-   Atualizado em: 24/09/2026 (tarde) — PONTEAPP, A COLUNA BOLETO À PARTE (Fase 1): a tabela
+   Atualizado em: 24/09/2026 (tarde, 2ª) — PONTEAPP: o aviso do lançamento sem venda viva diz o que
+   aconteceu com o negócio ("deixou de ser venda no Facilita: voltou de etapa, foi perdido ou perdeu
+   a proposta") — "ausente da Vendas_Facilita" foi lido como "não está no Facilita" (deal 5766).
+   Antes, 24/09/2026 (tarde) — PONTEAPP, A COLUNA BOLETO À PARTE (Fase 1): a tabela
    desenha sem esperar o carnê (fn=dados&boletos=separado) e a coluna Boleto chega em
    paralelo por fn=boletos_venda (Cofre @102), dizendo "lendo o carnê…" até ele vir.
    Antes, 24/09/2026 — PONTEAPP AGUENTA O COFRE INSTÁVEL (véspera da estreia para a
@@ -212,7 +215,7 @@
    links dos arquivos são drive.google.com, externos, e NÃO entram no cache).
    Estratégia: rede primeiro (pega versão nova quando online), cache como
    reserva offline. A cada deploy, bumpar a versão em CACHE. */
-const CACHE = 'painel-comercial-260924-2';
+const CACHE = 'painel-comercial-260924-3';
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(['./'])).then(() => self.skipWaiting()));

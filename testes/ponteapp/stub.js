@@ -6,6 +6,7 @@
      CENA.marcar = { 4001: 'erro', 4002: 'ok', 4003: 'conflito', 4100: 'sem_mudanca_outro' }
      CENA.token = 'recusado' | 'config'
      CENA.boleto = 'ok' | 'conflito' ; CENA.atrasoBoleto = ms
+     CENA.semVenda = [{ deal, data_ivertex, quem }] → lançamentos de negócio que deixou de ser venda
    window.LOG guarda cada chamada (rota, corpo) para a prova. */
 (function () {
   'use strict';
@@ -60,7 +61,7 @@
       pessoal: vs.map(function (v) { return { 'Deal ID': v['Deal ID'], 'Cliente': v['Cliente'], 'CPF': '000.000.000-00', 'RG': 'MG-0', 'Nascimento': '1980-02-01',
         'Celular': '(32) 90000-0000', 'E-mail': 'x@exemplo.com', 'CEP': '36000-000', 'Logradouro': 'Rua Teste', 'Número': '1', 'Complemento': '', 'Bairro': 'Centro', 'Cidade': 'Juiz de Fora', 'UF': 'MG' }; }),
       pessoal_motivo: '', boletos: boletos, boletos_motivo: '', corte_boleto: '2026-09-25',
-      lancadas_sem_venda: [], referencias: { lancados: 1, com_referencia: 1 },
+      lancadas_sem_venda: window.CENA.semVenda || [], referencias: { lancados: 1, com_referencia: 1 },
       total_aba: 5, n: vs.length, n_fila: 0, no_recorte: vs.length, teto: 3000, truncado: false,
       contagem: [{ aba: 'Vendas_Facilita', chave: 'facilita.total_vendas_api', esperado: 5, lido: recibo }],
       carimbo_vendas: carimbo, fonte: 'simulado', ms: 900, boletos_separado: separado ? true : undefined };

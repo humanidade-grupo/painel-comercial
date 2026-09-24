@@ -1266,9 +1266,17 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
     if (!r.boletos && r.boletos_separado && carneJa && carneJa.estado === 'ok') r.boletos = carneJa.dados;
     if (r.boletos) reaplicarMarcasDaSessao(r.boletos);   // marcação feita enquanto a tabela vinha
     if ((r.lancadas_sem_venda || []).length) {
-      aviso(plural(r.lancadas_sem_venda.length, 'lançamento no Ivertex sem venda viva', 'lançamentos no Ivertex sem venda viva') + '.',
-        '<p>Marcados como lançados e ausentes da Vendas_Facilita — estorno no ERP? Deal ' +
-        r.lancadas_sem_venda.map(function (x) { return '<b>' + esc(x.deal) + '</b> (' + esc(dbr(x.data_ivertex)) + ', ' + esc(x.quem) + ')'; }).join(' · ') +
+      /* (24/09) "ausentes da Vendas_Facilita" foi lido como "não está no Facilita" — o deal 5766 está lá,
+         em Lead Frio, com a reserva cancelada. O texto diz o que aconteceu com o NEGÓCIO. */
+      var um = r.lancadas_sem_venda.length === 1;
+      aviso(plural(r.lancadas_sem_venda.length, 'lançamento no Ivertex de negócio que deixou de ser venda',
+                   'lançamentos no Ivertex de negócios que deixaram de ser venda') + '.',
+        '<p>' + (um ? 'Lançado no Ivertex, mas no Facilita o negócio não é mais venda: voltou'
+                    : 'Lançados no Ivertex, mas no Facilita os negócios não são mais venda: voltaram') +
+        ' de etapa (por exemplo, para Lead Frio), ' + (um ? 'foi perdido ou perdeu' : 'foram perdidos ou perderam') +
+        ' a proposta. Estorno no ERP, ou ' + (um ? 'o card foi movido' : 'os cards foram movidos') +
+        ' por engano? Confira no Facilita: ' + (um ? 'deal ' : 'deals ') +
+        r.lancadas_sem_venda.map(function (x) { return '<b>' + esc(x.deal) + '</b> (lançado em ' + esc(dbr(x.data_ivertex)) + ' por ' + esc(x.quem) + ')'; }).join(' · ') +
         '. Também viram linha <code>LANCADA_SEM_VENDA</code> na Divergencias.</p>');
     }
     if (r.mes !== 'tudo' && !r.pessoal && r.pessoal_motivo) {
