@@ -558,11 +558,11 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
       <div class="sub">Parque da Saudade</div>
     </div>
     <div class="stamps">
-      <div id="st-cofre-w" title="Última cópia do Facilita no Cofre — não é a hora em que esta página abriu">Cofre<b id="st-cofre">—</b></div>
+      <div id="st-cofre-w" title="Última cópia do Facilita que esta página leu — não é a hora em que ela abriu">Facilita<b id="st-cofre">—</b></div>
       <div id="st-d4-w" title="Última passada do espelho da D4Sign (diária, 8h, no PC do Ricardo)">D4Sign<b id="st-d4">—</b></div>
-      <div title="Quando esta página buscou este mês no Cofre. Voltar a um mês já aberto usa a memória da página.">Lido na tela<b id="st-lido">—</b></div>
-      <div id="st-conf-w" title="A última vez que esta página conferiu no Cofre o que os colegas gravaram — a cada 2 minutos, e quando você volta para ela. Os lançamentos e boletos deles entram nas linhas sozinhos.">Conferido<b id="st-conf">—</b></div>
-      <button class="chip" id="btRecarregar" type="button" title="Busca este mês de novo no Cofre e esquece os outros meses já abertos">Recarregar</button>
+      <div title="Quando esta página buscou este mês. Voltar a um mês já aberto usa a memória da página.">Lido na tela<b id="st-lido">—</b></div>
+      <div id="st-conf-w" title="A última vez que esta página conferiu o que os colegas gravaram — a cada 2 minutos, e quando você volta para ela. Os lançamentos e boletos deles entram nas linhas sozinhos.">Conferido<b id="st-conf">—</b></div>
+      <button class="chip" id="btRecarregar" type="button" title="Busca este mês de novo e esquece os outros meses já abertos">Recarregar</button>
     </div>
   </div>
 </header>
@@ -571,7 +571,7 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
 
   <div class="novidade" id="novidade" role="status" hidden></div>
 
-  <p class="ritmo"><b>Vendas</b>: cópia do Facilita no Cofre a cada 5 min (completa a cada 2 h) ·
+  <p class="ritmo"><b>Vendas</b>: cópia do Facilita a cada 5 min (completa a cada 2 h) ·
     <b>Contratos</b>: espelho da D4Sign às 8h, 14h e 20h, só com o PC do Ricardo ligado e a sessão da D4Sign aberta ·
     <b>Lançamentos</b>: gravados na hora, com autor e data — os dos colegas aparecem aqui em até 2 min, e na hora em que você volta para esta aba ·
     Os meses abertos ficam nesta aba até ela fechar; <b>Recarregar</b> busca de novo.
@@ -585,7 +585,7 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
   <section id="pane-v" role="tabpanel" aria-labelledby="tab-v">
   <div class="filters">
     <div class="fgroup" id="g-mes">
-      <span class="flabel" title="mês da Data da Venda no Cofre">Competência</span>
+      <span class="flabel" title="mês da Data da Venda no Facilita">Competência</span>
     </div>
     <div class="fgroup">
       <span class="flabel">Situação</span>
@@ -605,7 +605,7 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
   </div>
 
   <div id="avisos"></div>
-  <div class="lendo" id="lendo" hidden>Lendo os dados do Cofre…</div>
+  <div class="lendo" id="lendo" hidden>Lendo os dados do Facilita…</div>
 
   <div id="conteudo" hidden>
   <div class="kpis">
@@ -710,7 +710,7 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
       <p class="aviso-eixo">Este seletor é o <b>mês de vencimento do boleto</b> — não a competência da venda. <span id="eixoTxt"></span></p>
     </div>
     <div id="avisosB"></div>
-    <div class="lendo" id="lendoB" hidden>Lendo os boletos do Cofre…</div>
+    <div class="lendo" id="lendoB" hidden>Lendo os boletos do Facilita…</div>
     <div id="conteudoB" hidden>
       <div class="kpis">
         <div class="kpi lead"><div class="k">A enviar</div><div class="v" id="kb-aenv">0</div><div class="d" id="kb-aenv-d">—</div></div>
@@ -966,18 +966,18 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
       var venceu = false;
       var t = setTimeout(function () {
         venceu = true; if (ctl) ctl.abort();
-        reject(falha('prazo', 'o Cofre não respondeu em ' + Math.round(prazo / 1000) + ' s'));
+        reject(falha('prazo', 'o Facilita não respondeu em ' + Math.round(prazo / 1000) + ' s'));
       }, prazo);
       fetch(url, opts).then(function (r) { return r.text(); }).then(function (txt) {
         if (venceu) return;
         clearTimeout(t);
         var j = null; try { j = JSON.parse(txt); } catch (e) {}
         if (j && typeof j === 'object') resolve(j);
-        else reject(falha('html', 'o Google devolveu uma página de erro no lugar da resposta do Cofre'));
+        else reject(falha('html', 'o Google devolveu uma página de erro no lugar da resposta'));
       }).catch(function (e) {
         if (venceu) return;
         clearTimeout(t);
-        reject(falha('rede', 'a conexão com o Cofre caiu (' + String((e && e.message) || e).slice(0, 80) + ')'));
+        reject(falha('rede', 'a conexão caiu (' + String((e && e.message) || e).slice(0, 80) + ')'));
       });
     });
   }
@@ -1019,7 +1019,7 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
         var repete = tentativa < TENTATIVAS && (e.tipo === 'html' || e.tipo === 'rede' || (e.tipo === 'prazo' && !grava));
         if (!repete) throw e;
         motivo = e.tipo === 'html' ? 'o Google devolveu uma página de erro'
-               : e.tipo === 'rede' ? 'a conexão caiu' : 'o Cofre demorou demais';
+               : e.tipo === 'rede' ? 'a conexão caiu' : 'o Facilita demorou demais';
         return espera(ESPERAS[Math.min(tentativa - 1, ESPERAS.length - 1)]);
       });
     };
@@ -1037,12 +1037,12 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
   function textoEspera(base, s, tentativa, motivo) {
     var t = base + ' ' + s + ' s';
     if (tentativa > 1) t = base + ' tentativa ' + tentativa + ' de ' + TENTATIVAS + ' (' + motivo + ') · ' + s + ' s';
-    else if (s >= 30) t += ' — o Cofre está lento agora; continuo esperando (até 2 min)';
+    else if (s >= 30) t += ' — o Facilita está lento agora; continuo esperando (até 2 min)';
     return t;
   }
   /* Mensagem de falha de rede para quem usa a tela — nunca o texto técnico cru. */
   function textoFalha(e) {
-    if (e.tipo === 'prazo') return 'O Cofre não respondeu depois de ' + TENTATIVAS + ' tentativas. Ele costuma voltar em poucos minutos.';
+    if (e.tipo === 'prazo') return 'O Facilita não respondeu depois de ' + TENTATIVAS + ' tentativas. Ele costuma voltar em poucos minutos.';
     if (e.tipo === 'html') return 'O Google devolveu uma página de erro no lugar da resposta, ' + TENTATIVAS + ' vezes seguidas. Costuma passar em poucos minutos.';
     if (e.tipo === 'rede') return 'A conexão caiu. Confira a internet deste computador.';
     return String(e.message || e);
@@ -1071,12 +1071,12 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
     if (rodada === 1 && semCarne) carregarCarne(mes);   // em paralelo: a tabela não espera o carnê
     var denovo = function () { carregar(mes, true); };
     api('dados', { params: { mes: mes, boletos: 'separado' }, aoEsperar: function (s, t, m) {
-      if (meu === SEQ) $('#lendo').textContent = textoEspera('Lendo os dados do Cofre…', s, t, m);
+      if (meu === SEQ) $('#lendo').textContent = textoEspera('Lendo os dados do Facilita…', s, t, m);
     } }).then(function (r) {
       if (meu !== SEQ) return;                    // outro pedido passou na frente
       if (!r || r.ok !== true) {
         CARGA = null; carregando(false);
-        bloqueia(r && r.codigo === 'config' ? 'O cadastro da PonteApp está com problema.' : 'O Cofre respondeu, mas sem dado.',
+        bloqueia(r && r.codigo === 'config' ? 'O cadastro da PonteApp está com problema.' : 'O Facilita respondeu, mas sem dado.',
           '<p>' + esc((r && r.error) || 'resposta vazia') + '</p>', denovo);
         return;
       }
@@ -1088,7 +1088,7 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
         var tick = function () {
           if (meu !== SEQ) return;
           if (falta <= 0) { carregar(mes, true, rodada + 1); return; }
-          $('#lendo').textContent = 'O Cofre está gravando uma importação do Facilita agora — busco de novo em ' + falta +
+          $('#lendo').textContent = 'A cópia do Facilita está sendo atualizada agora — busco de novo em ' + falta +
             ' s (' + (rodada + 1) + 'ª tentativa de ' + RECIBO_TENTATIVAS + ').';
           falta--; setTimeout(tick, 1000);
         };
@@ -1103,7 +1103,7 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
     }, function (e) {
       if (meu !== SEQ || e.tipo === 'token') return;
       CARGA = null; carregando(false);
-      bloqueia('Não consegui falar com o Cofre.',
+      bloqueia('Não consegui buscar os dados do Facilita.',
         '<p>' + esc(textoFalha(e)) + '</p><p>Nenhum número aparece enquanto isso: tela vazia é melhor ' +
         'que tela desatualizada com cara de atual.</p>', denovo);
     });
@@ -1180,12 +1180,12 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
     var cs = r && r.contagem;
     if (!Array.isArray(cs) || !cs.length) {
       return { t: 'Esta página não vai desenhar: a rota não diz quantas linhas leu.',
-        c: '<p><b>Avise o Ricardo:</b> o Cofre está numa versão antiga.</p>' +
+        c: '<p><b>Avise o Ricardo:</b> esta tela precisa de uma atualização no servidor.</p>' +
            '<p class="tec">Sem o campo <code>contagem</code> (o recibo de escrita). Republicar: Implantar ▸ Gerenciar ▸ ✏️ ▸ Nova versão.</p>' };
     }
     var mal = cs.filter(function (c) { return !c || c.esperado === null || c.esperado === undefined || c.lido !== c.esperado; });
     if (!mal.length) return null;
-    return { t: 'O Cofre está gravando ou a última gravação foi interrompida.',
+    return { t: 'A cópia do Facilita está sendo atualizada, ou a última atualização foi interrompida.',
       c: mal.map(function (c) {
         return '<p>' + esc((c && c.aba) || '?') + ': esperado <b>' + esc(c && c.esperado != null ? c.esperado : '?') +
                '</b>, lido <b>' + esc(c && c.lido != null ? c.lido : '?') + '</b>' +
@@ -1203,13 +1203,13 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
     var denovo = function () { carregar(ULTIMO_PEDIDO, true); };
     if (typeof r.truncado === 'undefined') {
       bloqueia('Esta página não vai desenhar: a rota não diz se cortou a resposta.',
-        '<p><b>Avise o Ricardo:</b> o Cofre está numa versão antiga.</p>' +
+        '<p><b>Avise o Ricardo:</b> esta tela precisa de uma atualização no servidor.</p>' +
         '<p class="tec">O <code>fn=dados</code> respondeu sem o campo <code>truncado</code>. Republicar: Implantar ▸ Gerenciar ▸ ✏️ ▸ Nova versão.</p>');
       return;
     }
     if (r.truncado === true) {
       bloqueia('Esta página não vai desenhar: a resposta veio cortada.',
-        '<p>O Cofre devolveu <b>' + esc(r.n) + '</b> vendas de <b>' + esc(r.no_recorte) + '</b> no recorte, e toda conta ' +
+        '<p>A busca devolveu <b>' + esc(r.n) + '</b> vendas de <b>' + esc(r.no_recorte) + '</b> no recorte, e toda conta ' +
         'sairia sobre um pedaço, com cara de completa. <b>Avise o Ricardo.</b></p>' +
         '<p class="tec">Aumentar <code>CTL_TETO</code> em <code>Controladoria.gs</code> e republicar.</p>');
       return;
@@ -1408,7 +1408,7 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
     var ms = (r.competencias || []).map(function (c) { return c.mes; }).slice(0, 2);
     if (r.mes !== 'tudo' && ms.indexOf(r.mes) < 0) ms.push(r.mes);
     var g = $('#g-mes');
-    g.innerHTML = '<span class="flabel" title="mês da Data da Venda no Cofre">Competência</span>' +
+    g.innerHTML = '<span class="flabel" title="mês da Data da Venda no Facilita">Competência</span>' +
       ms.map(function (m) {
         return '<button class="chip" data-mes="' + esc(m) + '" aria-pressed="' + (m === r.mes) + '">' + esc(rotuloMes(m)) + '</button>';
       }).join('') +
@@ -1892,7 +1892,7 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
       delete GRAVANDO[v.id];
       if (e.tipo === 'token') return;
       erroNaLinha(v, cel, pintarIv, modo, e.tipo === 'prazo'
-        ? 'não sei se gravou — o Cofre não confirmou em ' + Math.round(PRAZO_GRAVAR / 1000) + ' s. Clique de novo: repetir é seguro.'
+        ? 'não sei se gravou — a confirmação não chegou em ' + Math.round(PRAZO_GRAVAR / 1000) + ' s. Clique de novo: repetir é seguro.'
         : 'não gravou: ' + textoFalha(e), ref);
     });
   }
@@ -1956,7 +1956,7 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
     if (!s) return campo('Nascimento', '');
     if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return campo('Nascimento', dataBR(s), dataBR(s));
     return '<div class="pcampo"><span class="pk">Nascimento</span><span class="pv">' + esc(s) +
-      ' <span class="ivmsg aviso" title="O Cofre não reconheceu uma data válida neste campo">confira</span></span>' +
+      ' <span class="ivmsg aviso" title="O Facilita não tem uma data válida neste campo">confira</span></span>' +
       '<button type="button" class="cp" data-copiar="' + esc(s) + '" aria-label="Copiar Nascimento">copiar</button></div>';
   }
   function sugestaoJuros(o) {
@@ -2030,7 +2030,7 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
   /* ---------- "ver tudo": uma venda, na hora do clique ---------- */
   var PEDIDO_TUDO = 0;
   function secao(titulo, obj, ordem) {
-    if (!obj) return '<div class="msec"><h3>' + esc(titulo) + '</h3><p class="dim">— nada no Cofre —</p></div>';
+    if (!obj) return '<div class="msec"><h3>' + esc(titulo) + '</h3><p class="dim">— nada registrado —</p></div>';
     var ks = ordem || Object.keys(obj);
     return '<div class="msec"><h3>' + esc(titulo) + '</h3>' + ks.map(function (k) {
       if (k === 'Nascimento') return campoNascimento(obj[k]);
@@ -2049,11 +2049,11 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
     fecharTudo.volta = bt;
     var meu = ++PEDIDO_TUDO;
     $('#modalTit').textContent = 'Tudo desta venda · deal ' + deal;
-    $('#modalCorpo').innerHTML = '<p class="lendo" id="tudoLendo">Lendo do Cofre…</p>';
+    $('#modalCorpo').innerHTML = '<p class="lendo" id="tudoLendo">Lendo do Facilita…</p>';
     $('#modal').hidden = false;
     $('#modalX').focus();
     api('venda', { params: { deal: deal }, aoEsperar: function (s, t, m) {
-      var el = meu === PEDIDO_TUDO && $('#tudoLendo'); if (el) el.textContent = textoEspera('Lendo do Cofre…', s, t, m);
+      var el = meu === PEDIDO_TUDO && $('#tudoLendo'); if (el) el.textContent = textoEspera('Lendo do Facilita…', s, t, m);
     } })
       .then(function (r) {
         if (meu !== PEDIDO_TUDO) return;   // fechou (ou abriu outra) enquanto lia
@@ -2068,11 +2068,11 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
                        : secao('Contrato na D4Sign', null)) +
           secao('Lançamento · Controle_ERP', r.controle) +
           ((r.avisos || []).length ? '<p class="ivmsg erro">' + esc(r.avisos.join(' · ')) + '</p>' : '') +
-          '<p class="mnota">Lido agora do Cofre. O carnê parcela a parcela e os boletos estão no botão <b>Registrar boleto</b> (22/09). RG e nascimento aparecem desde 22/09.</p>';
+          '<p class="mnota">Lido agora do Facilita. O carnê parcela a parcela e os boletos estão no botão <b>Registrar boleto</b> (22/09). RG e nascimento aparecem desde 22/09.</p>';
       })
       .catch(function (e) {
         if (meu !== PEDIDO_TUDO || e.tipo === 'token') return;
-        $('#modalCorpo').innerHTML = '<p class="ivmsg erro">Não consegui falar com o Cofre: ' + esc(textoFalha(e)) + '</p>';
+        $('#modalCorpo').innerHTML = '<p class="ivmsg erro">Não consegui buscar os dados do Facilita: ' + esc(textoFalha(e)) + '</p>';
       });
   }
   document.addEventListener('click', function (e) {
@@ -2127,7 +2127,7 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
         '<p>Deal <b>' + esc(v.id) + '</b> · ' + esc(v.mod) + '</p><p>Jazigo <b>' + esc(v.jaz) + '</b></p>' +
         '<p>Fechada em <b>' + esc(dbr(v.data)) + '</b>' + (v.etapa ? ' · etapa <b>' + esc(v.etapa) + '</b>' : '') + '</p>' +
         '<p>Valor <b>' + esc(brl(v.valor)) + '</b></p><p>Vendedor <b>' + esc(v.vend) + '</b></p>' +
-        '<button type="button" class="ivb vertudo" data-vertudo="' + esc(v.id) + '" title="Todas as colunas do Cofre desta venda, lidas agora">Ver tudo do Cofre</button></div>' +
+        '<button type="button" class="ivb vertudo" data-vertudo="' + esc(v.id) + '" title="Todas as colunas desta venda no Facilita, lidas agora">Ver tudo do Facilita</button></div>' +
       '<div class="dblk"><h4>Assinaturas</h4>' + assin + '</div>' +
       '<div class="dblk"><h4>Ivertex</h4>' +
         (v.iv.lancado ? '<p>Lançado em <b>' + esc(dbr(v.iv.data)) + '</b> por <b>' + esc(v.iv.quem) + '</b></p>' +
@@ -2190,12 +2190,12 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
       // (24/09, Fase 1) o carnê chega à parte: enquanto ele não vem, a célula diz isso
       var bc = R && R.mes !== 'tudo' && BOLS[R.mes];
       var txt = !R || R.mes === 'tudo' ? 'escolha um mês'
-        : R.boletos_separado && bc && bc.estado === 'lendo' && bc.gravando ? 'o Cofre está gravando uma importação — busco o carnê de novo em instantes'
+        : R.boletos_separado && bc && bc.estado === 'lendo' && bc.gravando ? 'a cópia do Facilita está sendo atualizada — busco o carnê de novo em instantes'
         : R.boletos_separado && (!bc || bc.estado === 'lendo') ? 'lendo o carnê…' : 'carnê não lido';
       return '<span class="bol-lin"><span class="neutro">' + txt + '</span></span>';
     }
     var x = R.boletos[v.id];
-    if (!x || !x.tem_carne) return '<span class="bol-lin"><span class="neutro">sem carnê no Cofre</span></span>';
+    if (!x || !x.tem_carne) return '<span class="bol-lin"><span class="neutro">sem carnê no Facilita</span></span>';
     if (!x.boletos.length) return '<span class="bol-lin"><span class="neutro">' + (x.tem_mensal ? 'cartão · sem boleto' : 'à vista · sem carnê') + '</span></span>';
     var bs = x.boletos;
     var env = bs.filter(function (e) { return e.marcacao && e.marcacao.estado === 'enviado'; });
@@ -2253,12 +2253,12 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
     $('#conteudoB').hidden = true; $('#lendoB').hidden = false; $('#avisosB').innerHTML = '';
     var denovo = function () { carregarBoletos(mes, true); };
     api('boletos', { params: { mes: mes }, aoEsperar: function (s, t, m) {
-      if (meu === SEQ_B) $('#lendoB').textContent = textoEspera('Lendo os boletos do Cofre…', s, t, m);
+      if (meu === SEQ_B) $('#lendoB').textContent = textoEspera('Lendo os boletos do Facilita…', s, t, m);
     } }).then(function (r) {
       if (meu !== SEQ_B) return;
       if (!r || r.ok !== true) {
         CARGA_B = null;
-        bloqueiaB(r && r.codigo === 'config' ? 'O cadastro da PonteApp está com problema.' : 'O Cofre respondeu, mas sem dado.',
+        bloqueiaB(r && r.codigo === 'config' ? 'O cadastro da PonteApp está com problema.' : 'O Facilita respondeu, mas sem dado.',
           '<p>' + esc((r && r.error) || 'resposta vazia') + '</p>', denovo);
         return;
       }
@@ -2275,7 +2275,7 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
         var tick = function () {
           if (meu !== SEQ_B) return;
           if (falta <= 0) { carregarBoletos(mes, true, rodada + 1); return; }
-          $('#lendoB').textContent = 'O Cofre está gravando uma importação do Facilita agora — busco de novo em ' + falta +
+          $('#lendoB').textContent = 'A cópia do Facilita está sendo atualizada agora — busco de novo em ' + falta +
             ' s (' + (rodada + 1) + 'ª tentativa de ' + RECIBO_TENTATIVAS + ').';
           falta--; setTimeout(tick, 1000);
         };
@@ -2289,7 +2289,7 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
     }, function (e) {
       if (meu !== SEQ_B || e.tipo === 'token') return;
       CARGA_B = null;
-      bloqueiaB('Não consegui falar com o Cofre.', '<p>' + esc(textoFalha(e)) + '</p>', denovo);
+      bloqueiaB('Não consegui buscar os dados do Facilita.', '<p>' + esc(textoFalha(e)) + '</p>', denovo);
     });
   }
 
@@ -2316,7 +2316,7 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
     var cf = String(r.corte_facilita || '');
     var dia = quando(cf); if (dia) dia.setDate(dia.getDate() + 1);
     $('#rodapeB').textContent = (dia ? 'Carnês de vendas anteriores a ' + String(dia.getDate()).padStart(2, '0') + '/' +
-      String(dia.getMonth() + 1).padStart(2, '0') + '/' + dia.getFullYear() + ' não estão no Cofre — continuam na planilha até acabar.' : '') +
+      String(dia.getMonth() + 1).padStart(2, '0') + '/' + dia.getFullYear() + ' não estão nesta tela — continuam na planilha até acabar.' : '') +
       (r.fora_da_regra && r.fora_da_regra.n ? ' · ' + (r.fora_da_regra.n === 1 ? '1 parcela deste mês não é boleto (cartão, entrada) e fica fora.'
       : r.fora_da_regra.n + ' parcelas deste mês não são boleto (cartão, entrada) e ficam fora.') : '') +
       ' · "Enviado" é envio, não pagamento.';
@@ -2480,7 +2480,7 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
       }, function (e) {
         bts.forEach(function (b) { b.disabled = false; });
         if (e.tipo === 'token') return;
-        msgLote(e.tipo === 'prazo' ? 'não sei se gravou — o Cofre não confirmou a tempo. Clique de novo: repetir é seguro.'
+        msgLote(e.tipo === 'prazo' ? 'não sei se gravou — a confirmação não chegou a tempo. Clique de novo: repetir é seguro.'
                                    : 'não gravou: ' + textoFalha(e), true);
       });
   }
@@ -2693,9 +2693,9 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
     var ref = NOV.ok || NOV.base;
     $('#st-conf-w').className = ref && Date.now() - ref >= NOV_VELHO ? 'old' : '';
     var msgs = [];
-    if (NOV.truncado) msgs.push('Muita coisa mudou no Cofre desde a última conferência');
+    if (NOV.truncado) msgs.push('Muita coisa mudou desde a última conferência');
     if (NOV.totalAgora !== null && NOV.total !== null && NOV.totalAgora !== NOV.total) {
-      msgs.push('O Cofre tem ' + plural(NOV.totalAgora, 'venda', 'vendas') + ' agora — eram ' + NOV.total + ' quando esta página leu');
+      msgs.push('O Facilita tem ' + plural(NOV.totalAgora, 'venda', 'vendas') + ' agora — eram ' + NOV.total + ' quando esta página leu');
     }
     if (NOV.d4Agora && NOV.d4 !== null && NOV.d4Agora !== NOV.d4) msgs.push('Os contratos da D4Sign foram atualizados (' + fmtCarimbo(NOV.d4Agora) + ')');
     var box = $('#novidade');
@@ -2739,10 +2739,10 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
     var meu = ++BM.pedido;
     $('#bmTit').textContent = 'Boleto · deal ' + deal;
     $('#bmSub').textContent = '';
-    $('#bmCorpo').innerHTML = '<div class="bmbody"><p class="lendo" id="bmLendo">Lendo do Cofre…</p></div>';
+    $('#bmCorpo').innerHTML = '<div class="bmbody"><p class="lendo" id="bmLendo">Lendo do Facilita…</p></div>';
     $('#modalBol').hidden = false; $('#bmX').focus();
     api('venda', { params: { deal: deal }, aoEsperar: function (s, t, m) {
-      var el = meu === BM.pedido && $('#bmLendo'); if (el) el.textContent = textoEspera('Lendo do Cofre…', s, t, m);
+      var el = meu === BM.pedido && $('#bmLendo'); if (el) el.textContent = textoEspera('Lendo do Facilita…', s, t, m);
     } })
       .then(function (r) {
         if (meu !== BM.pedido) return;
@@ -2766,7 +2766,7 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
       })
       .catch(function (e) {
         if (meu !== BM.pedido || e.tipo === 'token') return;
-        $('#bmCorpo').innerHTML = '<div class="bmbody"><p class="ivmsg erro">Não consegui falar com o Cofre: ' + esc(textoFalha(e)) + '</p></div>';
+        $('#bmCorpo').innerHTML = '<div class="bmbody"><p class="ivmsg erro">Não consegui buscar os dados do Facilita: ' + esc(textoFalha(e)) + '</p></div>';
       });
   }
   /* A numeração pode recomeçar por plano (o ato e a 1ª mensal são os dois nº 1): com o nº repetido,
@@ -2789,7 +2789,7 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
     var nome = String((p && p['Cliente']) || v['Cliente'] || '').trim();
     $('#bmTit').textContent = 'Boleto · ' + (nome || 'deal ' + r.deal);
     $('#bmSub').textContent = jaz + ' · deal ' + r.deal + ' · ' + (v['Modalidade'] || '—') +
-      (v['Nº Parcelas'] ? ' ' + v['Nº Parcelas'] + 'x' : '') + ' · buscado no Cofre agora';
+      (v['Nº Parcelas'] ? ' ' + v['Nº Parcelas'] + 'x' : '') + ' · buscado no Facilita agora';
 
     var pf = function (rot, val, copia) {
       val = String(val == null ? '' : val).trim();
@@ -2840,7 +2840,7 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
         '<div class="carne"><div class="ch"><div></div><div>Parc.</div><div>Vencimento</div><div>Valor</div><div>Situação</div></div>' +
         '<div class="carne-sc" id="bmCarne">' + linhas + '</div></div>' +
         '<p class="nota" style="margin-top:7px">' + (sel && isFinite(saldo) ? 'Saldo devedor após esta parcela: <b>' + esc(brl(saldo)) + '</b> · ' : '') +
-        'lido do Cofre agora.' + (r.carne.some(function (c) { return c.classe; }) ? '' : ' <b>Esta venda não tem parcela-boleto no carnê.</b>') + '</p></div>' +
+        'lido do Facilita agora.' + (r.carne.some(function (c) { return c.classe; }) ? '' : ' <b>Esta venda não tem parcela-boleto no carnê.</b>') + '</p></div>' +
       (sel && sel.classe ? '<div class="bloco"><h4>Registrar</h4><div class="reg">' +
         '<div class="opts" id="bmOpts">' +
           '<button class="opt" type="button" data-o="hoje">Enviado hoje</button>' +
@@ -2949,7 +2949,7 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
     }, function (e) {
       BM.salvando = false;
       if (e.tipo === 'token') return;
-      var txt = e.tipo === 'prazo' ? 'não sei se gravou — o Cofre não confirmou a tempo. Clique de novo: repetir é seguro.'
+      var txt = e.tipo === 'prazo' ? 'não sei se gravou — a confirmação não chegou a tempo. Clique de novo: repetir é seguro.'
                                    : 'não gravou: ' + textoFalha(e);
       if (aqui()) { destrava(); resumoBoleto(txt); } else toast('Boleto da ' + rotulo + ' — ' + txt, 'erro');
     });

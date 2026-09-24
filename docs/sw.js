@@ -1,6 +1,10 @@
 /* Painel Comercial — Parque da Saudade + Estrela Urbanidade
    Service worker: instalação PWA + reserva offline.
-   Atualizado em: 24/09/2026 (tarde, 3ª) — PONTEAPP, "HÁ NOVIDADE" (Fase 1): a cada 2 min com a
+   Atualizado em: 24/09/2026 (tarde, 4ª) — PONTEAPP FALA EM FACILITA: "Cofre" é termo do backend
+   (Ricardo) — "Lendo os dados do Facilita…", carimbo "Facilita" no alto, "Ver tudo do Facilita";
+   a gravação, que não vai para o Facilita, diz "a confirmação não chegou". Os recados de Config
+   para o Ricardo seguem dizendo Cofre.
+   Antes, 24/09/2026 (tarde, 3ª) — PONTEAPP, "HÁ NOVIDADE" (Fase 1): a cada 2 min com a
    página à vista, e quando a pessoa volta para ela, a tela confere no Cofre (fn=novidades, @104) o
    que os colegas gravaram — lançamentos e boletos entram nas linhas sem recarregar; venda nova e
    contrato novo viram aviso com "Recarregar"; carimbo "Conferido" no alto.
@@ -219,7 +223,7 @@
    links dos arquivos são drive.google.com, externos, e NÃO entram no cache).
    Estratégia: rede primeiro (pega versão nova quando online), cache como
    reserva offline. A cada deploy, bumpar a versão em CACHE. */
-const CACHE = 'painel-comercial-260924-4';
+const CACHE = 'painel-comercial-260924-5';
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(['./'])).then(() => self.skipWaiting()));
