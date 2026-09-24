@@ -10,7 +10,7 @@
 (function () {
   'use strict';
   try { localStorage.setItem('hub_token_controladoria', 'TOKEN-DE-TESTE-1234567890'); } catch (e) {}
-  window.CENA = { dados: [], marcar: {}, atraso: {}, boleto: 'ok', atrasoBoleto: 300 };
+  window.CENA = { dados: [], carne: [], marcar: {}, atraso: {}, boleto: 'ok', atrasoBoleto: 300 };
   window.LOG = [];
   var pad = function (n) { return String(n).padStart(2, '0'); };
   var hoje = new Date(), iso = function (d) { return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); };
@@ -42,10 +42,15 @@
     var m = MARCAS[deal + '|' + n] || null;
     return { parcela: n, total: 4, vencimento: '2026-' + pad(9 + n) + '-05', valor: 50 + n, meio_indefinido: false, marcacao: m, carne_mudou: false };
   };
-  var dados = function (mes) {
-    var vs = VENDAS[mes] || [];
+  var boletosDe = function (mes) {
     var boletos = {};
-    vs.forEach(function (v) { boletos[v['Deal ID']] = { total: 4, tem_carne: true, tem_mensal: true, boletos: [1, 2, 3, 4].map(function (n) { return item(v['Deal ID'], n); }) }; });
+    (VENDAS[mes] || []).forEach(function (v) { boletos[v['Deal ID']] = { total: 4, tem_carne: true, tem_mensal: true, boletos: [1, 2, 3, 4].map(function (n) { return item(v['Deal ID'], n); }) }; });
+    return boletos;
+  };
+  /* separado (24/09, Fase 1): a tela pede o carnê à parte — o fn=dados sai sem ele */
+  var dados = function (mes, separado) {
+    var vs = VENDAS[mes] || [];
+    var boletos = separado ? null : boletosDe(mes);
     var recibo = window.CENA.recibo ? (window.CENA.recibo--, 4) : 5;
     return { ok: true, voce: 'Ana', mes: mes, mes_atual: '2026-09',
       competencias: [{ mes: '2026-09', n: 4 }, { mes: '2026-08', n: 1 }],
@@ -58,7 +63,7 @@
       lancadas_sem_venda: [], referencias: { lancados: 1, com_referencia: 1 },
       total_aba: 5, n: vs.length, n_fila: 0, no_recorte: vs.length, teto: 3000, truncado: false,
       contagem: [{ aba: 'Vendas_Facilita', chave: 'facilita.total_vendas_api', esperado: 5, lido: recibo }],
-      carimbo_vendas: carimbo, fonte: 'simulado', ms: 900 };
+      carimbo_vendas: carimbo, fonte: 'simulado', ms: 900, boletos_separado: separado ? true : undefined };
   };
   var resposta = function (corpo, atraso, signal) {
     return new Promise(function (resolve, reject) {
@@ -83,7 +88,19 @@
       if (passo === 'html') return resposta(HTML, 400, opts.signal);
       if (passo === 'nunca') return new Promise(function () {});
       var mes = q.mes || '2026-09';
-      return resposta(JSON.stringify(dados(mes)), C.atraso[mes] || 300, opts.signal);
+      return resposta(JSON.stringify(dados(mes, q.boletos === 'separado')), C.atraso[mes] || 300, opts.signal);
+    }
+    /* (24/09, Fase 1) a coluna Boleto à parte. CENA.carne = fila de passos ('ok' | 'erro' | 'html' |
+       'recibo'); CENA.atrasoCarne = ms (padrão 1500: a tabela chega antes). O corpo é montado NA
+       HORA do pedido — marcação feita durante o atraso não vem nele (é o que a sessão reaplica). */
+    if (q.fn === 'boletos_venda') {
+      var cc = C.carne && C.carne.length ? C.carne.shift() : 'ok';
+      if (cc === 'html') return resposta(HTML, 300, opts.signal);
+      if (cc === 'erro') return resposta(JSON.stringify({ ok: false, codigo: 'carne', error: 'o carnê não pôde ser lido: falha simulada' }), 300, opts.signal);
+      return resposta(JSON.stringify({ ok: true, mes: q.mes, boletos: boletosDe(q.mes), n: (VENDAS[q.mes] || []).length, corte_boleto: '2026-09-25',
+        contagem: [{ aba: 'Vendas_Facilita', chave: 'x', esperado: 5, lido: 5 },
+                   { aba: 'Vendas_Facilita_Parcelas', chave: 'facilita.total_parcelas', esperado: 11850, lido: cc === 'recibo' ? 11000 : 11850 }], ms: 700 }),
+        C.atrasoCarne != null ? C.atrasoCarne : 1500, opts.signal);
     }
     if (q.fn === 'marcar') {
       var deal = corpo.deal, cena = C.marcar[deal] || 'ok', atraso = C.atrasoMarcar ? C.atrasoMarcar[deal] || 400 : 400;

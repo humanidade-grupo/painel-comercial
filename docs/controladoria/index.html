@@ -852,7 +852,14 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
      meio do trabalho. */
   var SEQ = 0, SEQ_B = 0;
   var CARGA = null, CARGA_B = null;   // { mes } do pedido em voo em cada aba
-  var ULTIMO_PEDIDO = null;           // o mês pedido por último na aba Vendas (null = o do Cofre)
+  var ULTIMO_PEDIDO = null;           // o mês pedido por último na aba Vendas
+  /* (24/09, Fase 1) O carnê de cada mês, pedido À PARTE e em paralelo com a tabela:
+     { estado: 'lendo' | 'ok' | 'erro', dados, erro }. Memória da página, como o resto. */
+  var BOLS = {};
+  /* Marcações de boleto feitas NESTA sessão: o carnê que chega depois pode ter saído do Cofre
+     antes delas — vale a mais recente (reaplicarMarcasDaSessao). */
+  var MARCAS_SESSAO = {};
+  function mesLocalAtual() { var d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0'); }
   var RECIBO_TENTATIVAS = 3, RECIBO_ESPERA_S = 20;
 
   // ================================================================ portão
@@ -861,7 +868,7 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
     R = null; VENDAS = []; MEMO = {};
     MEMO_B = {}; B.r = null; B.sel = {};
     SEQ++; SEQ_B++; CARGA = null; CARGA_B = null;  // (24/09) resposta em voo não desenha mais nada
-    GRAVANDO = {}; MSG_IV = {}; AVISO_IV = {};
+    GRAVANDO = {}; MSG_IV = {}; AVISO_IV = {}; BOLS = {}; MARCAS_SESSAO = {};
     // os modais fecham e esvaziam (nada fica na página), e as leituras deles perdem a vez
     PEDIDO_TUDO++; BM.pedido++; BM.r = null; BM.salvando = false;
     $('#modal').hidden = true; $('#modalCorpo').innerHTML = '';
@@ -889,7 +896,7 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
   $('#tk').addEventListener('keydown', function (e) { if (e.key === 'Enter') $('#btEntrar').click(); });
   $('#btRecarregar').onclick = function () {
     if (TAB === 'b' ? CARGA_B : CARGA) return;   // (24/09) já está buscando: um clique ansioso não vira outra chamada
-    MEMO = {}; MEMO_B = {};
+    MEMO = {}; MEMO_B = {}; BOLS = {};
     // (24/09) Recarregar busca o que a pessoa PEDIU por último — inclusive o mês que falhou
     if (TAB === 'b') carregarBoletos(B.pedido || B.mes, true); else { B.r = null; carregar(ULTIMO_PEDIDO, true); }
   };
@@ -900,6 +907,7 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
 
   // ================================================================ avisos
   var AVISOS = [], AVISOS_CARGA = [];   // os da carga ficam; os do desenho refazem a cada render
+  var AVISOS_BASE = [];                 // (24/09) os da carga SEM os do carnê, que chegam à parte
   function aviso(titulo, corpo, amarela) { AVISOS.push({ t: titulo, c: corpo, a: amarela }); }
   function pintarAvisos() {
     $('#avisos').innerHTML = AVISOS.map(function (x) {
@@ -1032,16 +1040,25 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
     var tk = token();
     if (!tk) { abrirPortao(''); return; }
     $('#gate').hidden = true; $('#app').hidden = false;
-    ULTIMO_PEDIDO = mes || null;
-    if (!forcar && mes && MEMO[mes]) { SEQ++; CARGA = null; carregando(false); montar(MEMO[mes]); return; }
-    var meu = ++SEQ;
+    /* (24/09, Fase 1) o mês vai explícito (o corrente, na primeira abertura): é ele que o carnê,
+       pedido em paralelo, precisa saber antes de a tabela chegar. */
+    mes = mes || mesLocalAtual();
+    ULTIMO_PEDIDO = mes;
     rodada = rodada || 1;
+    var semCarne = mes !== 'tudo' && (!BOLS[mes] || BOLS[mes].estado === 'erro');
+    if (!forcar && MEMO[mes]) {
+      SEQ++; CARGA = null; carregando(false); montar(MEMO[mes]);
+      if (!MEMO[mes].boletos && semCarne) carregarCarne(mes);
+      return;
+    }
+    var meu = ++SEQ;
     CARGA = { mes: mes };
     carregando(true);
     $('#conteudo').hidden = true; $('#lendo').hidden = false;
     AVISOS = []; pintarAvisos();
+    if (rodada === 1 && semCarne) carregarCarne(mes);   // em paralelo: a tabela não espera o carnê
     var denovo = function () { carregar(mes, true); };
-    api('dados', { params: { mes: mes }, aoEsperar: function (s, t, m) {
+    api('dados', { params: { mes: mes, boletos: 'separado' }, aoEsperar: function (s, t, m) {
       if (meu === SEQ) $('#lendo').textContent = textoEspera('Lendo os dados do Cofre…', s, t, m);
     } }).then(function (r) {
       if (meu !== SEQ) return;                    // outro pedido passou na frente
@@ -1076,6 +1093,63 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
       bloqueia('Não consegui falar com o Cofre.',
         '<p>' + esc(textoFalha(e)) + '</p><p>Nenhum número aparece enquanto isso: tela vazia é melhor ' +
         'que tela desatualizada com cara de atual.</p>', denovo);
+    });
+  }
+
+  /* (24/09, Fase 1) O carnê do mês À PARTE, em paralelo com a leitura da tabela: a tabela desenha
+     sem esperá-lo e a coluna Boleto diz "lendo o carnê…" até ele chegar. Recibo diferente
+     (importação gravando) espera 20 s e busca de novo. O que chegar vale para o mês PEDIDO —
+     esteja ele na tela ou só na memória; outra busca do mesmo mês (Recarregar) invalida esta. */
+  function carregarCarne(mes, rodada) {
+    rodada = rodada || 1;
+    var b = BOLS[mes] = { estado: 'lendo' };
+    api('boletos_venda', { params: { mes: mes } }).then(function (r) {
+      if (BOLS[mes] !== b) return;
+      if (!r || r.ok !== true) {
+        b.estado = 'erro'; b.erro = (r && r.error) || 'resposta vazia';
+      } else {
+        var ruim = reciboRuim(r);
+        if (ruim && rodada < RECIBO_TENTATIVAS) {
+          b.gravando = true; aplicarCarne(mes);   // a célula diz por que ainda não veio
+          setTimeout(function () { if (BOLS[mes] === b) carregarCarne(mes, rodada + 1); }, RECIBO_ESPERA_S * 1000);
+          return;
+        }
+        if (ruim) { b.estado = 'erro'; b.erro = ruim.t; }
+        else { b.estado = 'ok'; b.dados = r.boletos; }
+      }
+      aplicarCarne(mes);
+    }, function (e) {
+      if (BOLS[mes] !== b || e.tipo === 'token') return;
+      b.estado = 'erro'; b.erro = textoFalha(e);
+      aplicarCarne(mes);
+    });
+  }
+  /* O carnê chegou (ou falhou): vale para o mês na tela e para a cópia dele na memória. Só as
+     células Boleto e os avisos são refeitos — nunca a tabela. */
+  function aplicarCarne(mes) {
+    var b = BOLS[mes];
+    if (!b) return;
+    if (b.estado === 'ok') {
+      reaplicarMarcasDaSessao(b.dados);
+      [R, MEMO[mes]].forEach(function (x) { if (x && x.mes === mes && !x.boletos) x.boletos = b.dados; });
+    }
+    if (!R || R.mes !== mes || $('#conteudo').hidden) return;
+    AVISOS_CARGA = AVISOS_BASE.concat(avisosDoCarne(R));
+    renderResumo();
+    [].forEach.call(document.querySelectorAll('#rows .row'), function (el) {
+      var v = achaVenda(el.dataset.deal), cel = el.querySelector('.bolcel');
+      if (v && cel) cel.innerHTML = celulaBoleto(v);
+    });
+  }
+  function reaplicarMarcasDaSessao(dados) {
+    Object.keys(MARCAS_SESSAO).forEach(function (k) {
+      var m = MARCAS_SESSAO[k], x = dados && dados[m.deal];
+      if (!x) return;
+      x.boletos.forEach(function (it) {
+        if (it.parcela === m.parcela && (!it.marcacao || String(it.marcacao.quando || '') <= String(m.quando || ''))) {
+          it.marcacao = m; it.carne_mudou = false;
+        }
+      });
     });
   }
 
@@ -1185,16 +1259,12 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
       aviso('Sem data de corte da D4Sign.', '<p>A Config do Cofre não tem <code>d4sign.corte</code> (AAAA-MM-DD). ' +
         'Sem ela, venda anterior ao início do cofre da D4Sign aparece como <b>sem contrato</b>, o que não é verdade.</p>', true);
     }
-    // (22/09) boletos: o corte e o carnê que não veio
+    // (22/09) boletos: o corte — os avisos do carnê saem de avisosDoCarne, no fim, porque desde a
+    // Fase 1 (24/09) o carnê chega à parte e pode ter chegado ANTES da tabela
     CORTE_BOL = corteDe(r);
-    if (r.mes !== 'tudo' && !r.boletos && r.boletos_motivo) {
-      aviso('O carnê não veio: a coluna Boleto fica em branco.', '<p>' + esc(r.boletos_motivo) + '</p>', true);
-    } else if (r.boletos && r.corte_boleto_bruto) {
-      aviso('O corte do boleto está digitado errado.', corteTorto(r.corte_boleto_bruto), true);
-    } else if (r.boletos && !CORTE_BOL) {
-      aviso('Corte do boleto não definido.', '<p>A Config do Cofre não tem <code>boleto.corte</code> (AAAA-MM-DD). ' +
-        'Sem ela a coluna Boleto <b>não calcula atraso nenhum</b> — senão todo boleto antigo, controlado na planilha, apareceria vencido.</p>', true);
-    }
+    var carneJa = BOLS[r.mes];
+    if (!r.boletos && r.boletos_separado && carneJa && carneJa.estado === 'ok') r.boletos = carneJa.dados;
+    if (r.boletos) reaplicarMarcasDaSessao(r.boletos);   // marcação feita enquanto a tabela vinha
     if ((r.lancadas_sem_venda || []).length) {
       aviso(plural(r.lancadas_sem_venda.length, 'lançamento no Ivertex sem venda viva', 'lançamentos no Ivertex sem venda viva') + '.',
         '<p>Marcados como lançados e ausentes da Vendas_Facilita — estorno no ERP? Deal ' +
@@ -1277,10 +1347,30 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
     RODAPE_BASE = extra;
     pintarRodape();
 
-    AVISOS_CARGA = AVISOS.slice();
+    AVISOS_BASE = AVISOS.slice();
+    AVISOS_CARGA = AVISOS_BASE.concat(avisosDoCarne(r));
     $('#conteudo').hidden = false;
     render();
   }
+
+  /* (22/09) boletos: o carnê que não veio e o corte. (24/09, Fase 1) Em função própria porque o
+     carnê chega à parte: estes avisos são refeitos quando ele chega (aplicarCarne), sem mexer
+     nos da carga. Carnê que falhou ganha "Buscar o carnê de novo". */
+  function avisosDoCarne(r) {
+    var b = BOLS[r.mes], out = [];
+    var motivo = r.boletos_motivo || (r.boletos_separado && b && b.estado === 'erro' ? b.erro : '');
+    if (r.mes !== 'tudo' && !r.boletos && motivo) {
+      out.push({ t: 'O carnê não veio: a coluna Boleto fica em branco.', a: true, c: '<p>' + esc(motivo) + '</p>' +
+        (r.boletos_separado ? '<p><button type="button" class="chip tenta" data-tenta="carne">Buscar o carnê de novo</button></p>' : '') });
+    } else if (r.boletos && r.corte_boleto_bruto) {
+      out.push({ t: 'O corte do boleto está digitado errado.', c: corteTorto(r.corte_boleto_bruto), a: true });
+    } else if (r.boletos && !CORTE_BOL) {
+      out.push({ t: 'Corte do boleto não definido.', a: true, c: '<p>A Config do Cofre não tem <code>boleto.corte</code> (AAAA-MM-DD). ' +
+        'Sem ela a coluna Boleto <b>não calcula atraso nenhum</b> — senão todo boleto antigo, controlado na planilha, apareceria vencido.</p>' });
+    }
+    return out;
+  }
+  TENTAR.carne = function () { if (R && R.mes !== 'tudo') { carregarCarne(R.mes); aplicarCarne(R.mes); } };
 
   /* Rodapé: os contadores da D4Sign + a medida da tabela de correspondência Facilita <-> Ivertex
      (sobre TODO lançamento com venda viva, não só o recorte — vem pronto da rota). */
@@ -2074,7 +2164,14 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
   /* ---------- a célula na linha da venda ---------- */
   function celulaBoleto(v) {
     if (v.foraRecorte) return '<span class="bol-lin"><span class="neutro" title="O carnê aparece na competência da venda">abra a competência da venda</span></span>';
-    if (!R || !R.boletos) return '<span class="bol-lin"><span class="neutro">' + (R && R.mes === 'tudo' ? 'escolha um mês' : 'carnê não lido') + '</span></span>';
+    if (!R || !R.boletos) {
+      // (24/09, Fase 1) o carnê chega à parte: enquanto ele não vem, a célula diz isso
+      var bc = R && R.mes !== 'tudo' && BOLS[R.mes];
+      var txt = !R || R.mes === 'tudo' ? 'escolha um mês'
+        : R.boletos_separado && bc && bc.estado === 'lendo' && bc.gravando ? 'o Cofre está gravando uma importação — busco o carnê de novo em instantes'
+        : R.boletos_separado && (!bc || bc.estado === 'lendo') ? 'lendo o carnê…' : 'carnê não lido';
+      return '<span class="bol-lin"><span class="neutro">' + txt + '</span></span>';
+    }
     var x = R.boletos[v.id];
     if (!x || !x.tem_carne) return '<span class="bol-lin"><span class="neutro">sem carnê no Cofre</span></span>';
     if (!x.boletos.length) return '<span class="bol-lin"><span class="neutro">' + (x.tem_mensal ? 'cartão · sem boleto' : 'à vista · sem carnê') + '</span></span>';
@@ -2374,6 +2471,7 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
     ms.forEach(function (m) {
       if (!m) return;
       tocadas[m.deal] = true;
+      MARCAS_SESSAO[m.deal + '|' + m.parcela] = m;   // (24/09, Fase 1) vale também para o carnê que ainda vai chegar
       var f = function (it) { if (it.parcela === m.parcela) { it.marcacao = m; it.carne_mudou = false; } };
       Object.keys(MEMO_B).forEach(function (k) {
         (MEMO_B[k].itens || []).forEach(function (it) { if (it.deal === m.deal) f(it); });
