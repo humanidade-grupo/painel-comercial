@@ -531,6 +531,51 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
   border-radius:8px;padding:7px 12px;margin:10px 0 0;font-size:12.5px;color:var(--ink)}
 .novidade[hidden]{display:none}
 .novidade .chip{padding:3px 11px;font-size:12px}
+/* ---- (25/09) o SINO: os avisos saíram das tarjas (ocupavam a tela — pedido do Ricardo) ---- */
+.sino-w{position:relative;display:inline-flex}
+.sino{position:relative;display:inline-flex;align-items:center;justify-content:center;width:34px;height:30px;padding:0;
+  border:1px solid var(--line-strong);border-radius:999px;background:transparent;color:var(--ink-3);cursor:pointer}
+.sino:hover,.sino[aria-expanded="true"]{border-color:var(--accent);color:var(--ink)}
+.sino:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.sino.tem{color:var(--ink);border-color:var(--warn)}
+.sino.tem.crit{border-color:var(--crit)}
+.sino svg{display:block;transform-origin:50% 12%}
+.sino-n{position:absolute;top:-7px;right:-7px;min-width:18px;height:18px;padding:0 5px;border-radius:999px;box-sizing:border-box;
+  background:var(--warn);color:#fff;font-size:10.5px;font-weight:700;line-height:18px;text-align:center;
+  font-variant-numeric:tabular-nums;box-shadow:0 0 0 2px var(--ground)}
+.sino.crit .sino-n{background:var(--crit)}
+.sino-n[hidden]{display:none}
+/* aviso que ainda não foi visto: o sino balança e ganha um anel */
+.sino.novo svg{animation:sino-bate 1.1s ease-in-out 3}
+.sino.novo::after{content:'';position:absolute;inset:-4px;border-radius:999px;border:2px solid var(--warn);opacity:.6;pointer-events:none}
+.sino.novo.crit::after{border-color:var(--crit)}
+@keyframes sino-bate{0%,100%{transform:rotate(0)}12%{transform:rotate(16deg)}26%{transform:rotate(-13deg)}
+  40%{transform:rotate(9deg)}54%{transform:rotate(-6deg)}68%{transform:rotate(3deg)}}
+@media (prefers-reduced-motion:reduce){.sino.novo svg{animation:none}}
+.sino-painel{position:absolute;right:0;top:calc(100% + 8px);z-index:60;width:min(430px,calc(100vw - 32px));
+  max-height:min(70vh,560px);overflow:auto;background:var(--surface-2);border:1px solid var(--line-strong);
+  border-radius:10px;box-shadow:0 10px 30px rgba(46,36,25,.18);padding:10px 10px 12px;font-size:12.5px;color:var(--ink);
+  text-align:left;line-height:1.45}
+.sino-painel[hidden]{display:none}
+.sino-cab{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin:0 2px 2px;font-size:11px;
+  text-transform:uppercase;letter-spacing:.07em;color:var(--ink-3)}
+.sino-item{border:1px solid var(--warn);border-left-width:4px;background:var(--warn-soft);border-radius:7px;padding:8px 11px;margin-top:8px}
+.sino-item.crit{border-color:var(--crit);background:var(--crit-soft)}
+.sino-item .onde{font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:var(--ink-3);margin-bottom:1px}
+.sino-item .t{font-weight:600;color:var(--warn)}
+.sino-item.crit .t{color:var(--crit)}
+.sino-item .t .nv{display:inline-block;margin-left:6px;padding:0 6px;border-radius:999px;background:var(--brand);color:var(--ground);
+  font-size:9.5px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;vertical-align:1px}
+.sino-item p{margin:4px 0 0}
+.sino-item code{font-size:11.5px}
+.sino-item .chip{padding:3px 11px;font-size:12px}
+.sino-item .tec{font-size:11px;color:var(--ink-3)}
+.sino-vazio{color:var(--ink-3);padding:10px 4px 2px}
+.so-leitor{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+/* no celular o cabeçalho quebra em linhas: a lista ocupa a largura e nasce logo abaixo do sino (abrirSino calcula) */
+@media (max-width:620px){
+  .sino-painel{position:fixed;left:16px;right:16px;width:auto}
+}
 /* a linha que um colega acabou de mudar: um fio verde à esquerda por alguns segundos */
 .row.mudou{box-shadow:inset 4px 0 0 var(--ok);transition:box-shadow .6s}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
@@ -563,13 +608,22 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
       <div title="Quando esta página buscou este mês. Voltar a um mês já aberto usa a memória da página.">Lido na tela<b id="st-lido">—</b></div>
       <div id="st-conf-w" title="A última vez que esta página conferiu o que os colegas gravaram — a cada 2 minutos, e quando você volta para ela. Os lançamentos e boletos deles entram nas linhas sozinhos.">Conferido<b id="st-conf">—</b></div>
       <button class="chip" id="btRecarregar" type="button" title="Busca este mês de novo e esquece os outros meses já abertos">Recarregar</button>
+      <div class="sino-w" id="sino-w">
+        <button class="sino" id="sino" type="button" aria-expanded="false" aria-controls="sino-painel" aria-label="Avisos: nenhum">
+          <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M12 3.2a5.8 5.8 0 0 0-5.8 5.8v3.3l-1.5 2.7a.9.9 0 0 0 .8 1.4h13a.9.9 0 0 0 .8-1.4l-1.5-2.7V9A5.8 5.8 0 0 0 12 3.2Z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M9.7 19.1a2.4 2.4 0 0 0 4.6 0" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+          <span class="sino-n" id="sino-n" hidden>0</span>
+        </button>
+        <div class="sino-painel" id="sino-painel" role="region" aria-label="Avisos da PonteApp" hidden>
+          <div class="sino-cab"><span>Avisos</span><span id="sino-cab-n"></span></div>
+          <div id="sino-lista"></div>
+        </div>
+        <span class="so-leitor" id="sino-fala" aria-live="polite"></span>
+      </div>
     </div>
   </div>
 </header>
 
 <div class="wrap">
-
-  <div class="novidade" id="novidade" role="status" hidden></div>
 
   <p class="ritmo"><b>Vendas</b>: cópia do Facilita a cada 5 min (completa a cada 2 h) ·
     <b>Contratos</b>: espelho da D4Sign às 8h, 14h e 20h, só com o PC do Ricardo ligado e a sessão da D4Sign aberta ·
@@ -921,23 +975,123 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
   var AVISOS = [], AVISOS_CARGA = [];   // os da carga ficam; os do desenho refazem a cada render
   var AVISOS_BASE = [];                 // (24/09) os da carga SEM os do carnê, que chegam à parte
   function aviso(titulo, corpo, amarela) { AVISOS.push({ t: titulo, c: corpo, a: amarela }); }
+  function tarjaHtml(x) {
+    return '<div class="tarja' + (x.a ? ' amarela' : '') + '" role="status"><div class="t">' + esc(x.t) + '</div>' + x.c + '</div>';
+  }
+  /* (25/09) Os avisos moram no SINO, ao lado de Recarregar — as tarjas ocupavam a tela (pedido do Ricardo).
+     Na página fica só o aviso que SUBSTITUI a tabela (bloqueia): sem ele ela ficaria em branco. Ele vai para
+     o sino também. */
   function pintarAvisos() {
-    $('#avisos').innerHTML = AVISOS.map(function (x) {
-      return '<div class="tarja' + (x.a ? ' amarela' : '') + '" role="status"><div class="t">' + esc(x.t) +
-        '</div>' + x.c + '</div>';
-    }).join('');
+    $('#avisos').innerHTML = AVISOS.filter(function (x) { return x.bloqueio; }).map(tarjaHtml).join('');
+    sinoFonte('v', AVISOS);
   }
   /* `repetir` (24/09): a tarja ganha "Tentar de novo", que busca de novo O QUE FALHOU. */
   var TENTAR = { v: null, b: null };
   function bloqueia(titulo, corpo, repetir) {
     TENTAR.v = repetir || null;
-    AVISOS = [{ t: titulo, c: corpo + (repetir ? '<p><button type="button" class="chip tenta" data-tenta="v">Tentar de novo</button></p>' : '') }];
+    AVISOS = [{ t: titulo, bloqueio: true, c: corpo + (repetir ? '<p><button type="button" class="chip tenta" data-tenta="v">Tentar de novo</button></p>' : '') }];
     pintarAvisos();
     $('#conteudo').hidden = true; $('#lendo').hidden = true;
   }
   document.addEventListener('click', function (e) {
     var bt = e.target.closest && e.target.closest('button[data-tenta]');
     if (bt && TENTAR[bt.dataset.tenta]) TENTAR[bt.dataset.tenta]();
+  });
+
+  // ================================================================ o sino (25/09)
+  /* Todo aviso da tela, de qualquer aba, cai aqui: o número diz quantos há (vermelho se algum é grave), o sino
+     balança quando entra um que a pessoa ainda não viu, e passar o mouse mostra a lista — clicar fixa a lista
+     aberta (é o que funciona no celular), Esc ou clique fora fecha. Os botões de dentro (Tentar de novo,
+     Recarregar para ver, Abrir o mês) funcionam ali mesmo. "Já visto" vale enquanto a página está aberta (nada
+     disto vai para o disco). */
+  var SINO = { fontes: { v: [], b: [], n: [] }, vistos: {}, aberto: false, fixo: false, timer: null, balancou: '' };
+  var SINO_ONDE = { v: 'Vendas', b: 'Boletos do mês', n: 'Novidade' };
+  function sinoTodos() {
+    var out = [];
+    ['v', 'b', 'n'].forEach(function (f) {
+      SINO.fontes[f].forEach(function (x) { out.push({ f: f, x: x, k: f + '|' + x.t + '|' + (x.k || '') }); });
+    });
+    return out;
+  }
+  function sinoFonte(fonte, lista) { SINO.fontes[fonte] = (lista || []).slice(); pintarSino(); }
+  function pintarSino() {
+    var todos = sinoTodos(), n = todos.length, bt = $('#sino');
+    if (!bt) return;
+    var novos = todos.filter(function (a) { return !SINO.vistos[a.k]; });
+    var grave = todos.some(function (a) { return !a.x.a; });
+    $('#sino-n').hidden = !n;
+    $('#sino-n').textContent = n > 9 ? '9+' : String(n);
+    bt.classList.toggle('tem', n > 0);
+    bt.classList.toggle('crit', grave);
+    var chave = novos.map(function (a) { return a.k; }).sort().join('\n');
+    if (novos.length && !SINO.aberto && chave !== SINO.balancou) {
+      bt.classList.remove('novo'); void bt.offsetWidth; bt.classList.add('novo');   // recomeça a animação
+      $('#sino-fala').textContent = novos.length === 1 ? 'Novo aviso: ' + novos[0].x.t : novos.length + ' avisos novos';
+    }
+    SINO.balancou = chave;
+    if (!novos.length) bt.classList.remove('novo');
+    bt.setAttribute('aria-label', !n ? 'Avisos: nenhum' : 'Avisos: ' + n + (novos.length ? ', ' + novos.length + (novos.length === 1 ? ' novo' : ' novos') : ''));
+    bt.title = !n ? 'Nenhum aviso' : '';
+    if (SINO.aberto) pintarPainelSino();
+  }
+  function pintarPainelSino() {
+    var todos = sinoTodos();
+    $('#sino-cab-n').textContent = todos.length ? String(todos.length) : '';
+    $('#sino-lista').innerHTML = todos.length ? todos.map(function (a) {
+      return '<div class="sino-item' + (a.x.a ? '' : ' crit') + '"><div class="onde">' + esc(SINO_ONDE[a.f]) + '</div>' +
+        '<div class="t">' + esc(a.x.t) + (SINO.vistos[a.k] ? '' : '<span class="nv">novo</span>') + '</div>' + (a.x.c || '') + '</div>';
+    }).join('') : '<div class="sino-vazio">Nenhum aviso agora.</div>';
+  }
+  function abrirSino(fixo) {
+    clearTimeout(SINO.timer);
+    if (fixo) SINO.fixo = true;
+    if (SINO.aberto) return;
+    SINO.aberto = true;
+    pintarPainelSino();   // o "novo" aparece nesta abertura; depois dela, tudo o que está ali conta como visto
+    var painel = $('#sino-painel');
+    if (window.matchMedia && matchMedia('(max-width:620px)').matches) {
+      var b = $('#sino').getBoundingClientRect();
+      painel.style.top = Math.round(b.bottom + 8) + 'px';
+      painel.style.maxHeight = Math.max(160, Math.round(window.innerHeight - b.bottom - 24)) + 'px';
+    } else { painel.style.top = ''; painel.style.maxHeight = ''; }
+    painel.hidden = false;
+    $('#sino').setAttribute('aria-expanded', 'true');
+    sinoTodos().forEach(function (a) { SINO.vistos[a.k] = true; });
+    $('#sino').classList.remove('novo');
+  }
+  function fecharSino() {
+    clearTimeout(SINO.timer);
+    SINO.aberto = false; SINO.fixo = false;
+    $('#sino-painel').hidden = true;
+    $('#sino').setAttribute('aria-expanded', 'false');
+    pintarSino();
+  }
+  $('#sino-w').addEventListener('mouseenter', function () { abrirSino(false); });
+  $('#sino-w').addEventListener('mouseleave', function () {
+    if (!SINO.fixo) SINO.timer = setTimeout(fecharSino, 350);   // dá tempo de o mouse chegar à lista
+  });
+  $('#sino').addEventListener('click', function () {
+    if (SINO.aberto && SINO.fixo) fecharSino(); else abrirSino(true);
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && SINO.aberto) { fecharSino(); $('#sino').focus(); }
+  });
+  document.addEventListener('click', function (e) {
+    if (!SINO.aberto || !e.target.closest) return;
+    if (!e.target.closest('#sino-w')) { fecharSino(); return; }
+    // um botão de dentro da lista fez o que tinha de fazer: a lista fecha
+    var acao = e.target.closest('#sino-lista button');
+    if (acao) {
+      if (acao.getAttribute('data-a') === 'recarregar') $('#btRecarregar').click();
+      setTimeout(fecharSino, 0);
+    }
+  });
+  /* (25/09) "Abrir setembro" (a fila do mês anterior): vai para a aba Vendas e abre o mês */
+  document.addEventListener('click', function (e) {
+    var bt = e.target.closest && e.target.closest('button[data-mes-ir]');
+    if (!bt) return;
+    mostrarAba('v');
+    carregar(bt.getAttribute('data-mes-ir'));
   });
 
   // ================================================================ rede
@@ -1402,6 +1556,16 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
     }
     if (r.mes !== 'tudo' && !r.pessoal && r.pessoal_motivo) {
       aviso('Os dados de cadastro do cliente não vieram.', '<p>' + esc(r.pessoal_motivo) + '</p>', true);
+    }
+    /* (25/09) A FILA DO MÊS ANTERIOR — decisão do Ricardo: a fila "A lançar" segue a competência, então no dia 1º o
+       mês novo abria com "A lançar 0" e as vendas dos últimos dias do mês que passou saíam de vista. O Cofre conta,
+       com o mês corrente na tela, as do mês anterior ainda sem lançamento (só desde setembro/2026). */
+    if (r.anterior && r.anterior.a_lancar > 0 && /^\d{4}-\d{2}$/.test(String(r.anterior.mes || ''))) {
+      var nomeAnt = MESES_L[+r.anterior.mes.slice(5, 7) - 1];
+      aviso(plural(r.anterior.a_lancar, 'venda de ' + nomeAnt + ' ainda a lançar', 'vendas de ' + nomeAnt + ' ainda a lançar') + ' no Ivertex.',
+        '<p>A fila "A lançar" deste mês mostra só as vendas de ' + esc(MESES_L[+r.mes.slice(5, 7) - 1]) + '; as de ' + esc(nomeAnt) +
+        ' continuam na competência delas.</p><p><button type="button" class="chip" data-mes-ir="' + esc(r.anterior.mes) + '">Abrir ' +
+        esc(nomeAnt) + '</button></p>', true);
     }
 
     // ---- índices por Deal ID
@@ -2344,8 +2508,9 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
   /* ---------- a lista do mês ---------- */
   function bloqueiaB(t, c, repetir) {
     TENTAR.b = repetir || null;
-    $('#avisosB').innerHTML = '<div class="tarja" role="status"><div class="t">' + esc(t) + '</div>' + c +
-      (repetir ? '<p><button type="button" class="chip tenta" data-tenta="b">Tentar de novo</button></p>' : '') + '</div>';
+    var x = { t: t, bloqueio: true, c: c + (repetir ? '<p><button type="button" class="chip tenta" data-tenta="b">Tentar de novo</button></p>' : '') };
+    $('#avisosB').innerHTML = tarjaHtml(x);   // (25/09) o que substitui a lista fica na página — e vai para o sino também
+    sinoFonte('b', [x]);
     $('#conteudoB').hidden = true; $('#lendoB').hidden = true;
   }
   /* (24/09) Mesmo molde da aba Vendas: carga numerada (vale o último pedido, não a última
@@ -2358,7 +2523,7 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
     var meu = ++SEQ_B;
     rodada = rodada || 1;
     CARGA_B = { mes: mes };
-    $('#conteudoB').hidden = true; $('#lendoB').hidden = false; $('#avisosB').innerHTML = '';
+    $('#conteudoB').hidden = true; $('#lendoB').hidden = false; $('#avisosB').innerHTML = ''; sinoFonte('b', []);
     var denovo = function () { carregarBoletos(mes, true); };
     api('boletos', { params: { mes: mes }, paralelo: true, aoEsperar: function (s, t, m) {
       if (meu === SEQ_B) $('#lendoB').textContent = textoEspera('Lendo os boletos do Facilita…', s, t, m);
@@ -2415,12 +2580,12 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
     var cs = Object.keys(comps).sort();
     $('#eixoTxt').textContent = cs.length ? MESES_L[+r.mes.slice(5, 7) - 1].replace(/^./, function (c) { return c.toUpperCase(); }) +
       ' traz parcelas de vendas feitas de ' + MESES_L[+cs[0].slice(5, 7) - 1] + ' a ' + MESES_L[+cs[cs.length - 1].slice(5, 7) - 1] + '.' : '';
-    $('#avisosB').innerHTML = r.corte_boleto_bruto
-      ? '<div class="tarja amarela" role="status"><div class="t">O corte do boleto está digitado errado.</div>' + corteTorto(r.corte_boleto_bruto) + '</div>'
-      : CORTE_BOL ? '' :
-      '<div class="tarja amarela" role="status"><div class="t">Corte do boleto não definido.</div>' +
-      '<p>A Config do Cofre não tem <code>boleto.corte</code> (AAAA-MM-DD, o dia em que a Ponte passou a registrar os envios). ' +
-      'Sem ela a tela <b>não calcula atraso nenhum</b> — senão todo boleto antigo, controlado na planilha, apareceria vencido.</p></div>';
+    // (25/09) os avisos da aba Boletos vão para o sino
+    $('#avisosB').innerHTML = '';
+    sinoFonte('b', r.corte_boleto_bruto ? [{ t: 'O corte do boleto está digitado errado.', a: true, c: corteTorto(r.corte_boleto_bruto) }]
+      : CORTE_BOL ? [] : [{ t: 'Corte do boleto não definido.', a: true,
+          c: '<p>A Config do Cofre não tem <code>boleto.corte</code> (AAAA-MM-DD, o dia em que a Ponte passou a registrar os envios). ' +
+             'Sem ela a tela <b>não calcula atraso nenhum</b> — senão todo boleto antigo, controlado na planilha, apareceria vencido.</p>' }]);
     var cf = String(r.corte_facilita || '');
     var dia = quando(cf); if (dia) dia.setDate(dia.getDate() + 1);
     $('#rodapeB').textContent = (dia ? 'Carnês de vendas anteriores a ' + String(dia.getDate()).padStart(2, '0') + '/' +
@@ -2808,10 +2973,9 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
       msgs.push('O Facilita tem ' + plural(NOV.totalAgora, 'venda', 'vendas') + ' agora — eram ' + NOV.total + ' quando esta página leu');
     }
     if (NOV.d4Agora && NOV.d4 !== null && NOV.d4Agora !== NOV.d4) msgs.push('Os contratos da D4Sign foram atualizados (' + fmtCarimbo(NOV.d4Agora) + ')');
-    var box = $('#novidade');
-    box.hidden = !msgs.length;
-    box.innerHTML = msgs.length ? '<span>' + esc(msgs.join(' · ')) + '.</span>' +
-      '<button type="button" class="chip" data-a="recarregar">Recarregar para ver</button>' : '';
+    // (25/09) a faixa virou aviso no sino — com o texto na chave: novidade diferente balança o sino de novo
+    sinoFonte('n', msgs.length ? [{ t: 'Há novidade no Facilita.', a: true, k: msgs.join(' · '),
+      c: '<p>' + esc(msgs.join(' · ')) + '.</p><p><button type="button" class="chip" data-a="recarregar">Recarregar para ver</button></p>' }] : []);
   }
 
   setInterval(function () {
@@ -2823,14 +2987,12 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
   document.addEventListener('visibilitychange', aoVoltar);
   window.addEventListener('focus', aoVoltar);
   $('#rows').addEventListener('focusout', function () { setTimeout(tentarAdiadas, 0); });
-  $('#novidade').addEventListener('click', function (e) {
-    if (e.target.closest && e.target.closest('[data-a="recarregar"]')) $('#btRecarregar').click();
-  });
   // só no teste local (testes/ponteapp): dispara a consulta sem esperar os 2 min
   if (/^(localhost|127\.0\.0\.1)$/.test(location.hostname)) {
     window.__PONTE = { novidades: function () { NOV.ultima = 0; novidades(); },
                        nov: function () { return { desde: NOV.desde, adiadas: Object.keys(NOV.adiadas), ok: NOV.ok, emVoo: NOV.emVoo }; },
-                       saude: function () { return SAUDE.slice(); } };   // (25/09, Fase 1) a fila de amostras, para a prova local
+                       saude: function () { return SAUDE.slice(); },   // (25/09, Fase 1) a fila de amostras, para a prova local
+                       sino: function () { return sinoTodos().map(function (a) { return { onde: a.f, t: a.x.t, grave: !a.x.a, novo: !SINO.vistos[a.k], bloqueio: !!a.x.bloqueio }; }); } };
   }
 
   /* ---------- o modal do boleto ---------- */

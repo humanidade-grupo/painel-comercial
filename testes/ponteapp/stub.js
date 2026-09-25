@@ -13,6 +13,7 @@
      CENA.novidades = [{ controle: [...linhas da Controle_ERP], boletos: [...marcações], total, d4, truncado } | 'html']
                                         → a fila das respostas do fn=novidades (vazia: nada novo)
      (25/09) CENA.reconstrucao = true   → toda rota menos novidades/saude responde codigo 'reconstrucao'
+     (25/09) CENA.anterior = { mes: '2026-08', a_lancar: 2 } → o fn=dados de setembro diz que agosto ainda tem venda a lançar
      (25/09) CENA.somenteGet = true     → o Cofre anterior à @108: leitura por POST recusada ("só aceita GET")
      (25/09) CENA.saudeErro = true      → a saúde que chega volta com erro (a tela tem de guardar e mandar de novo)
    window.LOG guarda cada chamada (rota, corpo, hora `t`, e `abortado` quando a tela cancelou) para a prova.
@@ -71,6 +72,7 @@
         'Celular': '(32) 90000-0000', 'E-mail': 'x@exemplo.com', 'CEP': '36000-000', 'Logradouro': 'Rua Teste', 'Número': '1', 'Complemento': '', 'Bairro': 'Centro', 'Cidade': 'Juiz de Fora', 'UF': 'MG' }; }),
       pessoal_motivo: '', boletos: boletos, boletos_motivo: '', corte_boleto: '2026-09-25',
       lancadas_sem_venda: window.CENA.semVenda || [], referencias: { lancados: 1, com_referencia: 1 },
+      anterior: mes === '2026-09' ? (window.CENA.anterior || null) : null,   // (25/09) a fila do mês anterior
       total_aba: 5, n: vs.length, n_fila: 0, no_recorte: vs.length, teto: 3000, truncado: false,
       contagem: [{ aba: 'Vendas_Facilita', chave: 'facilita.total_vendas_api', esperado: 5, lido: recibo }],
       carimbo_vendas: carimbo, fonte: 'simulado', ms: 900, boletos_separado: separado ? true : undefined };
