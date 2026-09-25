@@ -1,6 +1,8 @@
 /* Painel Comercial — Parque da Saudade + Estrela Urbanidade
    Service worker: instalação PWA + reserva offline.
-   Atualizado em: 25/09/2026 (madrugada, 3ª) — PONTEAPP, OS NÚMEROS QUE SE VIGIAM: "A lançar no Ivertex" e
+   Atualizado em: 25/09/2026 (tarde) — PONTEAPP: a linha "Falta assinar" do cartão vazava (a classe `.sig` já era a
+   das barrinhas de assinatura da tabela); agora `.fsig`, e quem assina pelo Parque aparece com nome e sobrenome.
+   Antes, 25/09/2026 (madrugada, 3ª) — PONTEAPP, OS NÚMEROS QUE SE VIGIAM: "A lançar no Ivertex" e
    "Aguardando assinatura do cliente" (nome novo, pedido do Ricardo) lado a lado, à esquerda e maiores; no segundo,
    de quem falta a assinatura (Cliente · Testemunha · quem assina pelo Parque), cada nome filtrando a lista; e a
    PESQUISA nas duas abas (cliente, jazigo, deal, CPF, vendedor, referência — sem acento).
@@ -239,7 +241,7 @@
    links dos arquivos são drive.google.com, externos, e NÃO entram no cache).
    Estratégia: rede primeiro (pega versão nova quando online), cache como
    reserva offline. A cada deploy, bumpar a versão em CACHE. */
-const CACHE = 'painel-comercial-260925-3';
+const CACHE = 'painel-comercial-260925-4';
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(['./'])).then(() => self.skipWaiting()));

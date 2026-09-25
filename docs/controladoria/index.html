@@ -585,8 +585,9 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
   box-shadow:0 1px 2px rgba(46,36,25,.08),0 8px 22px rgba(46,36,25,.08)}
 .kpi.top .k{font-size:12px;font-weight:600;color:var(--ink-2)}
 .kpi.top .v{font-size:40px;margin-top:6px}
-.kpi .f.sig{color:var(--ink-2);font-size:12px;margin-top:7px;line-height:1.45;font-weight:400}
-.kpi .f.sig b{font-weight:600;color:var(--ink)}
+.kpi .f.fsig{color:var(--ink-2);font-size:12px;margin-top:7px;line-height:1.45;font-weight:400;overflow-wrap:anywhere}
+.kpi .f.fsig b{font-weight:600;color:var(--ink)}
+.kpi .f.fsig .sigb{display:inline;text-align:left}   /* (25/09) `.sig` é das barrinhas da tabela: o nome daqui é outro */
 @media (max-width:1060px){
   .kpis.kpis-destaque{grid-template-columns:repeat(6,minmax(0,1fr))}
   .kpis.kpis-destaque .kpi{grid-column:span 2}
@@ -711,7 +712,7 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
       <div class="k">Aguardando assinatura do cliente</div>
       <div class="v" id="k-assin">0</div>
       <div class="f warn" id="k-assinold">—</div>
-      <div class="f sig" id="k-assinsig" title="De quem falta a assinatura, contrato a contrato (D4Sign). Um contrato pode esperar mais de uma pessoa: a soma pode passar do total."></div>
+      <div class="f fsig" id="k-assinsig" title="De quem falta a assinatura, contrato a contrato (D4Sign). Um contrato pode esperar mais de uma pessoa: a soma pode passar do total."></div>
       <div class="escopo">fila inteira, fora da competência</div>
     </div>
     <div class="kpi">
@@ -1868,12 +1869,18 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
         f.forEach(function (x) { porSig[x] = (porSig[x] || 0) + 1; });
       });
       var sigs = Object.keys(porSig).sort(function (a, b) { return porSig[b] - porSig[a] || a.localeCompare(b); });
-      var rotSig = function (x) { return x === 'CLIENTE' ? 'Cliente' : x === 'TESTEMUNHA' ? 'Testemunha' : x; };
+      var rotSig = function (x) {
+        if (x === 'CLIENTE') return 'Cliente';
+        if (x === 'TESTEMUNHA') return 'Testemunha';
+        // quem assina pelo Parque vem com o nome inteiro da D4Sign: fica nome e sobrenome ("Chaiene Batista")
+        var p = String(x).split(/\s+/).filter(function (w) { return w && !/^(de|da|do|dos|das|e)$/i.test(w); });
+        return p.length > 2 ? p[0] + ' ' + p[1] : String(x);
+      };
       // cada nome é um atalho: mostra na lista só os contratos que esperam por ele
       $('#k-assinsig').innerHTML = sigs.length || semDet
         ? 'Falta assinar: ' + sigs.map(function (x) {
             return '<button type="button" class="sigb" data-sig="' + esc(x) + '" data-rot="' + esc(rotSig(x)) + '" title="Mostrar na lista só os contratos que esperam ' +
-              esc(rotSig(x)) + '"><b>' + esc(rotSig(x)) + '</b> ' + porSig[x] + '</button>';
+              esc(x === 'CLIENTE' ? 'o cliente' : x === 'TESTEMUNHA' ? 'testemunha' : x) + '"><b>' + esc(rotSig(x)) + '</b> ' + porSig[x] + '</button>';
           }).concat(semDet ? ['sem detalhe ' + semDet] : []).join(' · ')
         : '';
       var risco = lanc.filter(function (v) { return v.ct.k !== 'assinado' && v.ct.k !== 'foracorte'; });
