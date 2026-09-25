@@ -1,6 +1,10 @@
 /* Painel Comercial — Parque da Saudade + Estrela Urbanidade
    Service worker: instalação PWA + reserva offline.
-   Atualizado em: 25/09/2026 (tarde) — PONTEAPP: a linha "Falta assinar" do cartão vazava (a classe `.sig` já era a
+   Atualizado em: 25/09/2026 (tarde, 2ª) — PONTEAPP, DOIS NÚMEROS NA ASSINATURA (pedido do Ricardo): o cartão
+   "Aguardando assinatura" separa "do cliente" e "do Parque" (dos 15 aguardando, só 2 esperavam o cliente), cada
+   número filtrando a lista; no celular os dois cartões que se vigiam ocupam a largura inteira. E a palavra "Google"
+   saiu das mensagens da tela ("a resposta está demorando", "veio uma página de erro").
+   Antes, 25/09/2026 (tarde) — PONTEAPP: a linha "Falta assinar" do cartão vazava (a classe `.sig` já era a
    das barrinhas de assinatura da tabela); agora `.fsig`, e quem assina pelo Parque aparece com nome e sobrenome.
    Antes, 25/09/2026 (madrugada, 3ª) — PONTEAPP, OS NÚMEROS QUE SE VIGIAM: "A lançar no Ivertex" e
    "Aguardando assinatura do cliente" (nome novo, pedido do Ricardo) lado a lado, à esquerda e maiores; no segundo,
@@ -241,7 +245,7 @@
    links dos arquivos são drive.google.com, externos, e NÃO entram no cache).
    Estratégia: rede primeiro (pega versão nova quando online), cache como
    reserva offline. A cada deploy, bumpar a versão em CACHE. */
-const CACHE = 'painel-comercial-260925-4';
+const CACHE = 'painel-comercial-260925-5';
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(['./'])).then(() => self.skipWaiting()));

@@ -595,10 +595,20 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
 }
 @media (max-width:620px){
   .kpis.kpis-destaque{grid-template-columns:repeat(2,minmax(0,1fr))}
-  .kpis.kpis-destaque .kpi,.kpis.kpis-destaque .kpi.top{grid-column:span 1}
+  .kpis.kpis-destaque .kpi{grid-column:span 1}
+  .kpis.kpis-destaque .kpi.top{grid-column:1/-1}   /* (25/09) no celular, os dois que se vigiam com a largura inteira: os dois números da assinatura cabem */
   .kpi.top{padding:13px 13px 12px}
   .kpi.top .v{font-size:32px}
 }
+/* (25/09) "Aguardando assinatura": do cliente | do Parque, lado a lado, cada um um botão que filtra a lista */
+.baldes{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:6px}
+.balde{font:inherit;color:inherit;text-align:left;background:transparent;border:0;border-left:3px solid var(--line-strong);
+  border-radius:0 7px 7px 0;padding:2px 6px 3px 10px;cursor:pointer;display:flex;flex-direction:column;align-items:flex-start;min-width:0}
+.balde:hover{border-left-color:var(--accent);background:var(--surface)}
+.balde[aria-pressed="true"]{border-left-color:var(--accent);background:var(--accent-soft)}
+.kpi.top .balde .v{margin-top:0}
+.balde .bn{font-size:12px;font-weight:600;color:var(--ink-2);margin-top:1px}
+.balde .f{margin-top:3px}
 /* o selo do filtro por signatário, ao lado das pílulas */
 .chip.selo{background:var(--accent-soft);border-color:var(--accent);color:var(--ink)}
 .chip.selo[hidden]{display:none}
@@ -680,7 +690,7 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
       <span class="flabel">Situação</span>
       <button class="chip" data-f="sit" data-v="tudo" aria-pressed="true">Tudo</button>
       <button class="chip" data-f="sit" data-v="alancar" aria-pressed="false">A lançar <span class="n" id="n-alancar">0</span></button>
-      <button class="chip" data-f="sit" data-v="assinatura" aria-pressed="false">Aguardando assinatura do cliente <span class="n" id="n-assin">0</span></button>
+      <button class="chip" data-f="sit" data-v="assinatura" aria-pressed="false">Aguardando assinatura <span class="n" id="n-assin">0</span></button>
       <button class="chip" data-f="sit" data-v="semcontrato" aria-pressed="false">Sem contrato <span class="n" id="n-sem">0</span></button>
       <button class="chip" data-f="sit" data-v="lancadas" aria-pressed="false">Lançadas <span class="n" id="n-lanc">0</span></button>
       <button class="chip selo" id="f-sig" type="button" hidden title="Tirar este filtro">Falta assinar: <b id="f-sig-n"></b> <span aria-hidden="true">×</span></button>
@@ -708,12 +718,21 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
       <div class="f" id="k-filav">R$ 0</div>
       <div class="f" id="k-filaold">—</div>
     </div>
+    <!-- (25/09) dois números (pedido do Ricardo): quem falta assinar é o cliente, ou alguém do Parque — cada um filtra a lista -->
     <div class="kpi lead top">
-      <div class="k">Aguardando assinatura do cliente</div>
-      <div class="v" id="k-assin">0</div>
-      <div class="f warn" id="k-assinold">—</div>
-      <div class="f fsig" id="k-assinsig" title="De quem falta a assinatura, contrato a contrato (D4Sign). Um contrato pode esperar mais de uma pessoa: a soma pode passar do total."></div>
-      <div class="escopo">fila inteira, fora da competência</div>
+      <div class="k">Aguardando assinatura</div>
+      <div class="baldes">
+        <button type="button" class="balde" id="kb-cli" data-sig="CLIENTE" data-rot="Cliente" aria-pressed="false"
+          title="Mostrar na lista só os contratos em que falta a assinatura do cliente">
+          <span class="v" id="k-assin-cli">0</span><span class="bn">do cliente</span><span class="f warn" id="k-assin-cli-d">—</span>
+        </button>
+        <button type="button" class="balde" id="kb-pq" data-sig="@parque" data-rot="o Parque" aria-pressed="false"
+          title="Mostrar na lista só os contratos em que falta a assinatura de alguém do Parque">
+          <span class="v" id="k-assin-pq">0</span><span class="bn">do Parque</span><span class="f warn" id="k-assin-pq-d">—</span>
+        </button>
+      </div>
+      <div class="f fsig" id="k-assinsig" title="De quem falta a assinatura no Parque, contrato a contrato (D4Sign). Um contrato pode esperar mais de uma pessoa."></div>
+      <div class="escopo" id="k-assin-esc">fila inteira, fora da competência</div>
     </div>
     <div class="kpi">
       <div class="k">Lançadas</div>
@@ -1174,7 +1193,7 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
         clearTimeout(t);
         var j = null; try { j = JSON.parse(txt); } catch (e) {}
         if (j && typeof j === 'object') resolve(j);
-        else reject(falha('html', 'o Google devolveu uma página de erro no lugar da resposta'));
+        else reject(falha('html', 'veio uma página de erro no lugar da resposta'));   // (25/09) na tela, sem "Google" (pedido do Ricardo)
       }).catch(function (e) {
         if (venceu) return;
         clearTimeout(t);
@@ -1222,11 +1241,11 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
           if (acabou) return;
           noAr = noAr.filter(function (x) { return x !== alca; });
           ultimoErro = e;
-          var m = e.tipo === 'html' ? 'o Google devolveu uma página de erro' : e.tipo === 'rede' ? 'a conexão caiu' : 'o Facilita demorou demais';
+          var m = e.tipo === 'html' ? 'veio uma página de erro' : e.tipo === 'rede' ? 'a conexão caiu' : 'o Facilita demorou demais';
           if (!lanca(m) && !noAr.length) { encerra(); e.tentativas = lancados; reject(e); }
         });
         clearTimeout(timer);
-        timer = setTimeout(function () { lanca('o Google está lento'); }, PARALELO_APOS);
+        timer = setTimeout(function () { lanca('a resposta está demorando'); }, PARALELO_APOS);
         return true;
       }
       lanca('');
@@ -1302,7 +1321,7 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
       }, function (e) {
         var repete = tentativa < TENTATIVAS && (e.tipo === 'html' || e.tipo === 'rede' || (e.tipo === 'prazo' && !grava));
         if (!repete) throw e;
-        motivo = e.tipo === 'html' ? 'o Google devolveu uma página de erro'
+        motivo = e.tipo === 'html' ? 'veio uma página de erro'
                : e.tipo === 'rede' ? 'a conexão caiu' : 'o Facilita demorou demais';
         return espera(ESPERAS[Math.min(tentativa - 1, ESPERAS.length - 1)]);
       });
@@ -1350,7 +1369,7 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
   function textoFalha(e) {
     var n = e.tentativas || TENTATIVAS;
     if (e.tipo === 'prazo') return 'O Facilita não respondeu depois de ' + n + ' tentativas. Ele costuma voltar em poucos minutos.';
-    if (e.tipo === 'html') return 'O Google devolveu uma página de erro no lugar da resposta, ' + n + ' vezes seguidas. Costuma passar em poucos minutos.';
+    if (e.tipo === 'html') return 'Veio uma página de erro no lugar da resposta, ' + n + ' vezes seguidas. Costuma passar em poucos minutos.';
     if (e.tipo === 'rede') return 'A conexão caiu. Confira a internet deste computador.';
     return String(e.message || e);
   }
@@ -1807,7 +1826,10 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
     return B.filter(function (v) {
       var k = v.ct.k;
       if (F.busca && !casaBusca(F.busca, camposVenda(v))) return false;
-      if (F.sig && ((v.ct && v.ct.falta) || []).indexOf(F.sig) < 0) return false;   // (25/09) o atalho do cartão
+      if (F.sig) {   // (25/09) o atalho do cartão: um nome, "CLIENTE", ou "@parque" (qualquer um da casa)
+        var fl = (v.ct && v.ct.falta) || [];
+        if (F.sig === '@parque' ? !fl.some(function (x) { return x !== 'CLIENTE' && x !== 'TESTEMUNHA'; }) : fl.indexOf(F.sig) < 0) return false;
+      }
       if (F.sit === 'alancar' && v.iv.lancado) return false;
       if (F.sit === 'lancadas' && !v.iv.lancado) return false;
       if (F.sit === 'assinatura' && k !== 'aguardando') return false;
@@ -1850,23 +1872,39 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
     T('k-lancp', '· ' + (B.length ? Math.round(lanc.length / B.length * 100) : 0) + '%');
     T('k-lancv', brlc(soma(lanc)));
 
-    var ka = $('#k-assinold');
     if (!D4OK) {
-      T('k-assin', '—'); ka.textContent = 'sem leitura da D4Sign'; ka.className = 'f warn'; $('#k-assinsig').textContent = '';
+      ['cli', 'pq'].forEach(function (b) {
+        T('k-assin-' + b, '—');
+        var d = $('#k-assin-' + b + '-d'); d.textContent = 'sem leitura da D4Sign'; d.className = 'f warn';
+      });
+      $('#k-assinsig').textContent = ''; T('k-assin-esc', 'fila inteira, fora da competência');
       T('k-risco', '—'); T('k-riscotxt', 'sem leitura da D4Sign');
     } else {
-      T('k-assin', ass.length);
-      var av = Math.max.apply(null, [-1].concat(ass.map(function (v) { return idade(v.ct.cadastro); }).filter(function (n) { return n !== null; })));
-      ka.textContent = ass.length ? 'o mais antigo parado há ' + plural(Math.max(0, av), 'dia', 'dias') : 'nenhum pendente';
-      ka.className = 'f ' + (ass.length && av >= DIAS_ALERTA ? 'alert' : 'warn');
-      /* (25/09) DE QUEM FALTA A ASSINATURA (pedido do Ricardo): o "Falta assinar" do espelho da D4Sign, contrato a
-         contrato — CLIENTE, TESTEMUNHA ou o nome de quem assina pelo Parque. Um contrato pode esperar mais de uma
-         pessoa, então a soma pode passar do total; contrato sem a lista (o modal não foi lido) conta à parte. */
+      /* (25/09) DOIS NÚMEROS — pedido do Ricardo: dos 15 "aguardando assinatura do cliente", só 2 esperavam o
+         cliente; 14 esperavam quem assina pelo Parque. O "Falta assinar" do espelho da D4Sign traz, contrato a
+         contrato, CLIENTE, TESTEMUNHA (de fora) ou o nome de quem assina pelo Parque. "do cliente" = falta a do
+         cliente; "do Parque" = falta a de alguém da casa. Um contrato pode esperar os dois: entra nos dois números. */
+      var doParque = function (x) { return x !== 'CLIENTE' && x !== 'TESTEMUNHA'; };
+      var doCli = ass.filter(function (v) { return ((v.ct && v.ct.falta) || []).indexOf('CLIENTE') >= 0; });
+      var doPq = ass.filter(function (v) { return ((v.ct && v.ct.falta) || []).some(doParque); });
+      var pintaBalde = function (b, lista) {
+        T('k-assin-' + b, lista.length);
+        var mx = Math.max.apply(null, [-1].concat(lista.map(function (v) { return idade(v.ct.cadastro); }).filter(function (n) { return n !== null; })));
+        var d = $('#k-assin-' + b + '-d');
+        d.textContent = lista.length ? 'o mais antigo há ' + plural(Math.max(0, mx), 'dia', 'dias') : 'nenhum';
+        d.className = 'f ' + (lista.length && mx >= DIAS_ALERTA ? 'alert' : 'warn');
+      };
+      pintaBalde('cli', doCli);
+      pintaBalde('pq', doPq);
+      var osDois = doCli.filter(function (v) { return doPq.indexOf(v) >= 0; }).length;
+      T('k-assin-esc', plural(ass.length, 'contrato aguardando', 'contratos aguardando') +
+        (osDois ? ' (' + (osDois === 1 ? '1 espera' : osDois + ' esperam') + ' os dois)' : '') + ' · fila inteira, fora da competência');
+      /* De quem falta, no Parque (e a testemunha de fora, e o contrato sem a lista — o modal não foi lido). */
       var porSig = {}, semDet = 0;
       ass.forEach(function (v) {
         var f = (v.ct && v.ct.falta) || [];
         if (!f.length) semDet++;
-        f.forEach(function (x) { porSig[x] = (porSig[x] || 0) + 1; });
+        f.forEach(function (x) { if (x !== 'CLIENTE') porSig[x] = (porSig[x] || 0) + 1; });
       });
       var sigs = Object.keys(porSig).sort(function (a, b) { return porSig[b] - porSig[a] || a.localeCompare(b); });
       var rotSig = function (x) {
@@ -1878,7 +1916,7 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
       };
       // cada nome é um atalho: mostra na lista só os contratos que esperam por ele
       $('#k-assinsig').innerHTML = sigs.length || semDet
-        ? 'Falta assinar: ' + sigs.map(function (x) {
+        ? (sigs.some(doParque) ? 'Falta no Parque: ' : 'Falta: ') + sigs.map(function (x) {
             return '<button type="button" class="sigb" data-sig="' + esc(x) + '" data-rot="' + esc(rotSig(x)) + '" title="Mostrar na lista só os contratos que esperam ' +
               esc(x === 'CLIENTE' ? 'o cliente' : x === 'TESTEMUNHA' ? 'testemunha' : x) + '"><b>' + esc(rotSig(x)) + '</b> ' + porSig[x] + '</button>';
           }).concat(semDet ? ['sem detalhe ' + semDet] : []).join(' · ')
@@ -1961,7 +1999,7 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
       var m2x = Math.max.apply(null, [1, pend.length, ass.length, assd.length].concat(ext.map(function (k) { return extras[k].length; })));
       $('#trilha-ct').innerHTML = '<div class="steps">' +
         passo('s1', pend.length, m2x, 'Sem contrato ou signatário') +
-        passo('s2', ass.length, m2x, 'Aguardando assinatura do cliente') +
+        passo('s2', ass.length, m2x, 'Aguardando assinatura') +
         passo('s4', assd.length, m2x, 'Assinado') +
         ext.map(function (k) { return passo('extra', extras[k].length, m2x, k.charAt(0) + k.slice(1).toLowerCase()); }).join('') +
         '</div>';
@@ -2034,7 +2072,7 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
       case 'assinado': return ['p-ok', 'Assinado · ' + dbr(c.fim)];
       case 'aguardando':
         var d = idade(c.cadastro);
-        if (d === null) return ['p-warn', 'Aguardando assinatura do cliente'];
+        if (d === null) return ['p-warn', 'Aguardando assinatura'];
         return [d >= DIAS_ALERTA ? 'p-crit' : 'p-warn', d === 0 ? 'Aguardando · enviado hoje' : 'Aguardando há ' + plural(d, 'dia', 'dias')];
       default: return ['p-mute', c.fase.charAt(0) + c.fase.slice(1).toLowerCase()];
     }
@@ -3366,17 +3404,21 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
     });
   }
   ligarBusca('f-busca', function (q) { F.busca = q; if (R && !$('#conteudo').hidden) renderTabela(); });
-  /* (25/09) o atalho do cartão: "Rodrigo 2" liga "Aguardando assinatura do cliente" e deixa na lista só os contratos
+  /* (25/09) o atalho do cartão: "do Parque 14" ou "Rodrigo 2" liga "Aguardando assinatura" e deixa na lista só os contratos
      em que falta a assinatura dele — pela lista "Falta assinar" do contrato, não pela pesquisa de texto (um cliente
      com "Cliente" no nome não entra). O selo "Falta assinar: Rodrigo ×" mostra o filtro e tira com um clique. */
   function pintarSelo() {
     $('#f-sig').hidden = !F.sig;
-    var bt = document.querySelector('#k-assinsig [data-sig="' + (window.CSS && CSS.escape ? CSS.escape(F.sig) : F.sig) + '"]');
+    var bt = F.sig ? document.querySelector('[data-sig="' + (window.CSS && CSS.escape ? CSS.escape(F.sig) : F.sig) + '"][data-rot]') : null;
     $('#f-sig-n').textContent = F.sig ? (bt ? bt.getAttribute('data-rot') : F.sig) : '';
+    $('#kb-cli').setAttribute('aria-pressed', String(F.sig === 'CLIENTE'));
+    $('#kb-pq').setAttribute('aria-pressed', String(F.sig === '@parque'));
   }
   document.addEventListener('click', function (e) {
     var bt = e.target.closest && e.target.closest('button[data-sig]');
     if (!bt) return;
+    // clicar de novo no que já está filtrando tira o filtro
+    if (F.sig && F.sig === bt.getAttribute('data-sig')) { F.sig = ''; pintarSelo(); renderTabela(); return; }
     var chip = document.querySelector('.chip[data-f="sit"][data-v="assinatura"]');
     if (chip && chip.getAttribute('aria-pressed') !== 'true') chip.click();   // (a pílula zera o F.sig; o de baixo vem depois)
     F.sig = bt.getAttribute('data-sig');
