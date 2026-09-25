@@ -14,6 +14,7 @@
                                         → a fila das respostas do fn=novidades (vazia: nada novo)
      (25/09) CENA.reconstrucao = true   → toda rota menos novidades/saude responde codigo 'reconstrucao'
      (25/09) CENA.anterior = { mes: '2026-08', a_lancar: 2 } → o fn=dados de setembro diz que agosto ainda tem venda a lançar
+     (25/09) CENA.contratos = [{ 'Deal ID', Fase, Cadastro, 'Falta assinar', ... }] → os documentos da D4Sign no fn=dados
      (25/09) CENA.somenteGet = true     → o Cofre anterior à @108: leitura por POST recusada ("só aceita GET")
      (25/09) CENA.saudeErro = true      → a saúde que chega volta com erro (a tela tem de guardar e mandar de novo)
    window.LOG guarda cada chamada (rota, corpo, hora `t`, e `abortado` quando a tela cancelou) para a prova.
@@ -67,7 +68,7 @@
       competencias: [{ mes: '2026-09', n: 4 }, { mes: '2026-08', n: 1 }],
       vendas: vs, fila: [], corte_d4sign: '2026-08-12',
       controle: vs.map(function (v) { return CONTROLE[v['Deal ID']]; }).filter(Boolean),
-      d4sign: { estado: 'ok', contratos: [], total_documentos: 0, sem_casar: 0, erro: '', carimbo: carimbo, ultimo_erro: '', ultima_falha: '' },
+      d4sign: { estado: 'ok', contratos: window.CENA.contratos || [], total_documentos: (window.CENA.contratos || []).length, sem_casar: 0, erro: '', carimbo: carimbo, ultimo_erro: '', ultima_falha: '' },
       pessoal: vs.map(function (v) { return { 'Deal ID': v['Deal ID'], 'Cliente': v['Cliente'], 'CPF': '000.000.000-00', 'RG': 'MG-0', 'Nascimento': '1980-02-01',
         'Celular': '(32) 90000-0000', 'E-mail': 'x@exemplo.com', 'CEP': '36000-000', 'Logradouro': 'Rua Teste', 'Número': '1', 'Complemento': '', 'Bairro': 'Centro', 'Cidade': 'Juiz de Fora', 'UF': 'MG' }; }),
       pessoal_motivo: '', boletos: boletos, boletos_motivo: '', corte_boleto: '2026-09-25',

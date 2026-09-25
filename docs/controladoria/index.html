@@ -579,6 +579,40 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
 /* a linha que um colega acabou de mudar: um fio verde à esquerda por alguns segundos */
 .row.mudou{box-shadow:inset 4px 0 0 var(--ok);transition:box-shadow .6s}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+/* ---- (25/09) os dois números que a controladoria vigia, lado a lado, à esquerda e maiores (pedido do Ricardo) ---- */
+.kpis.kpis-destaque{grid-template-columns:repeat(2,minmax(0,1.5fr)) repeat(3,minmax(0,1fr));align-items:stretch}
+.kpi.top{border:1px solid var(--accent);padding:15px 17px 14px;
+  box-shadow:0 1px 2px rgba(46,36,25,.08),0 8px 22px rgba(46,36,25,.08)}
+.kpi.top .k{font-size:12px;font-weight:600;color:var(--ink-2)}
+.kpi.top .v{font-size:40px;margin-top:6px}
+.kpi .f.sig{color:var(--ink-2);font-size:12px;margin-top:7px;line-height:1.45;font-weight:400}
+.kpi .f.sig b{font-weight:600;color:var(--ink)}
+@media (max-width:1060px){
+  .kpis.kpis-destaque{grid-template-columns:repeat(6,minmax(0,1fr))}
+  .kpis.kpis-destaque .kpi{grid-column:span 2}
+  .kpis.kpis-destaque .kpi.top{grid-column:span 3}
+}
+@media (max-width:620px){
+  .kpis.kpis-destaque{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .kpis.kpis-destaque .kpi,.kpis.kpis-destaque .kpi.top{grid-column:span 1}
+  .kpi.top{padding:13px 13px 12px}
+  .kpi.top .v{font-size:32px}
+}
+/* o selo do filtro por signatário, ao lado das pílulas */
+.chip.selo{background:var(--accent-soft);border-color:var(--accent);color:var(--ink)}
+.chip.selo[hidden]{display:none}
+/* o atalho por signatário, no cartão: parece texto, age como filtro */
+.sigb{font:inherit;font-size:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer;
+  text-decoration:underline;text-decoration-color:var(--line-strong);text-underline-offset:2px}
+.sigb:hover{text-decoration-color:var(--accent);color:var(--ink)}
+/* ---- (25/09) a pesquisa (pedido do Ricardo) ---- */
+.busca{font:inherit;font-size:12.5px;padding:5px 12px 5px 30px;border-radius:999px;border:1px solid var(--line-strong);
+  color:var(--ink);width:260px;max-width:100%;box-sizing:border-box;
+  background:var(--surface-2) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238A806F' stroke-width='2.2' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='6.5'/%3E%3Cpath d='m20 20-4.3-4.3'/%3E%3C/svg%3E") no-repeat 10px 50%/14px 14px}
+.busca::placeholder{color:var(--ink-3)}
+.busca:focus{outline:2px solid var(--accent);outline-offset:1px;border-color:var(--accent)}
+.busca.tem{border-color:var(--accent);background-color:var(--accent-soft)}
+@media (max-width:620px){.busca{width:100%}}
 </style>
 </head>
 <body>
@@ -645,12 +679,15 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
       <span class="flabel">Situação</span>
       <button class="chip" data-f="sit" data-v="tudo" aria-pressed="true">Tudo</button>
       <button class="chip" data-f="sit" data-v="alancar" aria-pressed="false">A lançar <span class="n" id="n-alancar">0</span></button>
-      <button class="chip" data-f="sit" data-v="assinatura" aria-pressed="false">Aguardando assinatura <span class="n" id="n-assin">0</span></button>
+      <button class="chip" data-f="sit" data-v="assinatura" aria-pressed="false">Aguardando assinatura do cliente <span class="n" id="n-assin">0</span></button>
       <button class="chip" data-f="sit" data-v="semcontrato" aria-pressed="false">Sem contrato <span class="n" id="n-sem">0</span></button>
       <button class="chip" data-f="sit" data-v="lancadas" aria-pressed="false">Lançadas <span class="n" id="n-lanc">0</span></button>
+      <button class="chip selo" id="f-sig" type="button" hidden title="Tirar este filtro">Falta assinar: <b id="f-sig-n"></b> <span aria-hidden="true">×</span></button>
     </div>
     <div class="spacer"></div>
     <div class="fgroup">
+      <input type="search" class="busca" id="f-busca" placeholder="Pesquisar cliente, jazigo, deal, CPF…" aria-label="Pesquisar nas vendas"
+        autocomplete="off" spellcheck="false" title="Cliente, jazigo, deal, CPF, vendedor ou referência do Ivertex — sem acento e sem maiúscula. Filtra a lista; os cartões seguem o recorte inteiro. Esc limpa.">
       <label class="flabel" for="f-vend">Vendedor</label>
       <select id="f-vend"><option value="tudo">Todos</option></select>
       <label class="flabel" for="f-mod">Modalidade</label>
@@ -662,12 +699,20 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
   <div class="lendo" id="lendo" hidden>Lendo os dados do Facilita…</div>
 
   <div id="conteudo" hidden>
-  <div class="kpis">
-    <div class="kpi lead">
+  <!-- (25/09) os dois números que a controladoria vigia vêm primeiro, lado a lado e maiores (pedido do Ricardo) -->
+  <div class="kpis kpis-destaque">
+    <div class="kpi lead top">
       <div class="k">A lançar no Ivertex</div>
       <div class="v" id="k-fila">0</div>
       <div class="f" id="k-filav">R$ 0</div>
       <div class="f" id="k-filaold">—</div>
+    </div>
+    <div class="kpi lead top">
+      <div class="k">Aguardando assinatura do cliente</div>
+      <div class="v" id="k-assin">0</div>
+      <div class="f warn" id="k-assinold">—</div>
+      <div class="f sig" id="k-assinsig" title="De quem falta a assinatura, contrato a contrato (D4Sign). Um contrato pode esperar mais de uma pessoa: a soma pode passar do total."></div>
+      <div class="escopo">fila inteira, fora da competência</div>
     </div>
     <div class="kpi">
       <div class="k">Lançadas</div>
@@ -678,12 +723,6 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
       <div class="k">Vendas no recorte</div>
       <div class="v" id="k-tot">0</div>
       <div class="f" id="k-totv">R$ 0</div>
-    </div>
-    <div class="kpi">
-      <div class="k">Aguardando assinatura</div>
-      <div class="v" id="k-assin">0</div>
-      <div class="f warn" id="k-assinold">—</div>
-      <div class="escopo">fila inteira, fora da competência</div>
     </div>
     <div class="kpi">
       <div class="k">Lançadas sem contrato assinado</div>
@@ -760,6 +799,11 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
           <option value="mudou">Carnê mudou</option>
           <option value="antes">Antes da Ponte</option>
         </select>
+      </div>
+      <div class="campo">
+        <label for="b-busca">Pesquisar</label>
+        <input type="search" class="busca" id="b-busca" placeholder="Cliente, jazigo, deal…" autocomplete="off" spellcheck="false"
+          title="Cliente, jazigo, deal, vendedor ou modalidade. Filtra a lista (e o lote leva só o que está nela). Esc limpa.">
       </div>
       <p class="aviso-eixo">Este seletor é o <b>mês de vencimento do boleto</b> — não a competência da venda. <span id="eixoTxt"></span></p>
     </div>
@@ -901,7 +945,7 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
   var D4OK = false;         // o espelho da D4Sign foi lido
   var CORTE = '';           // d4sign.corte: antes disso a D4Sign não tem documento
   var FILA_FORA = [];       // vendas da fila de contrato FORA da competência (sem dado pessoal)
-  var F = { mes: null, sit: 'tudo', vend: 'tudo', mod: 'tudo' };
+  var F = { mes: null, sit: 'tudo', vend: 'tudo', mod: 'tudo', busca: '', sig: '' };   // (25/09) busca: a pesquisa; sig: de quem falta a assinatura
   /* Os meses já abertos, SÓ em memória: morrem com a aba. Nunca localStorage/IndexedDB. */
   var MEMO = {};
   /* Aviso da última gravação por venda (prefixo x modalidade, referência repetida): fica
@@ -1737,9 +1781,32 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
       return v.ct.k !== 'foracorte';
     });
   }
+  /* (25/09) A PESQUISA (pedido do Ricardo): sem acento e sem maiúscula; TODAS as palavras têm de aparecer em
+     algum campo. Número (CPF, deal, jazigo) casa pelos dígitos — "123.456" acha o CPF 123.456.789-00; "m19450"
+     acha M-19-450. Filtra só a LISTA: os cartões e os contadores continuam valendo para o recorte inteiro. */
+  function semAcento(x) { return String(x == null ? '' : x).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase(); }
+  function soDigitos(x) { return String(x == null ? '' : x).replace(/\D/g, ''); }
+  function casaBusca(q, campos) {
+    q = semAcento(q).trim();
+    if (!q) return true;
+    var alvo = semAcento(campos.join(' | ')), junto = alvo.replace(/[\s\-\/.]/g, ''), digs = campos.map(soDigitos);
+    return q.split(/\s+/).every(function (t) {
+      if (/^[\d.\-\/]+$/.test(t)) {
+        var d = soDigitos(t);
+        return !d || digs.some(function (x) { return x.indexOf(d) >= 0; });
+      }
+      return alvo.indexOf(t) >= 0 || junto.indexOf(t.replace(/[\-\/.]/g, '')) >= 0;
+    });
+  }
+  function camposVenda(v) {
+    // (25/09) + de quem falta a assinatura na D4Sign ("rodrigo" acha os contratos que esperam o Rodrigo)
+    return [v.cli, v.jaz, 'deal ' + v.id, v.vend, v.mod, v.iv.ref, v.pes ? v.pes['CPF'] : '', ((v.ct && v.ct.falta) || []).join(' ')];
+  }
   function filtrar(B) {
     return B.filter(function (v) {
       var k = v.ct.k;
+      if (F.busca && !casaBusca(F.busca, camposVenda(v))) return false;
+      if (F.sig && ((v.ct && v.ct.falta) || []).indexOf(F.sig) < 0) return false;   // (25/09) o atalho do cartão
       if (F.sit === 'alancar' && v.iv.lancado) return false;
       if (F.sit === 'lancadas' && !v.iv.lancado) return false;
       if (F.sit === 'assinatura' && k !== 'aguardando') return false;
@@ -1784,13 +1851,31 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
 
     var ka = $('#k-assinold');
     if (!D4OK) {
-      T('k-assin', '—'); ka.textContent = 'sem leitura da D4Sign'; ka.className = 'f warn';
+      T('k-assin', '—'); ka.textContent = 'sem leitura da D4Sign'; ka.className = 'f warn'; $('#k-assinsig').textContent = '';
       T('k-risco', '—'); T('k-riscotxt', 'sem leitura da D4Sign');
     } else {
       T('k-assin', ass.length);
       var av = Math.max.apply(null, [-1].concat(ass.map(function (v) { return idade(v.ct.cadastro); }).filter(function (n) { return n !== null; })));
       ka.textContent = ass.length ? 'o mais antigo parado há ' + plural(Math.max(0, av), 'dia', 'dias') : 'nenhum pendente';
       ka.className = 'f ' + (ass.length && av >= DIAS_ALERTA ? 'alert' : 'warn');
+      /* (25/09) DE QUEM FALTA A ASSINATURA (pedido do Ricardo): o "Falta assinar" do espelho da D4Sign, contrato a
+         contrato — CLIENTE, TESTEMUNHA ou o nome de quem assina pelo Parque. Um contrato pode esperar mais de uma
+         pessoa, então a soma pode passar do total; contrato sem a lista (o modal não foi lido) conta à parte. */
+      var porSig = {}, semDet = 0;
+      ass.forEach(function (v) {
+        var f = (v.ct && v.ct.falta) || [];
+        if (!f.length) semDet++;
+        f.forEach(function (x) { porSig[x] = (porSig[x] || 0) + 1; });
+      });
+      var sigs = Object.keys(porSig).sort(function (a, b) { return porSig[b] - porSig[a] || a.localeCompare(b); });
+      var rotSig = function (x) { return x === 'CLIENTE' ? 'Cliente' : x === 'TESTEMUNHA' ? 'Testemunha' : x; };
+      // cada nome é um atalho: mostra na lista só os contratos que esperam por ele
+      $('#k-assinsig').innerHTML = sigs.length || semDet
+        ? 'Falta assinar: ' + sigs.map(function (x) {
+            return '<button type="button" class="sigb" data-sig="' + esc(x) + '" data-rot="' + esc(rotSig(x)) + '" title="Mostrar na lista só os contratos que esperam ' +
+              esc(rotSig(x)) + '"><b>' + esc(rotSig(x)) + '</b> ' + porSig[x] + '</button>';
+          }).concat(semDet ? ['sem detalhe ' + semDet] : []).join(' · ')
+        : '';
       var risco = lanc.filter(function (v) { return v.ct.k !== 'assinado' && v.ct.k !== 'foracorte'; });
       T('k-risco', risco.length);
       T('k-riscotxt', risco.length ? 'hoje não trava nada — o número existe para o dia em que travar'
@@ -1869,7 +1954,7 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
       var m2x = Math.max.apply(null, [1, pend.length, ass.length, assd.length].concat(ext.map(function (k) { return extras[k].length; })));
       $('#trilha-ct').innerHTML = '<div class="steps">' +
         passo('s1', pend.length, m2x, 'Sem contrato ou signatário') +
-        passo('s2', ass.length, m2x, 'Aguardando assinatura') +
+        passo('s2', ass.length, m2x, 'Aguardando assinatura do cliente') +
         passo('s4', assd.length, m2x, 'Assinado') +
         ext.map(function (k) { return passo('extra', extras[k].length, m2x, k.charAt(0) + k.slice(1).toLowerCase()); }).join('') +
         '</div>';
@@ -1896,6 +1981,7 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
     var L = filtrar(daFila ? baseFila() : base());
     var box = $('#rows'); box.textContent = '';
     L.forEach(function (v) { box.appendChild(linha(v)); });
+    $('#empty').textContent = F.busca ? 'Nenhuma venda com “' + F.busca + '” neste recorte.' : 'Nenhuma venda neste recorte.';
     $('#empty').hidden = L.length > 0;
   }
 
@@ -1941,7 +2027,7 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
       case 'assinado': return ['p-ok', 'Assinado · ' + dbr(c.fim)];
       case 'aguardando':
         var d = idade(c.cadastro);
-        if (d === null) return ['p-warn', 'Aguardando assinatura'];
+        if (d === null) return ['p-warn', 'Aguardando assinatura do cliente'];
         return [d >= DIAS_ALERTA ? 'p-crit' : 'p-warn', d === 0 ? 'Aguardando · enviado hoje' : 'Aguardando há ' + plural(d, 'dia', 'dias')];
       default: return ['p-mute', c.fase.charAt(0) + c.fase.slice(1).toLowerCase()];
     }
@@ -2422,7 +2508,7 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
   var MESES_L = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
   var CORTE_BOL = '';
   var TAB = 'v';
-  var B = { r: null, mes: null, sit: 'tudo', sel: {} };
+  var B = { r: null, mes: null, sit: 'tudo', sel: {}, busca: '' };
   var MEMO_B = {};
 
   function mesLongo(ym) { return MESES_L[+ym.slice(5, 7) - 1] + ' / ' + ym.slice(0, 4); }
@@ -2630,6 +2716,8 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
     $('#kb-exc-d').textContent = exc.length ? uniq(exc.map(function (it) { return it.marcacao.motivo.toLowerCase(); })).join(', ') : 'nenhuma';
 
     var L = its.filter(function (it) {
+      // (25/09) a pesquisa — e o lote leva só o que ela deixa na tela (a regra de logo abaixo)
+      if (B.busca && !casaBusca(B.busca, [it.cliente, it.jazigo, 'deal ' + it.deal, it.vendedor, it.modalidade])) return false;
       switch (B.sit) {
         case 'tudo': return true;
         case 'indef': return it.meio_indefinido;
@@ -2662,6 +2750,7 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
         '</div>';
       box.appendChild(el);
     });
+    $('#emptyB').textContent = B.busca ? 'Nenhuma parcela com “' + B.busca + '” neste recorte.' : 'Nenhuma parcela neste recorte.';
     $('#emptyB').hidden = L.length > 0;
     B.visiveis = L;
     atualizarLote();
@@ -3255,10 +3344,42 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
   [].forEach.call(document.querySelectorAll('.chip[data-f="sit"]'), function (c) {
     c.addEventListener('click', function () {
       [].forEach.call(document.querySelectorAll('.chip[data-f="sit"]'), function (o) { o.setAttribute('aria-pressed', 'false'); });
-      c.setAttribute('aria-pressed', 'true'); F.sit = c.dataset.v; render();
+      c.setAttribute('aria-pressed', 'true'); F.sit = c.dataset.v; F.sig = ''; pintarSelo(); render();   // (25/09) trocar de situação tira o filtro por signatário
     });
   });
   $('#f-vend').addEventListener('change', function (e) { F.vend = e.target.value; render(); });
+  /* (25/09) a pesquisa: redesenha só a lista, 150 ms depois da última tecla; Esc limpa */
+  function ligarBusca(id, aplicar) {
+    var el = $('#' + id), t = null;
+    var vale = function () { el.classList.toggle('tem', !!el.value.trim()); aplicar(el.value.trim()); };
+    el.addEventListener('input', function () { clearTimeout(t); t = setTimeout(vale, 150); });
+    el.addEventListener('search', function () { clearTimeout(t); vale(); });   // o "x" do campo
+    el.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && el.value) { e.preventDefault(); e.stopPropagation(); el.value = ''; clearTimeout(t); vale(); }
+    });
+  }
+  ligarBusca('f-busca', function (q) { F.busca = q; if (R && !$('#conteudo').hidden) renderTabela(); });
+  /* (25/09) o atalho do cartão: "Rodrigo 2" liga "Aguardando assinatura do cliente" e deixa na lista só os contratos
+     em que falta a assinatura dele — pela lista "Falta assinar" do contrato, não pela pesquisa de texto (um cliente
+     com "Cliente" no nome não entra). O selo "Falta assinar: Rodrigo ×" mostra o filtro e tira com um clique. */
+  function pintarSelo() {
+    $('#f-sig').hidden = !F.sig;
+    var bt = document.querySelector('#k-assinsig [data-sig="' + (window.CSS && CSS.escape ? CSS.escape(F.sig) : F.sig) + '"]');
+    $('#f-sig-n').textContent = F.sig ? (bt ? bt.getAttribute('data-rot') : F.sig) : '';
+  }
+  document.addEventListener('click', function (e) {
+    var bt = e.target.closest && e.target.closest('button[data-sig]');
+    if (!bt) return;
+    var chip = document.querySelector('.chip[data-f="sit"][data-v="assinatura"]');
+    if (chip && chip.getAttribute('aria-pressed') !== 'true') chip.click();   // (a pílula zera o F.sig; o de baixo vem depois)
+    F.sig = bt.getAttribute('data-sig');
+    pintarSelo();
+    renderTabela();
+    var lista = document.querySelector('.tablewrap');
+    if (lista && lista.scrollIntoView) lista.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+  $('#f-sig').addEventListener('click', function () { F.sig = ''; pintarSelo(); renderTabela(); });
+  ligarBusca('b-busca', function (q) { B.busca = q; if (B.r) renderBoletos(); });
   $('#f-mod').addEventListener('change', function (e) { F.mod = e.target.value; render(); });
 
   carregar(null);

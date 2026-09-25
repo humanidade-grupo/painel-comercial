@@ -1,6 +1,10 @@
 /* Painel Comercial — Parque da Saudade + Estrela Urbanidade
    Service worker: instalação PWA + reserva offline.
-   Atualizado em: 25/09/2026 (madrugada, 2ª) — PONTEAPP, O SINO: os avisos saíram das tarjas (ocupavam a tela —
+   Atualizado em: 25/09/2026 (madrugada, 3ª) — PONTEAPP, OS NÚMEROS QUE SE VIGIAM: "A lançar no Ivertex" e
+   "Aguardando assinatura do cliente" (nome novo, pedido do Ricardo) lado a lado, à esquerda e maiores; no segundo,
+   de quem falta a assinatura (Cliente · Testemunha · quem assina pelo Parque), cada nome filtrando a lista; e a
+   PESQUISA nas duas abas (cliente, jazigo, deal, CPF, vendedor, referência — sem acento).
+   Antes, 25/09/2026 (madrugada, 2ª) — PONTEAPP, O SINO: os avisos saíram das tarjas (ocupavam a tela —
    pedido do Ricardo) e foram para um sino ao lado de Recarregar: o número diz quantos há, o sino balança quando
    entra um novo, passar o mouse mostra a lista. Fica na página só o aviso que substitui a tabela. E o aviso
    "N vendas de setembro ainda a lançar" (a fila do mês anterior, Cofre @109).
@@ -235,7 +239,7 @@
    links dos arquivos são drive.google.com, externos, e NÃO entram no cache).
    Estratégia: rede primeiro (pega versão nova quando online), cache como
    reserva offline. A cada deploy, bumpar a versão em CACHE. */
-const CACHE = 'painel-comercial-260925-2';
+const CACHE = 'painel-comercial-260925-3';
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(['./'])).then(() => self.skipWaiting()));
