@@ -12,7 +12,11 @@
      CENA.semVenda = [{ deal, data_ivertex, quem }] → lançamentos de negócio que deixou de ser venda
      CENA.novidades = [{ controle: [...linhas da Controle_ERP], boletos: [...marcações], total, d4, truncado } | 'html']
                                         → a fila das respostas do fn=novidades (vazia: nada novo)
-   window.LOG guarda cada chamada (rota, corpo, hora `t`, e `abortado` quando a tela cancelou) para a prova. */
+     (25/09) CENA.reconstrucao = true   → toda rota menos novidades/saude responde codigo 'reconstrucao'
+     (25/09) CENA.somenteGet = true     → o Cofre anterior à @108: leitura por POST recusada ("só aceita GET")
+     (25/09) CENA.saudeErro = true      → a saúde que chega volta com erro (a tela tem de guardar e mandar de novo)
+   window.LOG guarda cada chamada (rota, corpo, hora `t`, e `abortado` quando a tela cancelou) para a prova.
+   (25/09) e também o método (`metodo`) e se havia token NA URL (`tokenNaUrl`) — tem de ser sempre false. */
 (function () {
   'use strict';
   try { localStorage.setItem('hub_token_controladoria', 'TOKEN-DE-TESTE-1234567890'); } catch (e) {}
@@ -91,12 +95,24 @@
     opts = opts || {};
     var q = {}; url.split('?')[1].split('&').forEach(function (kv) { var p = kv.split('='); q[p[0]] = decodeURIComponent(p[1] || ''); });
     var corpo = opts.body ? JSON.parse(opts.body) : {};
-    var entrada = { fn: q.fn, mes: q.mes, deal: q.deal || corpo.deal, corpo: corpo, t: Date.now() };
+    var entrada = { fn: q.fn, mes: q.mes, deal: q.deal || corpo.deal, corpo: corpo, t: Date.now(),
+                    metodo: String(opts.method || 'GET').toUpperCase(), tokenNaUrl: /[?&]token=/.test(url), keepalive: !!opts.keepalive };
     window.LOG.push(entrada);
     if (opts.signal) opts.signal.addEventListener('abort', function () { entrada.abortado = true; });
     var C = window.CENA;
     if (C.token === 'recusado') return resposta(JSON.stringify({ ok: false, codigo: 'token', error: 'token ausente ou inválido' }), 200, opts.signal);
     if (C.token === 'config') return resposta(JSON.stringify({ ok: false, codigo: 'config', error: 'O cadastro de quem usa a PonteApp (Config controladoria.pessoas) está ilegível — avise o Ricardo (o texto não é uma lista JSON válida — confira vírgulas e aspas).' }), 200, opts.signal);
+    /* (25/09, Fase 1) a saúde: de carona em qualquer POST, ou sozinha no fn=saude */
+    var saude = Array.isArray(corpo.saude) ? (C.saudeErro ? { gravadas: 0, erro: 'trava ocupada — a tela manda de novo' } : { gravadas: corpo.saude.length }) : null;
+    if (q.fn === 'saude') return resposta(JSON.stringify({ ok: true, saude: saude || { gravadas: 0 } }), 100, opts.signal);
+    /* (25/09) CENA.somenteGet = true: o Cofre de antes da @108 — leitura por POST recusada */
+    if (C.somenteGet && ['dados', 'venda', 'boletos', 'boletos_venda', 'novidades'].indexOf(q.fn) >= 0 && entrada.metodo === 'POST') {
+      return resposta(JSON.stringify({ ok: false, status: 400, codigo: 'invalido', error: 'controladoria&fn=' + q.fn + ' só aceita GET' }), 200, opts.signal);
+    }
+    if (C.reconstrucao && q.fn !== 'novidades') {
+      return resposta(JSON.stringify({ ok: false, codigo: 'reconstrucao', saude: saude || undefined,
+        error: 'A cópia do Facilita está sendo refeita do zero — a PonteApp fica parada até terminar, para não mostrar vendas faltando. Avise o Ricardo. (Desde 25/09, 10:12.)' }), 300, opts.signal);
+    }
     if (q.fn === 'dados') {
       var passo = C.dados.length ? C.dados.shift() : 'ok';
       if (passo === 'html') return resposta(HTML, 400, opts.signal);
@@ -125,7 +141,8 @@
       var ag = new Date();
       return resposta(JSON.stringify({ ok: true, desde: q.desde, agora: iso(ag) + ' ' + pad(ag.getHours()) + ':' + pad(ag.getMinutes()),
         controle: nv.controle || [], boletos: nv.boletos || [], truncado: !!nv.truncado,
-        total_vendas: nv.total != null ? String(nv.total) : '5', carimbo_vendas: carimbo, carimbo_d4: nv.d4 || carimbo, ms: 400 }),
+        total_vendas: nv.total != null ? String(nv.total) : '5', carimbo_vendas: carimbo, carimbo_d4: nv.d4 || carimbo, ms: 400,
+        saude: saude || undefined }),
         C.atrasoNovidades != null ? C.atrasoNovidades : 300, opts.signal);
     }
     if (q.fn === 'marcar') {

@@ -1034,7 +1034,38 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
     });
   }
 
-  /* api(fn, o) — o = { params (GET), corpo (POST), aoEsperar(segundos, tentativa, motivo), paralelo }.
+  /* (25/09, Fase 1) A SAÚDE DA PONTEAPP: quanto cada chamada levou DO LADO DESTA TELA — é aqui que a
+     entrega do Google aparece (o Cofre responde em 1–4 s; a espera de verdade é a entrega). Uma amostra
+     por chamada: rota, ms até a resposta, ms do servidor, quantos pedidos saíram, deu certo, o motivo.
+     Nenhum dado de cliente. Vai de carona no "há novidade" (a cada 2 min) e, quando a pessoa sai da aba,
+     sozinha (fn=saude, keepalive). O "há novidade" só vira amostra quando falha ou passa de 30 s. O
+     Cofre guarda na aba Saude_PonteApp e avisa o Ricardo no WhatsApp quando alguém esperou demais. */
+  var SAUDE = [], SAUDE_MAX = 60, SAUDE_LENTO = 30000;
+  function anotarSaude(fn, t0, n, r, e) {
+    if (fn === 'saude') return;
+    var ms = Date.now() - t0, ok = !!(r && r.ok === true);
+    if (fn === 'novidades' && ok && ms <= SAUDE_LENTO) return;
+    var m = e ? String(e.tipo || 'erro') : ok ? '' : String((r && r.codigo) || 'erro');
+    SAUDE.push({ t: t0, fn: fn, ms: ms, srv: r && typeof r.ms === 'number' ? r.ms : '', n: n || 1, ok: ok, m: m });
+    if (SAUDE.length > SAUDE_MAX) SAUDE.splice(0, SAUDE.length - SAUDE_MAX);
+  }
+  function tirarSaude(lote) { SAUDE = SAUDE.filter(function (x) { return lote.indexOf(x) < 0; }); }
+  function mandarSaude() {
+    var tk = token();
+    if (!SAUDE.length || !tk) return;
+    var lote = SAUDE.splice(0, SAUDE_MAX);   // sem volta: a página pode estar fechando
+    try {
+      fetch(API + '?app=controladoria&fn=saude', { method: 'POST', keepalive: true, cache: 'no-store', credentials: 'omit',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ token: tk, saude: lote }) }).catch(function () {});
+    } catch (e) {}
+  }
+  document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'hidden') mandarSaude(); });
+  window.addEventListener('pagehide', mandarSaude);
+  /* O id de cada leitura, para o registro de acesso do Cofre: os pedidos em paralelo da corrida levam o mesmo. */
+  function idPedido() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 8); }
+
+  /* api(fn, o) — o = { params (na URL), corpo (gravação), extra (leitura: mais campos no corpo),
+     aoEsperar(segundos, tentativa, motivo), paralelo }.
      `paralelo` (só leitura): a corrida acima. Resolve com o JSON do Cofre, inclusive ok:false com
      `codigo`. Rejeita (e.tipo) com 'prazo', 'html' ou 'rede' depois das tentativas, ou com 'token'
      quando o token foi recusado — e aí a pessoa JÁ está no portão. */
@@ -1047,6 +1078,13 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
     Object.keys(o.params || {}).forEach(function (k) {
       if (o.params[k] != null) url += '&' + k + '=' + encodeURIComponent(o.params[k]);
     });
+    /* (25/09, Fase 1) TOKEN FORA DA URL: a leitura também vai por POST, com o token no CORPO — a URL
+       leva só os parâmetros, que não têm segredo. Antes o token ia em toda leitura (&token=…) e aparecia
+       em qualquer registro de rede: foi assim que vazou em 24/09. A gravação já era assim. */
+    var corpo = grava ? Object.assign({ token: tk }, o.corpo) : Object.assign({ token: tk, pedido: idPedido() }, o.extra || {});
+    var opts = { method: 'POST', cache: 'no-store', credentials: 'omit',
+                 headers: { 'Content-Type': 'text/plain;charset=utf-8' },   // sem preflight de CORS
+                 body: JSON.stringify(corpo) };
     var t0 = Date.now(), tentativa = 1, motivo = '', relogio = null;
     var avisa = function () { if (o.aoEsperar) o.aoEsperar(Math.floor((Date.now() - t0) / 1000), tentativa, motivo); };
     if (o.aoEsperar) { avisa(); relogio = setInterval(avisa, 1000); }
@@ -1056,12 +1094,7 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
       return new Promise(function (res) { setTimeout(res, ms); }).then(tenta);
     };
     var tenta = function () {
-      var opts = grava
-        ? { method: 'POST', cache: 'no-store', credentials: 'omit',
-            headers: { 'Content-Type': 'text/plain;charset=utf-8' },   // sem preflight de CORS
-            body: JSON.stringify(Object.assign({ token: tk }, o.corpo)) }
-        : { cache: 'no-store', credentials: 'omit' };
-      return umaTentativa(grava ? url : url + '&token=' + encodeURIComponent(tk), opts, prazo).then(function (r) {
+      return umaTentativa(url, Object.assign({}, opts), prazo).then(function (r) {
         // outra gravação da controladoria segurando a trava: repetir é seguro
         if (r && r.ok !== true && r.codigo === 'trava' && tentativa < TENTATIVAS) {
           motivo = 'outra gravação em andamento'; return espera(3000);
@@ -1076,17 +1109,26 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
       });
     };
     var caminho = !grava && o.paralelo
-      ? corrida(url + '&token=' + encodeURIComponent(tk), { cache: 'no-store', credentials: 'omit' },
-                function (n, m) { tentativa = n; if (m) motivo = m; avisa(); })
+      ? corrida(url, opts, function (n, m) { tentativa = n; if (m) motivo = m; avisa(); })
       : tenta();
+    /* (25/09, Fase 1) REDE DE SEGURANÇA DA ESTREIA: se o Cofre voltar a uma versão anterior à @108 (volta
+       atrás de implantação), ele recusa a leitura por POST com "só aceita GET". Aí esta leitura — e só ela —
+       vai do jeito antigo, com o token na URL, em vez de a tela parar. Some depois de 01/10, quando o
+       próprio Cofre deixa de aceitar GET. */
+    caminho = caminho.then(function (r) {
+      if (grava || !r || r.ok === true || r.codigo !== 'invalido' || !/só aceita GET/.test(String(r.error || ''))) return r;
+      tentativa++; motivo = 'o Facilita pediu o jeito antigo'; avisa();
+      return umaTentativa(url + '&token=' + encodeURIComponent(tk), { cache: 'no-store', credentials: 'omit' }, prazo);
+    });
     return caminho.then(function (r) {
       fim();
+      anotarSaude(fn, t0, tentativa, r);
       if (r && r.ok !== true && (r.codigo === 'token' || (!r.codigo && r.error === ERRO_TOKEN))) {
         sair(grava ? 'Token recusado ao gravar. Digite de novo.' : 'Token recusado. Confira e digite de novo — o token do Painel não serve aqui.');
         throw falha('token', 'token recusado');
       }
       return r;
-    }, function (e) { fim(); throw e; });
+    }, function (e) { fim(); anotarSaude(fn, t0, e.tentativas || tentativa, null, e); throw e; });
   }
 
   /* O que a espera diz, enquanto espera. (24/09, Fase 1) Sem o "de 3": na leitura em paralelo os
@@ -1098,6 +1140,14 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
     return t;
   }
   /* Mensagem de falha de rede para quem usa a tela — nunca o texto técnico cru. */
+  /* (25/09, Fase 1) O título da tarja quando o Facilita respondeu que não: o `codigo` diz qual é. */
+  function tituloRecusa(r) {
+    var c = r && r.codigo;
+    return c === 'config' ? 'O cadastro da PonteApp está com problema.'
+         : c === 'reconstrucao' ? 'A cópia do Facilita está sendo refeita — a PonteApp volta quando terminar.'
+         : c === 'versao' ? 'Esta página ficou desatualizada.'
+         : 'O Facilita respondeu, mas sem dado.';
+  }
   function textoFalha(e) {
     var n = e.tentativas || TENTATIVAS;
     if (e.tipo === 'prazo') return 'O Facilita não respondeu depois de ' + n + ' tentativas. Ele costuma voltar em poucos minutos.';
@@ -1134,7 +1184,7 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
       if (meu !== SEQ) return;                    // outro pedido passou na frente
       if (!r || r.ok !== true) {
         CARGA = null; carregando(false);
-        bloqueia(r && r.codigo === 'config' ? 'O cadastro da PonteApp está com problema.' : 'O Facilita respondeu, mas sem dado.',
+        bloqueia(tituloRecusa(r),
           '<p>' + esc((r && r.error) || 'resposta vazia') + '</p>', denovo);
         return;
       }
@@ -2316,7 +2366,7 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
       if (meu !== SEQ_B) return;
       if (!r || r.ok !== true) {
         CARGA_B = null;
-        bloqueiaB(r && r.codigo === 'config' ? 'O cadastro da PonteApp está com problema.' : 'O Facilita respondeu, mas sem dado.',
+        bloqueiaB(tituloRecusa(r),
           '<p>' + esc((r && r.error) || 'resposta vazia') + '</p>', denovo);
         return;
       }
@@ -2623,8 +2673,10 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
   function novidades() {
     if (!NOV.desde || NOV.emVoo || CARGA || !R || document.hidden || !$('#gate').hidden) return;
     NOV.emVoo = true;
-    api('novidades', { params: { desde: NOV.desde } }).then(function (r) {
+    var lote = SAUDE.slice(0, 30);   // (25/09, Fase 1) a saúde vai de carona; sai da fila só quando o Cofre guardou
+    api('novidades', { params: { desde: NOV.desde }, extra: lote.length ? { saude: lote } : null }).then(function (r) {
       NOV.emVoo = false; NOV.ultima = Date.now();
+      if (lote.length && r && r.saude && !r.saude.erro) tirarSaude(lote);
       if (!r || r.ok !== true) return;   // falha fica para o próximo ciclo; não tira ninguém da tela
       NOV.ok = Date.now();
       aplicarNovidades(r);
@@ -2777,7 +2829,8 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
   // só no teste local (testes/ponteapp): dispara a consulta sem esperar os 2 min
   if (/^(localhost|127\.0\.0\.1)$/.test(location.hostname)) {
     window.__PONTE = { novidades: function () { NOV.ultima = 0; novidades(); },
-                       nov: function () { return { desde: NOV.desde, adiadas: Object.keys(NOV.adiadas), ok: NOV.ok, emVoo: NOV.emVoo }; } };
+                       nov: function () { return { desde: NOV.desde, adiadas: Object.keys(NOV.adiadas), ok: NOV.ok, emVoo: NOV.emVoo }; },
+                       saude: function () { return SAUDE.slice(); } };   // (25/09, Fase 1) a fila de amostras, para a prova local
   }
 
   /* ---------- o modal do boleto ---------- */
