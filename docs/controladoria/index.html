@@ -1980,8 +1980,12 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
     // Perna 3 — Controladoria: Data da Venda -> data_ivertex
     var p3 = lanc.map(function (v) { var d = diasEntre(v.data, v.iv.data); return d === null ? null : Math.max(0, d); });
     var a3 = abertoTxt(fila, function (v) { return v.data; }, ['na fila', 'na fila']);
+    /* (25/09) As baixadas pelo relatório do Ivertex (cofre BaixaIvertex.gs, Fonte relatorio) não têm o dia
+       do lançamento: contam como lançadas e ficam fora da mediana — decisão do Ricardo. */
+    var semDia = lanc.filter(function (v) { return !v.iv.data; }).length;
     pintaPerna('t3', emDias(mediana(p3)),
-      plural(p3.filter(function (x) { return x !== null; }).length, 'lançada', 'lançadas') + (a3.txt ? ' · ' + a3.txt : ' · fila zerada'), a3.alerta);
+      plural(lanc.length, 'lançada', 'lançadas') + (semDia ? ' (' + semDia + ' pelo relatório, sem dia — fora da mediana)' : '') +
+      (a3.txt ? ' · ' + a3.txt : ' · fila zerada'), a3.alerta);
 
     // ---- trilhas
     var passo = function (cls, n, max, rot) {
@@ -2533,7 +2537,8 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
         '<button type="button" class="ivb vertudo" data-vertudo="' + esc(v.id) + '" title="Todas as colunas desta venda no Facilita, lidas agora">Ver tudo do Facilita</button></div>' +
       '<div class="dblk"><h4>Assinaturas</h4>' + assin + '</div>' +
       '<div class="dblk"><h4>Ivertex</h4>' +
-        (v.iv.lancado ? '<p>Lançado em <b>' + esc(dbr(v.iv.data)) + '</b> por <b>' + esc(v.iv.quem) + '</b></p>' +
+        (v.iv.lancado ? (v.iv.data ? '<p>Lançado em <b>' + esc(dbr(v.iv.data)) + '</b> por <b>' + esc(v.iv.quem) + '</b></p>'
+                                   : '<p>Lançado — <span class="dim">dia desconhecido</span> · <b>' + esc(v.iv.quem) + '</b></p>') +
                         (v.iv.ref ? '<p>Referência <b>' + esc(v.iv.ref) + '</b>' + (v.iv.fonte === 'relatorio' ? ' <span class="dim">(do relatório)</span>' : '') + '</p>'
                                   : '<p class="dim">Sem referência Ivertex — dá para preencher na coluna, sem desmarcar.</p>')
                       : '<p>Ainda não lançado</p>' + (v.iv.quem ? '<p class="dim">desmarcado por ' + esc(v.iv.quem) + ' em ' + esc(fmtCarimbo(v.iv.quando)) + '</p>' : '')) +
