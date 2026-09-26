@@ -1,6 +1,9 @@
 /* Painel Comercial — Parque da Saudade + Estrela Urbanidade
    Service worker: instalação PWA + reserva offline.
-   Atualizado em: 25/09/2026 (tarde, 2ª) — PONTEAPP, DOIS NÚMEROS NA ASSINATURA (pedido do Ricardo): o cartão
+   Atualizado em: 26/09/2026 — MIGRAÇÃO Temporário → Perpétuo (lançada à mão na aba Migracoes do Cofre): conta
+   no total e no placar do Parque, fica fora do ticket e do desconto, tem linha própria no mix de modalidade com o
+   selo "lançada à mão", e entra na comissão da Retrospectiva pela régua do Perpétuo sobre o Valor Pago.
+   Antes, 25/09/2026 (tarde, 2ª) — PONTEAPP, DOIS NÚMEROS NA ASSINATURA (pedido do Ricardo): o cartão
    "Aguardando assinatura" separa "do cliente" e "do Parque" (dos 15 aguardando, só 2 esperavam o cliente), cada
    número filtrando a lista; no celular os dois cartões que se vigiam ocupam a largura inteira. E a palavra "Google"
    saiu das mensagens da tela ("a resposta está demorando", "veio uma página de erro").
@@ -245,7 +248,7 @@
    links dos arquivos são drive.google.com, externos, e NÃO entram no cache).
    Estratégia: rede primeiro (pega versão nova quando online), cache como
    reserva offline. A cada deploy, bumpar a versão em CACHE. */
-const CACHE = 'painel-comercial-260925-6';
+const CACHE = 'painel-comercial-260926-1';
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(['./'])).then(() => self.skipWaiting()));

@@ -492,7 +492,11 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
   var COMISSAO = {
     'Perpétuo':   { avista: 0.010, parcelada: 0.008 },
     'Reserva':    { avista: 0.007, parcelada: 0.005 },
-    'Temporário': { avista: 0.000, parcelada: 0.000 }
+    'Temporário': { avista: 0.000, parcelada: 0.000 },
+    /* (26/09/2026, decisão do Ricardo) MIGRAÇÃO Temporário → Perpétuo, lançada à
+       mão no Cofre (aba Migracoes): a régua do PERPÉTUO sobre o Valor Pago. Não
+       está na planilha de julho — a migração nasceu depois dela. */
+    'Migração':   { avista: 0.010, parcelada: 0.008 }
   };
 
   /* As 11 colunas do extrato, NESTA ORDEM — são as da planilha de fechamento
@@ -988,7 +992,7 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
     ['Data da Venda','Quadra','Jazigo','Vendedor','Cliente','Modalidade','Valor Face',
      'Valor Venda','Nº Parcelas','Fluxo de Pagamento','Forma Pagamento','Condição Pagamento',
      'Origem','Canal','Deal ID','Meio Pgto','Meio origem',
-     'Origem fonte','Origem detalhe','Chegou'].forEach(function (nome) {
+     'Origem fonte','Origem detalhe','Chegou','Deal Origem'].forEach(function (nome) {
       c[nome] = cab.indexOf(nome);
     });
     if (c['Data da Venda'] < 0 || c['Vendedor'] < 0 || c['Valor Venda'] < 0 || c['Modalidade'] < 0) return null;
@@ -1019,7 +1023,15 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
        2. Vazia (agosto/2026 inteiro), deriva: Nº Parcelas = 1 → à vista;
           qualquer outro valor → parcelada. E a tela DIZ que derivou (itálico). */
     var avista, prazoTexto, derivado;
-    if (cond){
+    /* MIGRAÇÃO (26/09): lançada à mão, com a forma DECLARADA ("À vista" ou
+       "Parcelado") e sem nº de parcelas nem tabela. A forma manda; as marcas de
+       prazo e de desconto não se aplicam — não há contrato do Facilita para
+       conferir nem tabela para medir contra. */
+    var ehMig = (modalidade === 'Migração');
+    if (ehMig){
+      avista = (String(g(l,'Forma Pagamento')).trim() === 'À vista');
+      prazoTexto = avista ? 'À vista' : 'Parcelado'; derivado = false;
+    } else if (cond){
       var cu = cond.toUpperCase();
       avista = (cu === 'À VISTA' || cu === 'A VISTA');
       prazoTexto = cond; derivado = false;
@@ -1034,7 +1046,7 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
        vista, a régua derivada paga 0,8% — R$ 36,60 de diferença que esta marca
        existe para expor); e Fluxo × Nº Parcelas discordando é o "1x Entrada +
        23x Mensal" com 72 parcelas. */
-    if (nParc === null || nParc <= 2){
+    if (!ehMig && (nParc === null || nParc <= 2)){
       alPrazo.push('Nº Parcelas = ' + (nParc === null ? 'vazio' : nParc) +
                    ': confira no contrato se foi à vista ou parcelada.');
     }
@@ -1061,7 +1073,9 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
 
     return {
       data: data, quadra: quadra,
-      jazigo: (quadra && jaz) ? quadra + '-' + jaz : (jaz || quadra || '—'),
+      /* a migração não tem jazigo próprio: diz de qual Temporário ela é a conversão */
+      jazigo: ehMig ? 'migração ← ' + (String(g(l,'Deal Origem')).trim() || '?')
+                    : (quadra && jaz) ? quadra + '-' + jaz : (jaz || quadra || '—'),
       vendedor: String(g(l,'Vendedor')).trim() || '—',
       cliente: String(g(l,'Cliente')).trim() || '—',
       modalidade: modalidade || '—',

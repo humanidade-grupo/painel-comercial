@@ -77,6 +77,10 @@
   .anuncio-detalhe{margin-top:6px;font-size:11.5px;line-height:1.6;color:var(--ink2)}
   .anuncio-detalhe b{color:var(--ink);font-weight:700}
   .anuncio-detalhe em{font-style:normal;color:var(--ink);font-weight:700}
+  /* (26/09) o selo da migração lançada à mão no Cofre — discreto: contorno, sem cor de alerta */
+  .mig-lista{margin-top:8px;font-size:11.5px;line-height:1.7;color:var(--ink2)}
+  .selo-mao{display:inline-block;font-size:10px;font-weight:600;letter-spacing:.04em;color:var(--muted);
+    border:1px solid var(--edge);border-radius:6px;padding:0 6px;margin-right:6px;vertical-align:1px}
   .s12{grid-column:span 12}.s8{grid-column:span 8}.s7{grid-column:span 7}.s6{grid-column:span 6}
   .s5{grid-column:span 5}.s4{grid-column:span 4}.s3{grid-column:span 3}
   @media(max-width:980px){.s8,.s7,.s6,.s5,.s4,.s3{grid-column:span 12}}
@@ -681,10 +685,17 @@ window.__renderPS = function (dados, ymSel) {
   var DOACAO_ATE = 100;   // R$ — abaixo disso não é venda, é doação/permuta
   var ehDoacao = function (v) { return Number(v.venda || 0) <= DOACAO_ATE; };
   var ehTemp = function (v) { return v.modalidade === 'Temporário'; };
+  /* MIGRAÇÃO (26/09/26, decisão do Ricardo): Temporário → Perpétuo lançado à mão
+     no Cofre (aba Migracoes). CONTA na venda e na meta — está no `total` e no
+     placar — mas fica FORA do ticket e do desconto: o valor é o que se pagou
+     pela conversão, não um jazigo a preço de tabela, e ela não tem tabela para
+     medir desconto contra. */
+  var ehMig = function (v) { return v.modalidade === 'Migração'; };
 
-  var baseTM = doMes.filter(function (v) { return !ehTemp(v) && !ehDoacao(v); });
+  var baseTM = doMes.filter(function (v) { return !ehTemp(v) && !ehMig(v) && !ehDoacao(v); });
   var nTemp = doMes.filter(ehTemp).length;
-  var nDoacao = doMes.filter(function (v) { return !ehTemp(v) && ehDoacao(v); }).length;
+  var nMig = doMes.filter(ehMig).length;
+  var nDoacao = doMes.filter(function (v) { return !ehTemp(v) && !ehMig(v) && ehDoacao(v); }).length;
 
   var vgvBase = soma(baseTM, function (v) { return v.venda; });
   var tm = baseTM.length ? vgvBase / baseTM.length : 0;
@@ -698,9 +709,11 @@ window.__renderPS = function (dados, ymSel) {
     var fora = [];
     if (nTemp) fora.push(fN(nTemp) + ' temporári' + (nTemp > 1 ? 'as' : 'a'));
     if (nDoacao) fora.push(fN(nDoacao) + ' doaç' + (nDoacao > 1 ? 'ões' : 'ão'));
-    if (!fora.length) return 'sobre as ' + fN(baseTM.length) + ' vendas do mês';
+    var mig = nMig ? fN(nMig) + ' migraç' + (nMig > 1 ? 'ões' : 'ão') + ' (conversão de temporário, sem tabela)' : '';
+    if (!fora.length && !mig) return 'sobre as ' + fN(baseTM.length) + ' vendas do mês';
     return 'sobre ' + fN(baseTM.length) + ' de ' + fN(total) + ' vendas · fora: ' +
-      fora.join(' e ') + ' (preço de tabela, não desconto concedido)';
+      (fora.length ? fora.join(' e ') + ' (preço de tabela, não desconto concedido)' : '') +
+      (fora.length && mig ? ' e ' : '') + mig;
   })();
   var vgvAntMesmoDia = soma(doAnt.filter(function (v) { return Number(String(v.data).slice(8, 10)) <= diaRef; }), function (v) { return v.venda; });
 
@@ -929,7 +942,10 @@ window.__renderPS = function (dados, ymSel) {
   /* -------- mix -------- */
   g.appendChild(el('<div class="sect"><h2>Mix da venda — ' + esc(ymLabel(ym)) + '</h2><div class="ln"></div><span class="tag">canal · modalidade · pagamento</span></div>'));
   var cCanal = el('<div class="card s4"><h3>Canal de venda</h3><div class="why">participação nas ' + fN(total) + ' vendas do mês</div><div id="psCanal"></div></div>');
-  var cModal = el('<div class="card s4"><h3>Modalidade</h3><div class="why">uso perpétuo × temporário · a modalidade vem do nome da tabela de vendas do CRM</div><div id="psModal"></div></div>');
+  /* A legenda dizia "vem do nome da tabela" — é o CONTRATO gerado no Facilita que
+     decide desde 18/09 (a tabela só vale até o contrato existir). Corrigida em
+     26/09, junto com a Migração, que não vem do CRM: é lançada à mão no Cofre. */
+  var cModal = el('<div class="card s4"><h3>Modalidade</h3><div class="why">perpétuo × temporário × reserva · vem do contrato gerado no Facilita (a tabela, até ele existir) · migração: lançada à mão no Cofre</div><div id="psModal"></div></div>');
   var cPag = el('<div class="card s4"><h3>Pagamento</h3><div class="why">condição e forma</div><div id="psCond"></div><div id="psForma" style="margin-top:6px"></div></div>');
   g.appendChild(cCanal); g.appendChild(cModal); g.appendChild(cPag);
 
@@ -1557,7 +1573,27 @@ window.__renderPS = function (dados, ymSel) {
       cont.appendChild(w2);
     }
   })();
-  quebraCard($('#psModal'), topN(grupo(doMes, function (v) { return v.modalidade || 'Não informado'; }), 4), total, 'vendas');
+  /* 5, não 4 (26/09): com a Migração são quatro modalidades de verdade — Perpétuo,
+     Temporário, Reserva e Migração —, e o top-4 empurrava a quarta para "Outros". */
+  quebraCard($('#psModal'), topN(grupo(doMes, function (v) { return v.modalidade || 'Não informado'; }), 5), total, 'vendas');
+  /* O DETALHE DA MIGRAÇÃO, com o selo "lançada à mão": ela não vem do Facilita, e
+     quem olha o número precisa saber que uma pessoa a digitou — e de qual
+     Temporário ela é a conversão. Uma linha por migração do mês. */
+  (function () {
+    var migs = doMes.filter(ehMig);
+    if (!migs.length) return;
+    migs.sort(function (a, b) { return a.data < b.data ? -1 : a.data > b.data ? 1 : 0; });
+    var dv = document.createElement('div');
+    dv.className = 'mig-lista';
+    dv.innerHTML = migs.map(function (v) {
+      var d = String(v.data || '');
+      return '<span class="selo-mao" title="lançada à mão no Cofre (aba Migracoes) — não vem do Facilita">lançada à mão</span>' +
+        'Migração · deal ' + esc(v.deal || '?') + ' ← temporário ' + esc(v.deal_origem || '?') +
+        ' · ' + esc(v.vendedor || 'sem vendedor') + (d.length >= 10 ? ' · ' + d.slice(8, 10) + '/' + d.slice(5, 7) : '') +
+        ' · R$ ' + fN(v.venda, 2);   // valor exato: é linha de conferência do que foi digitado
+    }).join('<br>');
+    $('#psModal').appendChild(dv);
+  })();
   quebraCard($('#psCond'), topN(grupo(doMes, function (v) { return v.cond || 'Não informado'; }), 4), total, 'vendas');
   quebraCard($('#psForma'), topN(grupo(doMes, function (v) { return v.forma || 'Não informado'; }), 4), total, 'vendas');
 
