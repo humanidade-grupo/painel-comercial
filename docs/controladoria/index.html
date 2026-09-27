@@ -1211,8 +1211,13 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
      ou rede caída puxam outro na hora. Vale o primeiro JSON que chegar; os outros são cancelados.
      No máximo 2 no ar e 4 no total, e 2,5 min no geral. Leitura não grava nada: repetir não tem
      efeito — e o custo é o Cofre responder a mesma leitura duas vezes (1–4 s de servidor cada).
-     Gravação NUNCA entra aqui: segue um pedido por vez (que também é seguro de repetir). */
-  var PARALELO_APOS = 8000, PARALELO_NO_AR = 2, PARALELO_TOTAL = 4, PRAZO_TOTAL_LER = 150000;
+     Gravação NUNCA entra aqui: segue um pedido por vez (que também é seguro de repetir).
+     (27/09, Fase 2) O segundo pedido sai aos 5 s, não aos 8: com a leitura em lote (Cofre @114) o servidor
+     responde a tabela em ~0,6 s e a coluna Boleto em ~0,9 s — resposta que passou de 5 s está presa na
+     entrega, não no Cofre. Medido de 25 a 27/09 (Saude_PonteApp): mediana da tabela 6,4 s, e os 10% piores
+     em 12,8 s, com o servidor em 3 s — a diferença era a entrega. E a coluna Boleto entrou na corrida:
+     era a única leitura que a pessoa espera olhando e que ia um pedido de cada vez. */
+  var PARALELO_APOS = 5000, PARALELO_NO_AR = 2, PARALELO_TOTAL = 4, PRAZO_TOTAL_LER = 150000;
   function corrida(url, opts0, aoLancar) {
     return new Promise(function (resolve, reject) {
       var noAr = [], lancados = 0, acabou = false, ultimoErro = null, timer = null;
@@ -1442,7 +1447,7 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
   function carregarCarne(mes, rodada) {
     rodada = rodada || 1;
     var b = BOLS[mes] = { estado: 'lendo' };
-    api('boletos_venda', { params: { mes: mes } }).then(function (r) {
+    api('boletos_venda', { params: { mes: mes }, paralelo: true }).then(function (r) {   // (27/09, Fase 2) na corrida também
       if (BOLS[mes] !== b) return;
       if (!r || r.ok !== true) {
         b.estado = 'erro'; b.erro = (r && r.error) || 'resposta vazia';

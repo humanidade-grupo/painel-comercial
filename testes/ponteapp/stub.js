@@ -126,11 +126,12 @@
         passo && typeof passo === 'object' && passo.atraso != null ? passo.atraso : C.atraso[mes] || 300, opts.signal);
     }
     /* (24/09, Fase 1) a coluna Boleto à parte. CENA.carne = fila de passos ('ok' | 'erro' | 'html' |
-       'recibo'); CENA.atrasoCarne = ms (padrão 1500: a tabela chega antes). O corpo é montado NA
+       'recibo' | 'nunca'); CENA.atrasoCarne = ms (padrão 1500: a tabela chega antes). O corpo é montado NA
        HORA do pedido — marcação feita durante o atraso não vem nele (é o que a sessão reaplica). */
     if (q.fn === 'boletos_venda') {
       var cc = C.carne && C.carne.length ? C.carne.shift() : 'ok';
       if (cc === 'html') return resposta(HTML, 300, opts.signal);
+      if (cc === 'nunca') return nunca(opts.signal);   // (27/09, Fase 2) a coluna Boleto também entra na corrida
       if (cc === 'erro') return resposta(JSON.stringify({ ok: false, codigo: 'carne', error: 'o carnê não pôde ser lido: falha simulada' }), 300, opts.signal);
       return resposta(JSON.stringify({ ok: true, mes: q.mes, boletos: boletosDe(q.mes), n: (VENDAS[q.mes] || []).length, corte_boleto: '2026-09-25',
         contagem: [{ aba: 'Vendas_Facilita', chave: 'x', esperado: 5, lido: 5 },

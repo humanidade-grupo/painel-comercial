@@ -1,6 +1,8 @@
 /* Painel Comercial — Parque da Saudade + Estrela Urbanidade
    Service worker: instalação PWA + reserva offline.
-   Atualizado em: 27/09/2026 — RETROSPECTIVA COM OS NÚMEROS DO EXECUTIVO: os números do mês saem da mesma rota
+   Atualizado em: 27/09/2026 (madrugada, 2ª) — PONTEAPP, FASE 2: com a leitura em lote do Cofre (@114) o servidor
+   responde em ~1 s; a tela pede de novo aos 5 s (era 8) e a coluna Boleto entrou na corrida.
+   Antes, 27/09/2026 — RETROSPECTIVA COM OS NÚMEROS DO EXECUTIVO: os números do mês saem da mesma rota
    (?app=vendas&fn=dados) e com as mesmas regras (migração conta, vendas anteriores a 13/04 entram, ticket sem
    temporário/doação/migração, meta da Config); as abas Resumo_* deixam de ser lidas; token no corpo do POST. E
    "Captação Própria" × "Captação própria" viram uma origem só nas duas telas.
@@ -252,7 +254,7 @@
    links dos arquivos são drive.google.com, externos, e NÃO entram no cache).
    Estratégia: rede primeiro (pega versão nova quando online), cache como
    reserva offline. A cada deploy, bumpar a versão em CACHE. */
-const CACHE = 'painel-comercial-270926-1';
+const CACHE = 'painel-comercial-270926-2';
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(['./'])).then(() => self.skipWaiting()));
