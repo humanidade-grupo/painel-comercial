@@ -1,6 +1,9 @@
 /* Painel Comercial — Parque da Saudade + Estrela Urbanidade
    Service worker: instalação PWA + reserva offline.
-   Atualizado em: 27/09/2026 (madrugada, 2ª) — PONTEAPP, FASE 2: com a leitura em lote do Cofre (@114) o servidor
+   Atualizado em: 27/09/2026 (madrugada, 3ª) — PONTEAPP, OS NÚMEROS NUMA OLHADA: 5 cartões + 3 caixas de tempo + 2 trilhas
+   viram dois quadros (Lançar no Ivertex · Contratos na D4Sign), cada um com uma barra e a legenda que filtra a lista;
+   a tabela sobe ~330 px. O texto "de onde vêm os dados" fica fechado numa linha.
+   Antes, 27/09/2026 (madrugada, 2ª) — PONTEAPP, FASE 2: com a leitura em lote do Cofre (@114) o servidor
    responde em ~1 s; a tela pede de novo aos 5 s (era 8) e a coluna Boleto entrou na corrida.
    Antes, 27/09/2026 — RETROSPECTIVA COM OS NÚMEROS DO EXECUTIVO: os números do mês saem da mesma rota
    (?app=vendas&fn=dados) e com as mesmas regras (migração conta, vendas anteriores a 13/04 entram, ticket sem
@@ -254,7 +257,7 @@
    links dos arquivos são drive.google.com, externos, e NÃO entram no cache).
    Estratégia: rede primeiro (pega versão nova quando online), cache como
    reserva offline. A cada deploy, bumpar a versão em CACHE. */
-const CACHE = 'painel-comercial-270926-2';
+const CACHE = 'painel-comercial-270926-3';
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(['./'])).then(() => self.skipWaiting()));

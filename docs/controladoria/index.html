@@ -200,50 +200,10 @@ button:focus-visible,select:focus-visible,.row-head:focus-visible,input:focus-vi
 .kpi .f.alert{color:var(--crit);font-weight:500}
 .kpi .f.warn{color:var(--warn);font-weight:500}
 
-/* ---- esteira ---- */
-.tracks{margin-top:22px;display:grid;grid-template-columns:1fr 1.5fr;gap:10px 26px;align-items:end}
-.secttl{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-3);
-  margin-bottom:9px}
-.secttl em{font-style:normal;text-transform:none;letter-spacing:0;color:var(--ink-3);opacity:.8}
-.secttl em::before{content:"· "}
-.steps{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:2px}
-.step{background:var(--surface);border:1px solid var(--line);padding:10px 12px 11px}
-.step:first-child{border-radius:var(--r) 0 0 var(--r)}
-.step:last-child{border-radius:0 var(--r) var(--r) 0}
-.step:only-child{border-radius:var(--r)}
-.step .bar{height:5px;border-radius:3px;background:var(--mute-soft);margin-bottom:9px}
-.step .bar i{display:block;height:100%;border-radius:3px;background:var(--ink-3)}
-.step.s1 .bar i{background:var(--crit)} .step.s2 .bar i{background:var(--warn)}
-.step.s3 .bar i{background:var(--accent)} .step.s4 .bar i{background:var(--ok)}
-/* fase que a lista não conhece: aparece com o rótulo dela, listrada */
-.step.extra .bar i{background:repeating-linear-gradient(45deg,var(--ink-3) 0 4px,transparent 4px 8px)}
-.step.extra .l{font-style:italic}
-.step .n{font-family:"Lora",Georgia,serif;font-size:21px;font-variant-numeric:tabular-nums}
-.step .l{font-size:11.5px;color:var(--ink-2);margin-top:1px}
 .semleitura{background:var(--surface);border:1px dashed var(--line-strong);border-radius:var(--r);
   padding:12px 14px;font-size:12.5px;color:var(--ink-2)}
 .semleitura b{color:var(--warn)}
 
-/* ---- tempos por perna ---- */
-.tempos{margin-top:24px}
-.legs{display:grid;grid-template-columns:repeat(3,1fr);gap:2px}
-.leg{background:var(--surface);border:1px solid var(--line);padding:12px 14px 13px;
-  border-left:3px solid var(--line-strong)}
-.leg:first-child{border-radius:var(--r) 0 0 var(--r);border-left-color:var(--ok)}
-.leg:nth-child(2){border-left-color:var(--warn)}
-.leg:last-child{border-radius:0 var(--r) var(--r) 0;border-left-color:var(--accent)}
-.leg .who{font-size:10.5px;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-3)}
-.leg .what{font-size:12.5px;color:var(--ink-2);margin-top:2px}
-.leg .med{font-family:"Lora",Georgia,serif;font-size:26px;margin-top:6px;
-  font-variant-numeric:tabular-nums;line-height:1.1}
-.leg .med small{font-family:var(--mono);font-size:14px;color:var(--ink-3);margin-left:4px}
-.leg .med.txt{font-size:19px}
-.leg .note{font-size:11.5px;color:var(--ink-3);margin-top:3px;font-variant-numeric:tabular-nums}
-.leg .note.alert{color:var(--crit)}
-@media (max-width:620px){
-  .legs{grid-template-columns:1fr}
-  .leg,.leg:first-child,.leg:last-child{border-radius:var(--r)}
-}
 
 /* ---- tabela ---- */
 .tablewrap{margin-top:24px;background:var(--surface);border:1px solid var(--line);
@@ -504,9 +464,6 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
 }
 @media (max-width:620px){
   .head h1{font-size:20px}
-  .tracks{grid-template-columns:1fr}
-  .steps{grid-auto-flow:row;grid-auto-columns:auto}
-  .step:first-child,.step:last-child,.step{border-radius:var(--r)}
   .kpi .v{font-size:25px}
 }
 /* ---- (24/09) a porta aguenta a estreia ---- */
@@ -579,36 +536,73 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
 /* a linha que um colega acabou de mudar: um fio verde à esquerda por alguns segundos */
 .row.mudou{box-shadow:inset 4px 0 0 var(--ok);transition:box-shadow .6s}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
-/* ---- (25/09) os dois números que a controladoria vigia, lado a lado, à esquerda e maiores (pedido do Ricardo) ---- */
-.kpis.kpis-destaque{grid-template-columns:repeat(2,minmax(0,1.5fr)) repeat(3,minmax(0,1fr));align-items:stretch}
-.kpi.top{border:1px solid var(--accent);padding:15px 17px 14px;
-  box-shadow:0 1px 2px rgba(46,36,25,.08),0 8px 22px rgba(46,36,25,.08)}
-.kpi.top .k{font-size:12px;font-weight:600;color:var(--ink-2)}
-.kpi.top .v{font-size:40px;margin-top:6px}
-.kpi .f.fsig{color:var(--ink-2);font-size:12px;margin-top:7px;line-height:1.45;font-weight:400;overflow-wrap:anywhere}
-.kpi .f.fsig b{font-weight:600;color:var(--ink)}
-.kpi .f.fsig .sigb{display:inline;text-align:left}   /* (25/09) `.sig` é das barrinhas da tabela: o nome daqui é outro */
-@media (max-width:1060px){
-  .kpis.kpis-destaque{grid-template-columns:repeat(6,minmax(0,1fr))}
-  .kpis.kpis-destaque .kpi{grid-column:span 2}
-  .kpis.kpis-destaque .kpi.top{grid-column:span 3}
+/* ---- (27/09) OS NÚMEROS NUMA OLHADA: dois quadros, uma barra em cada (pedido do Ricardo) ---- */
+.ritmo{margin:8px 0 0}
+.ritmo summary{cursor:pointer;width:max-content;max-width:100%;list-style:none;color:var(--ink-3)}
+.ritmo summary::-webkit-details-marker{display:none}
+.ritmo summary::before{content:"ⓘ ";color:var(--accent)}
+.ritmo summary:hover{color:var(--ink-2)}
+.ritmo p{margin:4px 0 0}
+.painel{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.3fr);gap:12px;margin-top:16px}
+.quadro{background:var(--surface-2);border:1px solid var(--line-strong);border-radius:var(--r);box-shadow:var(--shadow);
+  padding:14px 16px 12px;display:flex;flex-direction:column;min-width:0}
+.q-cab{display:flex;align-items:baseline;gap:4px 10px;flex-wrap:wrap}
+.q-cab h3{font-size:16.5px;color:var(--ink)}
+.q-esc{font-size:12px;color:var(--ink-3)}
+.q-grande{display:flex;align-items:center;gap:12px;margin-top:6px}
+.q-num{font-family:"Lora",Georgia,serif;font-size:44px;line-height:1;font-variant-numeric:tabular-nums;color:var(--ink)}
+.q-rot{display:flex;flex-direction:column;font-size:12.5px;color:var(--ink-2);line-height:1.35}
+.q-rot b{font-weight:600;color:var(--ink);font-size:13.5px}
+.q-idade{font-size:12.5px;color:var(--ink-2);margin-top:5px}
+.q-idade.alert,.b-idade.alert,.q-pe b.alert{color:var(--crit);font-weight:600}
+.q-idade.ok,.b-idade.ok,.q-risco.ok{color:var(--ok)}
+.barra{display:flex;gap:2px;height:14px;border-radius:7px;overflow:hidden;background:var(--mute-soft);margin-top:11px}
+.barra i{display:block;height:100%;min-width:5px;flex-basis:0}
+.barra i.vazio{flex-grow:1;background:var(--mute-soft)}
+.c-ok{background:var(--ok)} .c-acc{background:var(--accent)} .c-warn{background:var(--warn)} .c-crit{background:var(--crit)}
+.c-extra{background:repeating-linear-gradient(45deg,var(--ink-3) 0 4px,var(--mute-soft) 4px 8px)}
+.legenda{display:flex;flex-wrap:wrap;gap:3px 14px;margin-top:7px;font-size:12.5px;color:var(--ink-2)}
+.legenda .li{display:inline-flex;align-items:center;gap:5px;font:inherit;color:inherit;background:none;border:0;padding:1px 0;
+  font-variant-numeric:tabular-nums;white-space:nowrap}
+.legenda button.li{cursor:pointer;border-bottom:1px dotted var(--line-strong)}
+.legenda button.li:hover{color:var(--ink);border-bottom-color:var(--accent)}
+.legenda .li i{width:10px;height:10px;border-radius:3px;display:inline-block;flex:none}
+.legenda .li b{font-weight:600;color:var(--ink)}
+.legenda .li em{font-style:normal;color:var(--ink-3)}
+.legenda .li.zero{opacity:.55}
+.legenda .li.tot{margin-left:auto;color:var(--ink-3)}
+.q-sub{font-size:12px;font-weight:600;color:var(--ink-2);margin-top:12px}
+.q-sub span{font-weight:400;color:var(--ink-3)}
+/* o pé (os tempos) fica no fundo do quadro: os dois pés alinham quando um quadro é mais alto que o outro */
+.quadro > .legenda,#ct-ok,#ct-sem{margin-bottom:12px}
+.q-pe{display:flex;flex-wrap:wrap;gap:3px 16px;margin-top:auto;padding-top:9px;border-top:1px solid var(--line);
+  font-size:12px;color:var(--ink-3)}
+.q-pe > span{cursor:help}
+.q-pe b{font-weight:600;color:var(--ink)}
+.q-risco{color:var(--warn);font-weight:500}
+.q-nota{font-size:11px;color:var(--ink-3);margin:6px 0 0}
+.q-nota b{font-weight:500;color:var(--ink-2)}
+/* "Aguardando assinatura — falta quem?": dois botões, cada um filtra a lista */
+.baldes{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px}
+.balde{font:inherit;color:inherit;text-align:left;background:var(--surface);border:1px solid var(--line);border-left:3px solid var(--warn);
+  border-radius:7px;padding:6px 10px;cursor:pointer;display:flex;align-items:center;gap:10px;min-width:0}
+.balde:hover{border-color:var(--accent);border-left-color:var(--accent)}
+.balde[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft)}
+.balde.zero{border-left-color:var(--ok)}
+.b-num{font-family:"Lora",Georgia,serif;font-size:28px;line-height:1;font-variant-numeric:tabular-nums;color:var(--ink)}
+.b-txt{display:flex;flex-direction:column;min-width:0;line-height:1.3}
+.balde .bn{font-size:12.5px;font-weight:600;color:var(--ink)}
+.b-idade{font-size:11.5px;color:var(--ink-2)}
+.fsig{font-size:12px;color:var(--ink-2);margin-top:7px;line-height:1.45;overflow-wrap:anywhere}
+.fsig b{font-weight:600;color:var(--ink)}
+.fsig .fsig-t{color:var(--ink-3)}
+.fsig .sigb{display:inline;text-align:left}   /* (25/09) `.sig` é das barrinhas da tabela: o nome daqui é outro */
+@media (max-width:860px){ .painel{grid-template-columns:minmax(0,1fr)} }
+@media (max-width:480px){
+  .baldes{grid-template-columns:1fr}
+  .q-num{font-size:38px}
+  .legenda .li.tot{margin-left:0}
 }
-@media (max-width:620px){
-  .kpis.kpis-destaque{grid-template-columns:repeat(2,minmax(0,1fr))}
-  .kpis.kpis-destaque .kpi{grid-column:span 1}
-  .kpis.kpis-destaque .kpi.top{grid-column:1/-1}   /* (25/09) no celular, os dois que se vigiam com a largura inteira: os dois números da assinatura cabem */
-  .kpi.top{padding:13px 13px 12px}
-  .kpi.top .v{font-size:32px}
-}
-/* (25/09) "Aguardando assinatura": do cliente | do Parque, lado a lado, cada um um botão que filtra a lista */
-.baldes{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:6px}
-.balde{font:inherit;color:inherit;text-align:left;background:transparent;border:0;border-left:3px solid var(--line-strong);
-  border-radius:0 7px 7px 0;padding:2px 6px 3px 10px;cursor:pointer;display:flex;flex-direction:column;align-items:flex-start;min-width:0}
-.balde:hover{border-left-color:var(--accent);background:var(--surface)}
-.balde[aria-pressed="true"]{border-left-color:var(--accent);background:var(--accent-soft)}
-.kpi.top .balde .v{margin-top:0}
-.balde .bn{font-size:12px;font-weight:600;color:var(--ink-2);margin-top:1px}
-.balde .f{margin-top:3px}
 /* o selo do filtro por signatário, ao lado das pílulas */
 .chip.selo{background:var(--accent-soft);border-color:var(--accent);color:var(--ink)}
 .chip.selo[hidden]{display:none}
@@ -670,11 +664,15 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
 
 <div class="wrap">
 
-  <p class="ritmo"><b>Vendas</b>: cópia do Facilita a cada 5 min (completa a cada 2 h) ·
+  <!-- (27/09) o texto de "de onde vêm os dados" fica fechado: os números sobem na tela (pedido do Ricardo) -->
+  <details class="ritmo">
+    <summary>De onde vêm estes dados e de quando são</summary>
+    <p><b>Vendas</b>: cópia do Facilita a cada 5 min (completa a cada 2 h) ·
     <b>Contratos</b>: espelho da D4Sign às 8h, 14h e 20h, só com o PC do Ricardo ligado e a sessão da D4Sign aberta ·
     <b>Lançamentos</b>: gravados na hora, com autor e data — os dos colegas aparecem aqui em até 2 min, e na hora em que você volta para esta aba ·
     Os meses abertos ficam nesta aba até ela fechar; <b>Recarregar</b> busca de novo.
     As datas no alto são da cópia, não da abertura da página.</p>
+  </details>
 
   <div class="tabs" role="tablist" aria-label="Escopo">
     <button class="tab" role="tab" id="tab-v" aria-selected="true" aria-controls="pane-v" type="button">Vendas<span id="tab-v-rot"></span><span class="n" id="tab-v-n">—</span></button>
@@ -710,82 +708,64 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
   <div class="lendo" id="lendo" hidden>Lendo os dados do Facilita…</div>
 
   <div id="conteudo" hidden>
-  <!-- (25/09) os dois números que a controladoria vigia vêm primeiro, lado a lado e maiores (pedido do Ricardo) -->
-  <div class="kpis kpis-destaque">
-    <div class="kpi lead top">
-      <div class="k">A lançar no Ivertex</div>
-      <div class="v" id="k-fila">0</div>
-      <div class="f" id="k-filav">R$ 0</div>
-      <div class="f" id="k-filaold">—</div>
-    </div>
-    <!-- (25/09) dois números (pedido do Ricardo): quem falta assinar é o cliente, ou alguém do Parque — cada um filtra a lista -->
-    <div class="kpi lead top">
-      <div class="k">Aguardando assinatura</div>
-      <div class="baldes">
-        <button type="button" class="balde" id="kb-cli" data-sig="CLIENTE" data-rot="Cliente" aria-pressed="false"
-          title="Mostrar na lista só os contratos em que falta a assinatura do cliente">
-          <span class="v" id="k-assin-cli">0</span><span class="bn">do cliente</span><span class="f warn" id="k-assin-cli-d">—</span>
-        </button>
-        <button type="button" class="balde" id="kb-pq" data-sig="@parque" data-rot="o Parque" aria-pressed="false"
-          title="Mostrar na lista só os contratos em que falta a assinatura de alguém do Parque">
-          <span class="v" id="k-assin-pq">0</span><span class="bn">do Parque</span><span class="f warn" id="k-assin-pq-d">—</span>
-        </button>
+  <!-- (27/09) OS NÚMEROS NUMA OLHADA (pedido do Ricardo: "bater o olho e entender", sem rolar a tela). Eram 5 cartões,
+       3 caixas de tempo e 2 trilhas — ~480 px, com o "A lançar" repetido em três lugares. Agora são dois quadros, um por
+       trilha de trabalho (são independentes: o contrato não trava o lançamento), cada um com UMA barra que mostra a
+       divisão e a legenda que filtra a lista; os tempos típicos (mediana) no pé de cada um. -->
+  <div class="painel">
+    <section class="quadro" aria-labelledby="q-iv-t">
+      <div class="q-cab">
+        <h3 id="q-iv-t">Lançar no Ivertex</h3>
+        <span class="q-esc" id="q-iv-esc">vendas do mês escolhido</span>
       </div>
-      <div class="f fsig" id="k-assinsig" title="De quem falta a assinatura no Parque, contrato a contrato (D4Sign). Um contrato pode esperar mais de uma pessoa."></div>
-      <div class="escopo" id="k-assin-esc">fila inteira, fora da competência</div>
-    </div>
-    <div class="kpi">
-      <div class="k">Lançadas</div>
-      <div class="v"><span id="k-lanc">0</span><small id="k-lancp">0%</small></div>
-      <div class="f" id="k-lancv">R$ 0</div>
-    </div>
-    <div class="kpi">
-      <div class="k">Vendas no recorte</div>
-      <div class="v" id="k-tot">0</div>
-      <div class="f" id="k-totv">R$ 0</div>
-    </div>
-    <div class="kpi">
-      <div class="k">Lançadas sem contrato assinado</div>
-      <div class="v" id="k-risco">0</div>
-      <div class="f" id="k-riscotxt">—</div>
-    </div>
+      <div class="q-grande">
+        <span class="q-num" id="k-fila">0</span>
+        <span class="q-rot"><b id="k-fila-rot">vendas esperando lançamento</b><span id="k-filav">R$ 0</span></span>
+      </div>
+      <div class="q-idade" id="k-filaold">—</div>
+      <div class="barra" id="bar-iv" role="img" aria-label=""></div>
+      <div class="legenda" id="leg-iv"></div>
+      <div class="q-pe">
+        <span id="t3w">Da venda ao lançamento: <b id="t3">—</b></span>
+        <span id="k-risco"></span>
+      </div>
+    </section>
+
+    <section class="quadro" aria-labelledby="ttl-ct">
+      <div class="q-cab">
+        <h3 id="ttl-ct">Contratos na D4Sign</h3>
+        <span class="q-esc">vendas de qualquer mês · não trava o lançamento</span>
+      </div>
+      <div class="semleitura" id="ct-sem" hidden><b>Sem leitura da D4Sign.</b> Nada aqui quer dizer "nenhum pendente" — o
+        espelho de contratos não foi lido (ver o aviso no sino).</div>
+      <div id="ct-ok">
+        <div class="barra" id="bar-ct" role="img" aria-label=""></div>
+        <div class="legenda" id="leg-ct"></div>
+        <div class="q-sub" id="q-quem" title="Um contrato pode esperar o cliente e alguém do Parque ao mesmo tempo: aí ele entra nos dois números.">
+          Aguardando assinatura — falta quem assinar? <span id="q-quem-dois"></span></div>
+        <!-- (25/09) dois números (pedido do Ricardo): quem falta assinar é o cliente, ou alguém do Parque — cada um filtra a lista -->
+        <div class="baldes">
+          <button type="button" class="balde" id="kb-cli" data-sig="CLIENTE" data-rot="Cliente" aria-pressed="false"
+            title="Mostrar na lista só os contratos em que falta a assinatura do cliente">
+            <span class="b-num" id="k-assin-cli">0</span>
+            <span class="b-txt"><span class="bn">falta o cliente assinar</span><span class="b-idade" id="k-assin-cli-d">—</span></span>
+          </button>
+          <button type="button" class="balde" id="kb-pq" data-sig="@parque" data-rot="o Parque" aria-pressed="false"
+            title="Mostrar na lista só os contratos em que falta a assinatura de alguém do Parque">
+            <span class="b-num" id="k-assin-pq">0</span>
+            <span class="b-txt"><span class="bn">falta alguém do Parque assinar</span><span class="b-idade" id="k-assin-pq-d">—</span></span>
+          </button>
+        </div>
+        <div class="fsig" id="k-assinsig" title="De quem falta a assinatura no Parque, contrato a contrato (D4Sign). Um contrato pode esperar mais de uma pessoa."></div>
+      </div>
+      <div class="q-pe">
+        <span id="t1w">Da venda ao contrato enviado: <b id="t1">—</b></span>
+        <span id="t2w">Do envio à assinatura: <b id="t2">—</b></span>
+      </div>
+    </section>
   </div>
-
-  <section class="tempos">
-    <div class="secttl">Quanto tempo leva cada perna <em>mediana, como na Esteira</em></div>
-    <div class="legs">
-      <div class="leg">
-        <div class="who">Comercial</div>
-        <div class="what">Venda → contrato enviado</div>
-        <div class="med" id="t1">—</div>
-        <div class="note" id="t1n">—</div>
-      </div>
-      <div class="leg">
-        <div class="who">Cliente e casa</div>
-        <div class="what">Contrato enviado → assinado</div>
-        <div class="escopo">fila inteira, fora da competência</div>
-        <div class="med" id="t2">—</div>
-        <div class="note" id="t2n">—</div>
-      </div>
-      <div class="leg">
-        <div class="who">Controladoria</div>
-        <div class="what">Venda → lançada no Ivertex</div>
-        <div class="med" id="t3">—</div>
-        <div class="note" id="t3n">—</div>
-      </div>
-    </div>
-  </section>
-
-  <section class="tracks">
-    <div class="track">
-      <div class="secttl">Lançamento no Ivertex</div>
-      <div class="steps" id="trilha-iv"></div>
-    </div>
-    <div class="track">
-      <div class="secttl" id="ttl-ct">Contrato <em>não trava o lançamento</em> <em>fila inteira, fora da competência</em></div>
-      <div id="trilha-ct"></div>
-    </div>
-  </section>
+  <p class="q-nota">Os tempos são o <b>tempo típico</b> (a mediana): metade das vendas levou menos que isso, metade levou mais.
+    Clique numa legenda ou num número para ver só aquelas vendas na lista.</p>
 
   <p class="escopo" id="escopoTab" hidden>Mostrando a fila inteira de contrato, fora da competência — vendas de outros meses entram aqui sem dado de cadastro do cliente.</p>
   <div class="tablewrap">
@@ -1149,6 +1129,18 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
       if (acao.getAttribute('data-a') === 'recarregar') $('#btRecarregar').click();
       setTimeout(fecharSino, 0);
     }
+  });
+  /* (27/09) a legenda dos quadros filtra a lista: liga a pílula de situação; clicar de novo volta para "Tudo" */
+  document.addEventListener('click', function (e) {
+    var bt = e.target.closest && e.target.closest('button[data-ir-sit]');
+    if (!bt) return;
+    var v = bt.getAttribute('data-ir-sit');
+    var chip = document.querySelector('.chip[data-f="sit"][data-v="' + v + '"]');
+    if (!chip) return;
+    if (chip.getAttribute('aria-pressed') === 'true') chip = document.querySelector('.chip[data-f="sit"][data-v="tudo"]');
+    chip.click();
+    var lista = document.querySelector('.tablewrap');
+    if (lista && lista.getBoundingClientRect().top > window.innerHeight * 0.8) lista.scrollIntoView({ behavior: 'smooth', block: 'start' });
   });
   /* (25/09) "Abrir setembro" (a fila do mês anterior): vai para a aba Vendas e abre o mês */
   document.addEventListener('click', function (e) {
@@ -1866,24 +1858,51 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
     var extras = {};
     BF.forEach(function (v) { if (v.ct.k === 'extra') (extras[v.ct.fase] = extras[v.ct.fase] || []).push(v); });
 
-    // ---- cartões
-    T('k-tot', B.length); T('k-totv', brlc(soma(B)));
-    T('k-fila', fila.length); T('k-filav', brlc(soma(fila)));
+    /* ---- (27/09) OS DOIS QUADROS — pedido do Ricardo: "bater o olho e entender o que está acontecendo". As contas são
+       as de antes (cartões, pernas e trilhas); muda onde e como aparecem. `pintaBarra`: uma barra empilhada (cada pedaço
+       do tamanho do número) e a legenda embaixo — cada item com filtro é um botão que liga a pílula de situação. */
+    var pintaBarra = function (idBar, idLeg, segs, fim) {
+      var tot = segs.reduce(function (a, x) { return a + x.n; }, 0);
+      var bar = $('#' + idBar);
+      bar.innerHTML = tot
+        ? segs.filter(function (x) { return x.n > 0; }).map(function (x) {
+            return '<i class="' + x.cls + '" style="flex-grow:' + x.n + '" title="' + esc(x.rot + ': ' + x.n) + '"></i>';
+          }).join('')
+        : '<i class="vazio"></i>';
+      bar.setAttribute('aria-label', segs.map(function (x) { return x.rot + ': ' + x.n; }).join(', '));
+      $('#' + idLeg).innerHTML = segs.map(function (x) {
+        var dentro = '<i class="' + x.cls + '"></i><b>' + x.n + '</b> ' + esc(x.rot) + (x.pct != null ? ' <em>' + x.pct + '%</em>' : '');
+        return x.sit
+          ? '<button type="button" class="li' + (x.n ? '' : ' zero') + '" data-ir-sit="' + x.sit + '" title="' + esc(x.dica) + '">' + dentro + '</button>'
+          : '<span class="li' + (x.n ? '' : ' zero') + '" title="' + esc(x.dica) + '">' + dentro + '</span>';
+      }).join('') + (fim ? '<span class="li tot">' + esc(fim) + '</span>' : '');
+    };
+    var mesTxt = !R || R.mes === 'tudo' ? 'vendas de todos os meses' : 'vendas de ' + MESES_L[+R.mes.slice(5, 7) - 1];
+
+    // ---- quadro 1: lançar no Ivertex (o mês escolhido)
+    T('q-iv-esc', mesTxt);
+    T('k-fila', fila.length);
+    T('k-fila-rot', fila.length === 1 ? 'venda esperando lançamento' : 'vendas esperando lançamento');
+    T('k-filav', brlc(soma(fila)));
     var velho = Math.max.apply(null, [-1].concat(fila.map(function (v) { return idade(v.data); }).filter(function (n) { return n !== null; })));
     var eo = $('#k-filaold');
-    eo.textContent = fila.length ? (velho >= 0 ? 'a mais antiga vendida há ' + plural(velho, 'dia', 'dias') : 'sem data de venda') : 'fila zerada';
-    eo.className = 'f' + (fila.length && velho >= DIAS_ALERTA ? ' alert' : '');
-    T('k-lanc', lanc.length);
-    T('k-lancp', '· ' + (B.length ? Math.round(lanc.length / B.length * 100) : 0) + '%');
-    T('k-lancv', brlc(soma(lanc)));
+    eo.textContent = fila.length ? (velho >= 0 ? 'a mais antiga está esperando há ' + plural(velho, 'dia', 'dias') : 'sem data de venda')
+                                 : 'nada esperando — tudo lançado';
+    eo.className = 'q-idade' + (!fila.length ? ' ok' : velho >= DIAS_ALERTA ? ' alert' : '');
+    var pct = B.length ? Math.round(lanc.length / B.length * 100) : 0;
+    pintaBarra('bar-iv', 'leg-iv', [
+      { n: lanc.length, cls: 'c-ok', rot: lanc.length === 1 ? 'já lançada' : 'já lançadas', pct: pct, sit: 'lancadas', dica: 'Vendas deste recorte já lançadas no Ivertex. Clique para ver só elas.' },
+      { n: fila.length, cls: 'c-acc', rot: 'a lançar', sit: 'alancar', dica: 'Vendas deste recorte que ainda não foram lançadas no Ivertex. Clique para ver só elas.' }
+    ], 'de ' + plural(B.length, 'venda', 'vendas') + ' · ' + brlc(soma(B)));
 
+    // ---- quadro 2: contratos na D4Sign (a fila inteira, de qualquer mês)
+    $('#ct-sem').hidden = D4OK;
+    $('#ct-ok').hidden = !D4OK;
+    var kr = $('#k-risco');
     if (!D4OK) {
-      ['cli', 'pq'].forEach(function (b) {
-        T('k-assin-' + b, '—');
-        var d = $('#k-assin-' + b + '-d'); d.textContent = 'sem leitura da D4Sign'; d.className = 'f warn';
-      });
-      $('#k-assinsig').textContent = ''; T('k-assin-esc', 'fila inteira, fora da competência');
-      T('k-risco', '—'); T('k-riscotxt', 'sem leitura da D4Sign');
+      ['cli', 'pq'].forEach(function (b) { T('k-assin-' + b, '—'); T('k-assin-' + b + '-d', ''); });
+      $('#k-assinsig').textContent = ''; T('q-quem-dois', '');
+      kr.textContent = ''; kr.className = '';
     } else {
       /* (25/09) DOIS NÚMEROS — pedido do Ricardo: dos 15 "aguardando assinatura do cliente", só 2 esperavam o
          cliente; 14 esperavam quem assina pelo Parque. O "Falta assinar" do espelho da D4Sign traz, contrato a
@@ -1896,14 +1915,24 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
         T('k-assin-' + b, lista.length);
         var mx = Math.max.apply(null, [-1].concat(lista.map(function (v) { return idade(v.ct.cadastro); }).filter(function (n) { return n !== null; })));
         var d = $('#k-assin-' + b + '-d');
-        d.textContent = lista.length ? 'o mais antigo há ' + plural(Math.max(0, mx), 'dia', 'dias') : 'nenhum';
-        d.className = 'f ' + (lista.length && mx >= DIAS_ALERTA ? 'alert' : 'warn');
+        d.textContent = lista.length ? 'o mais antigo espera há ' + plural(Math.max(0, mx), 'dia', 'dias') : 'ninguém esperando';
+        d.className = 'b-idade' + (lista.length && mx >= DIAS_ALERTA ? ' alert' : lista.length ? '' : ' ok');
+        $('#kb-' + b).classList.toggle('zero', !lista.length);
       };
       pintaBalde('cli', doCli);
       pintaBalde('pq', doPq);
       var osDois = doCli.filter(function (v) { return doPq.indexOf(v) >= 0; }).length;
-      T('k-assin-esc', plural(ass.length, 'contrato aguardando', 'contratos aguardando') +
-        (osDois ? ' (' + (osDois === 1 ? '1 espera' : osDois + ' esperam') + ' os dois)' : '') + ' · fila inteira, fora da competência');
+      T('q-quem-dois', osDois ? '(' + (osDois === 1 ? '1 contrato espera os dois' : osDois + ' contratos esperam os dois') + ')' : '');
+      var ext = Object.keys(extras);
+      pintaBarra('bar-ct', 'leg-ct', [
+        { n: pend.length, cls: 'c-crit', rot: pend.length === 1 ? 'não enviado' : 'não enviados', sit: 'semcontrato',
+          dica: 'Venda sem contrato pronto para assinar: não gerado, cancelado, sem signatário ou ainda em edição na D4Sign. Clique para ver só elas.' },
+        { n: ass.length, cls: 'c-warn', rot: 'aguardando assinatura', sit: 'assinatura',
+          dica: 'Contrato enviado; falta alguém assinar. Clique para ver só eles.' },
+        { n: assd.length, cls: 'c-ok', rot: assd.length === 1 ? 'assinado' : 'assinados', dica: 'Contrato assinado por todos.' }
+      ].concat(ext.map(function (k) {
+        return { n: extras[k].length, cls: 'c-extra', rot: k.charAt(0) + k.slice(1).toLowerCase(), dica: 'Fase da D4Sign que a tela não conhece — aparece com o nome dela.' };
+      })), plural(BF.length, 'contrato', 'contratos'));
       /* De quem falta, no Parque (e a testemunha de fora, e o contrato sem a lista — o modal não foi lido). */
       var porSig = {}, semDet = 0;
       ass.forEach(function (v) {
@@ -1921,23 +1950,32 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
       };
       // cada nome é um atalho: mostra na lista só os contratos que esperam por ele
       $('#k-assinsig').innerHTML = sigs.length || semDet
-        ? (sigs.some(doParque) ? 'Falta no Parque: ' : 'Falta: ') + sigs.map(function (x) {
+        ? '<span class="fsig-t">' + (sigs.some(doParque) ? 'No Parque, falta:' : 'Falta:') + '</span> ' + sigs.map(function (x) {
             return '<button type="button" class="sigb" data-sig="' + esc(x) + '" data-rot="' + esc(rotSig(x)) + '" title="Mostrar na lista só os contratos que esperam ' +
               esc(x === 'CLIENTE' ? 'o cliente' : x === 'TESTEMUNHA' ? 'testemunha' : x) + '"><b>' + esc(rotSig(x)) + '</b> ' + porSig[x] + '</button>';
           }).concat(semDet ? ['sem detalhe ' + semDet] : []).join(' · ')
         : '';
+      // INVARIANTE: toda venda da fila de contrato está em exatamente um pedaço da barra
+      var fecha = pend.length + ass.length + assd.length + ext.reduce(function (a, k) { return a + extras[k].length; }, 0);
+      if (fecha !== BF.length) {
+        AVISOS.push({ t: 'As contagens dos contratos não fecham.',
+          c: '<p>' + fecha + ' na barra contra ' + BF.length + ' vendas na fila de contrato. Algum estado de contrato ' +
+             'não foi classificado — os números dos contratos estão errados até isso ser corrigido.</p>' });
+      }
+      // lançada no Ivertex sem contrato assinado: hoje não trava nada, mas fica à vista
       var risco = lanc.filter(function (v) { return v.ct.k !== 'assinado' && v.ct.k !== 'foracorte'; });
-      T('k-risco', risco.length);
-      T('k-riscotxt', risco.length ? 'hoje não trava nada — o número existe para o dia em que travar'
-                                   : 'todas as lançadas estão com contrato assinado');
+      kr.textContent = risco.length ? plural(risco.length, 'lançada ainda sem contrato assinado', 'lançadas ainda sem contrato assinado')
+                                    : 'toda venda lançada tem contrato assinado';
+      kr.className = risco.length ? 'q-risco' : 'q-risco ok';
+      kr.title = 'Venda já lançada no Ivertex cujo contrato ainda não foi assinado na D4Sign. Hoje isso não trava nada — o número está aqui para o dia em que travar.';
     }
 
-    // ---- as três pernas (mediana; o que está em aberto ao lado)
-    var pintaPerna = function (id, med, nota, alerta) {
+    // ---- os tempos típicos (mediana), no pé de cada quadro; o detalhe fica no título (passar o mouse)
+    var pintaTempo = function (id, med, nota, alerta) {
       var el = $('#' + id);
-      el.className = 'med' + (med && med.txt ? ' txt' : '');
-      el.innerHTML = !med ? '—' : med.txt ? esc(med.txt) : esc(med.n) + '<small>' + esc(med.u) + '</small>';
-      var n = $('#' + id + 'n'); n.textContent = nota; n.className = 'note' + (alerta ? ' alert' : '');
+      el.textContent = !med ? '—' : med.txt ? med.txt : med.n + ' ' + med.u;
+      $('#' + id + 'w').title = nota + ' · tempo típico = mediana';
+      el.className = alerta ? 'alert' : '';
     };
     var emDias = function (m) {   // pernas de calendário (a Data da Venda não tem hora)
       if (m === null) return null;
@@ -1952,19 +1990,17 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
         alerta: mx !== null && mx >= DIAS_ALERTA
       };
     };
-
     if (!D4OK) {
-      pintaPerna('t1', null, 'sem leitura da D4Sign', false);
-      pintaPerna('t2', null, 'sem leitura da D4Sign', false);
+      pintaTempo('t1', null, 'sem leitura da D4Sign', false);
+      pintaTempo('t2', null, 'sem leitura da D4Sign', false);
     } else {
       // Perna 1 — Comercial: Data da Venda -> primeiro Cadastro na D4Sign
       var p1 = B.filter(function (v) { return v.ct.primeiroEnvio; })
                 .map(function (v) { return Math.max(0, diasEntre(v.data, v.ct.primeiroEnvio)); });
       var sem = B.filter(function (v) { return v.ct.k === 'nao_gerado' || (v.ct.k !== 'semleitura' && v.ct.k !== 'foracorte' && !v.ct.primeiroEnvio); });
       var a1 = abertoTxt(sem, function (v) { return v.data; }, ['sem contrato', 'sem contrato']);
-      pintaPerna('t1', emDias(mediana(p1)),
-        plural(p1.length, 'contrato enviado', 'contratos enviados') + (a1.txt ? ' · em aberto: ' + a1.txt : ' · nenhum em aberto'), a1.alerta);
-
+      pintaTempo('t1', emDias(mediana(p1)),
+        'Comercial, vendas deste recorte: ' + plural(p1.length, 'contrato enviado', 'contratos enviados') + (a1.txt ? ' · em aberto: ' + a1.txt : ' · nenhum em aberto'), false);
       /* Perna 2 — Cliente e casa: Cadastro -> Finalizado em. O `Finalizado em` é DERIVADO do
          texto da fase ("LEVOU 2 DIAS"): a precisão é de dia. Abaixo de 24 h escreve-se
          "menos de 1 dia", nunca "0 dias". Contrato que nunca assinou não entra aqui. */
@@ -1975,51 +2011,19 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
       var m2 = mediana(p2);
       var med2 = m2 === null ? null : m2 < 864e5 ? { txt: 'menos de 1 dia' }
         : (function (d) { return { n: d, u: d === 1 ? 'dia' : 'dias' }; })(Math.floor(m2 / 864e5));
-      // em aberto na perna 2 = aguardando assinatura, a mesma fila do cartão (sem signatário
-      // ainda não foi enviado a ninguém: está no balde "sem contrato ou signatário")
       var a2 = abertoTxt(ass, function (v) { return v.ct.cadastro; }, ['em aberto', 'em aberto']);
-      pintaPerna('t2', med2,
-        plural(p2.length, 'assinado', 'assinados') + (a2.txt ? ' · ' + a2.txt : ' · nenhum em aberto'), a2.alerta);
+      pintaTempo('t2', med2,
+        'Cliente e casa, contratos de qualquer mês: ' + plural(p2.length, 'assinado', 'assinados') + (a2.txt ? ' · ' + a2.txt : ' · nenhum em aberto'), false);
     }
-
     // Perna 3 — Controladoria: Data da Venda -> data_ivertex
     var p3 = lanc.map(function (v) { var d = diasEntre(v.data, v.iv.data); return d === null ? null : Math.max(0, d); });
     var a3 = abertoTxt(fila, function (v) { return v.data; }, ['na fila', 'na fila']);
     /* (25/09) As baixadas pelo relatório do Ivertex (cofre BaixaIvertex.gs, Fonte relatorio) não têm o dia
        do lançamento: contam como lançadas e ficam fora da mediana — decisão do Ricardo. */
     var semDia = lanc.filter(function (v) { return !v.iv.data; }).length;
-    pintaPerna('t3', emDias(mediana(p3)),
-      plural(lanc.length, 'lançada', 'lançadas') + (semDia ? ' (' + semDia + ' pelo relatório, sem dia — fora da mediana)' : '') +
-      (a3.txt ? ' · ' + a3.txt : ' · fila zerada'), a3.alerta);
-
-    // ---- trilhas
-    var passo = function (cls, n, max, rot) {
-      return '<div class="step ' + cls + '"><div class="bar"><i style="width:' + (n / max * 100) + '%"></i></div>' +
-        '<div class="n">' + n + '</div><div class="l">' + esc(rot) + '</div></div>';
-    };
-    var m1 = Math.max(1, fila.length, lanc.length);
-    $('#trilha-iv').innerHTML = passo('s3', fila.length, m1, 'A lançar') + passo('s4', lanc.length, m1, 'Lançadas');
-
-    if (!D4OK) {
-      $('#trilha-ct').innerHTML = '<div class="semleitura"><b>Sem leitura da D4Sign.</b> Nada aqui quer dizer ' +
-        '"nenhum pendente" — o espelho de contratos não foi lido (ver o aviso acima).</div>';
-    } else {
-      var ext = Object.keys(extras);
-      var m2x = Math.max.apply(null, [1, pend.length, ass.length, assd.length].concat(ext.map(function (k) { return extras[k].length; })));
-      $('#trilha-ct').innerHTML = '<div class="steps">' +
-        passo('s1', pend.length, m2x, 'Sem contrato ou signatário') +
-        passo('s2', ass.length, m2x, 'Aguardando assinatura') +
-        passo('s4', assd.length, m2x, 'Assinado') +
-        ext.map(function (k) { return passo('extra', extras[k].length, m2x, k.charAt(0) + k.slice(1).toLowerCase()); }).join('') +
-        '</div>';
-      // INVARIANTE: toda venda do recorte está em exatamente um degrau
-      var fecha = pend.length + ass.length + assd.length + ext.reduce(function (s, k) { return s + extras[k].length; }, 0);
-      if (fecha !== BF.length) {
-        AVISOS.push({ t: 'As contagens da trilha de contrato não fecham.',
-          c: '<p>' + fecha + ' nos degraus contra ' + BF.length + ' vendas na fila de contrato. Algum estado de contrato ' +
-             'não foi classificado — os números da trilha estão errados até isso ser corrigido.</p>' });
-      }
-    }
+    pintaTempo('t3', emDias(mediana(p3)),
+      'Controladoria: ' + plural(lanc.length, 'lançada', 'lançadas') + (semDia ? ' (' + semDia + ' pelo relatório, sem dia — fora da mediana)' : '') +
+      (a3.txt ? ' · ' + a3.txt : ' · fila zerada'), false);
 
     // ---- contadores das pílulas de situação
     T('n-alancar', fila.length);
