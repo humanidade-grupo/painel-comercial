@@ -1,6 +1,10 @@
 /* Painel Comercial — Parque da Saudade + Estrela Urbanidade
    Service worker: instalação PWA + reserva offline.
-   Atualizado em: 27/09/2026 (madrugada, 3ª) — PONTEAPP, OS NÚMEROS NUMA OLHADA: 5 cartões + 3 caixas de tempo + 2 trilhas
+   Atualizado em: 27/09/2026 (madrugada, 4ª) — DADOS FRESCOS AO ABRIR (pedido do Ricardo): a revalidação pede
+   primeiro a metade na tela e o conteúdo novo entra no lugar pelo `v2:dados` com `atualizacao` — sem "Mostrar"
+   e sem recarregar no Executivo e na Receita; cópia com mais de 6 h não sobe antes da rede; o Atualizar deixa de
+   recarregar a página. Sem bump, a gestão seguiria clicando em Mostrar.
+   Antes, 27/09/2026 (madrugada, 3ª) — PONTEAPP, OS NÚMEROS NUMA OLHADA: 5 cartões + 3 caixas de tempo + 2 trilhas
    viram dois quadros (Lançar no Ivertex · Contratos na D4Sign), cada um com uma barra e a legenda que filtra a lista;
    a tabela sobe ~330 px. O texto "de onde vêm os dados" fica fechado numa linha.
    Antes, 27/09/2026 (madrugada, 2ª) — PONTEAPP, FASE 2: com a leitura em lote do Cofre (@114) o servidor
@@ -257,7 +261,7 @@
    links dos arquivos são drive.google.com, externos, e NÃO entram no cache).
    Estratégia: rede primeiro (pega versão nova quando online), cache como
    reserva offline. A cada deploy, bumpar a versão em CACHE. */
-const CACHE = 'painel-comercial-270926-3';
+const CACHE = 'painel-comercial-270926-4';
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(['./'])).then(() => self.skipWaiting()));

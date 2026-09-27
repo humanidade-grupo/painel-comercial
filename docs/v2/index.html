@@ -2013,6 +2013,9 @@ function secaoComoPaga(g, dados, ym) {
   var chaveMes = String(Math.floor(ym / 100)) + '-' + ('0' + (ym % 100)).slice(-2);
   var per = K.mix.periodos || {};
   var periodo = per[chaveMes] ? chaveMes : (per['tudo'] ? 'tudo' : Object.keys(per)[0]);
+  /* dado novo que chega sozinho (27/09) não tira a pessoa do período que ela
+     escolheu — só a troca de mês lá fora faz isso (reaplicar liga __cpManter) */
+  if (window.__cpManter && per[window.__cpManter]) periodo = window.__cpManter;
 
   /* UM SELETOR SÓ (19/09/26, 2ª rodada). A moldura de fora tinha os chips de
      mês e a seção tinha as pílulas de período: dois controles do mesmo assunto
@@ -2098,6 +2101,7 @@ function secaoComoPaga(g, dados, ym) {
   })();
 
   function pintaPeriodo() {
+    window.__cpPeriodo = periodo;
     var B = per[periodo] || { meio: [], prazo: [], momento: [], vendedores: [], vendas: 0 };
     pintaTiles(periodo, B.mediana);
 
@@ -3128,6 +3132,30 @@ window.__renderEU = function (dados, ymSel) {
     trocarEmpresa(salvo);
   }
 
+  /* O dado novo que o pai empurra (27/09): o mesmo preparo do subir() — o
+     Parque vazio vira aviso, as grafias do canal se unificam —, o mês que
+     estava na tela fica (se ainda existir) e a metade desta moldura
+     redesenha pelo mesmo caminho dos chips de mês. */
+  function reaplicar(dados, historico) {
+    if (!dados.ps) dados.ps = { vendas: [], meses: [], metas: {}, erro: dados.psErro || 'não carregou' };
+    unificarCanais(dados.ps.vendas || []);
+    if (historico) window.__HIST_EU = historico;
+    DADOS = dados;
+    var meses = dados.ps.meses || [];
+    if (!meses.some(function (m) { return m.ym === YM_PS; })) YM_PS = meses.length ? meses[0].ym : null;
+    CARIMBO.eu = dados.atualizado_em || '';
+    CARIMBO.ps = dados.ps.atualizado_em || '';
+    CARIMBO.copia = false;
+    CARIMBO.msEu = dados.ms || 0; CARIMBO.msPs = dados.ps.ms || 0;
+    preencherMeses();
+    var ps = document.body.classList.contains('emp-ps');
+    window.__cpManter = window.__cpPeriodo || null;   // a Receita fica no período escolhido
+    if (ps) { try { window.__renderPS(DADOS.ps, YM_PS); } catch (e) { console.error('PS:', e); } }
+    else { try { window.__renderEU(DADOS, YM_EU); } catch (e) { console.error('EU:', e); } }
+    window.__cpManter = null;
+    atualizarSelo(ps ? 'ps' : 'eu');
+  }
+
   function comPrazo(url, ms, oque) {
     return new Promise(function (resolve, reject) {
       var venceu = false;
@@ -3314,6 +3342,16 @@ window.__renderEU = function (dados, ymSel) {
       if (d.tipo === 'v2:historico') {
         window.__HIST_EU = d.historico || null;
         if (DADOS && document.body.classList.contains('emp-eu')) { try { window.__renderEU(DADOS, YM_EU); } catch (e) { console.error(e); } }
+        return;
+      }
+      /* DADO NOVO NO LUGAR (27/09, pedido do Ricardo): a revalidação do pai
+         manda o dado de novo com `atualizacao: true` quando o conteúdo mudou.
+         Essa passa pela trava — sem ela a moldura aceitava dado uma vez na
+         vida e o pai precisava recarregar a página ("Mostrar"). Não chama
+         subir(): tela de carga, portão e troca de empresa são de primeira
+         montagem. Moldura que ainda não montou trata como a primeira. */
+      if (d.tipo === 'v2:dados' && d.atualizacao && d.dados && DADOS) {
+        reaplicar(d.dados, d.historico);
         return;
       }
       if (atendida || d.tipo !== 'v2:dados' || !d.dados) return;

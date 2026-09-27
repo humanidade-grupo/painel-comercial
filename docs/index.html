@@ -2103,6 +2103,24 @@ function render(){
 
 render();
 let _rtps; window.addEventListener('resize', ()=>{ clearTimeout(_rtps); _rtps=setTimeout(render,250); });
+
+/* DADO NOVO NO LUGAR (27/09): a revalidação troca o __DADOS_PS__ sem
+   recarregar a página. Os números do Parque moram na moldura v2 (que recebe
+   o dado por conta própria); aqui só os chips de mês precisam acompanhar — é
+   por eles que um mês novo aparece na virada. O módulo não roda de novo
+   (somaria um ouvinte de resize a cada 5 min): o D é trocado por dentro e o
+   render, que já roda a cada troca de mês, redesenha. */
+window.__psReler = function(){
+  const N = window.__DADOS_PS__ || { vendas: [], meses: [], metas: {} };
+  if (N === D) return;
+  Object.keys(D).forEach(k=>{ delete D[k]; });
+  Object.assign(D, N);
+  if (!D.meses || !D.meses.some(m=>m.ym===ymAtivo)) {
+    ymAtivo = (D.meses && D.meses.length) ? D.meses[0].ym : null;
+    window.__psYmAtivo = ymAtivo;
+  }
+  render();
+};
 };
 </script>
 
@@ -2171,6 +2189,7 @@ let _rtps; window.addEventListener('resize', ()=>{ clearTimeout(_rtps); _rtps=se
         padding:7px 14px;text-align:center;backdrop-filter:blur(8px)}
   #selo b{color:#a9b8cc;font-weight:600}
   #selo .fora{text-decoration:underline dotted;text-underline-offset:3px;cursor:help}
+  #selo .conferindo{opacity:.65}
   #selo.velho{background:rgba(69,26,3,.96);color:#fbbf24;border-top-color:rgba(245,158,11,.4)}
   #selo.velho b{color:#fcd34d}
   /* O TERCEIRO ESTADO (09/09, item 6 do plano de sanidade): a rodada do Cofre
@@ -2215,6 +2234,27 @@ let _rtps; window.addEventListener('resize', ()=>{ clearTimeout(_rtps); _rtps=se
   var CHAVE_EMP   = 'painel_empresa';           // qual metade estava aberta da última vez
   var MARCA_FRESCA = 'painel_acabou_de_buscar'; // posta pelo botão Atualizar, lida no arranque
   var RECADO_SYNC  = 'painel_recado_sync';      // o que a importação sob demanda respondeu
+
+  /* DADOS FRESCOS AO ABRIR (27/09/2026, pedido do Ricardo). Estado da
+     revalidação que troca o número NO LUGAR (ver aplicar()):
+     · interagiu — a pessoa tocou, rolou ou digitou desde que a página voltou
+       a ficar visível. Enquanto não, recarregar do cache não tira nada dela
+       (abas antigas da Estrela). Zera quando a página vai para segundo plano:
+       sem isso, quem chegou numa aba antiga já teria clicado — e quem volta
+       ao celular depois de uma hora nunca receberia o número sozinho.
+     · estrelaAtrasada — chegou Estrela nova que as abas antigas do pai não
+       sabem redesenhar; vale até a próxima recarga.
+     · conferindoAgora — a revalidação está no ar; o selo diz isso.
+     Declarado aqui em cima porque o arranque sem token sai cedo (portão) e
+     o botão Atualizar lê estas variáveis depois. */
+  var interagiu = false, estrelaAtrasada = false, conferindoAgora = false;
+  ['pointerdown', 'keydown', 'touchstart', 'wheel', 'scroll'].forEach(function (ev) {
+    window.addEventListener(ev, function () { interagiu = true; }, { capture: true, passive: true });
+  });
+  document.addEventListener('visibilitychange', function () {
+    if (document.visibilityState === 'hidden') interagiu = false;
+  });
+  var ABA_VOLTA = 'painel_aba_volta';   // a aba antiga da Estrela onde a recarga devolve a pessoa
 
   var carga = document.getElementById('carga');
 
@@ -2364,6 +2404,12 @@ let _rtps; window.addEventListener('resize', ()=>{ clearTimeout(_rtps); _rtps=se
                String(CARIMBO.psSaudeTexto).replace(/[<>&"]/g, '') + '">' + chipTxt + '</span>'
              : ''));
     }
+    /* A revalidação no ar (27/09): um sufixo discreto, sem toast nem tarja —
+       quando o número novo entra, o carimbo novo aparece no lugar dele. */
+    if (conferindoAgora) {
+      var sl = document.getElementById('selo');
+      if (sl) sl.insertAdjacentHTML('beforeend', ' <span class="conferindo">· conferindo…</span>');
+    }
     marcarDadoSuspeito(ps && !CARIMBO.copia && !CARIMBO.psErro && saudeRuim());
   }
 
@@ -2419,21 +2465,21 @@ let _rtps; window.addEventListener('resize', ()=>{ clearTimeout(_rtps); _rtps=se
        diz qual delas vai fazer, antes de a pessoa esperar por ela. */
     var btr = document.getElementById('btRec');
     if (btr) btr.title = ps
-      ? 'Busca as vendas no Facilita, atualiza o Cofre e relê a tela (~40 s)'
-      : 'Reimporta a planilha da Estrela e relê a tela';
+      ? 'Força a importação do Facilita agora (~40 s). Os números da tela já se atualizam sozinhos a cada 5 min e ao abrir.'
+      : 'Força a reimportação da planilha da Estrela agora. Os números da tela já se atualizam sozinhos a cada 5 min e ao abrir.';
 
     atualizarSelo(ps ? 'ps' : 'eu');
     window.scrollTo({ top: 0 });
   }
 
-  /* RECARREGAR — busca de novo e recarrega a página com o dado já em mãos.
-     Por que não redesenhar no lugar: a metade da Estrela são ~900 linhas de
-     render que nunca foram escritas para rodar duas vezes na mesma página.
-     Chamá-las de novo provavelmente funcionaria — e "provavelmente" não é
-     base para mexer no que está em produção desde 11/08.
-     O truque que evita buscar duas vezes: grava a resposta no cache local,
-     marca a sessão e recarrega. O arranque enxerga a marca e sobe direto do
-     cache, sem nova ida ao Cofre. Uma busca, uma tela nova. */
+  /* ATUALIZAR — força a importação na fonte e põe o dado novo NO LUGAR
+     (27/09/2026). Até aqui o botão recarregava a página, porque a metade da
+     Estrela são ~900 linhas de render que nunca foram escritas para rodar
+     duas vezes. Essa regra continua valendo para ELAS: se a aba na tela é uma
+     das antigas da Estrela e a Estrela mudou, o botão ainda grava, marca a
+     sessão e recarrega (o arranque sobe do cache, sem nova ida ao Cofre).
+     Em todo o resto — o Executivo das duas metades e a Receita — o número
+     entra pela aplicar(), sem recarga. */
   function ligarRecarregar() {
     var bt = document.getElementById('btRec');
     if (!bt) return;
@@ -2460,6 +2506,8 @@ let _rtps; window.addEventListener('resize', ()=>{ clearTimeout(_rtps); _rtps=se
       var noParque = (emp === 'ps');
 
       if (rotulo) rotulo.textContent = noParque ? 'sincronizando…' : 'buscando…';
+      // a revalidação de 5 min não precisa correr por cima do botão
+      ultimaRevalida = Date.now();
 
       /* No Parque a ordem é importar PRIMEIRO e reler DEPOIS — e a releitura
          vai sem `&sync=1`, porque a importação já aconteceu e repeti-la seria
@@ -2469,13 +2517,22 @@ let _rtps; window.addEventListener('resize', ()=>{ clearTimeout(_rtps); _rtps=se
           return buscar(token, noParque ? null : emp).then(function (j) {
             if (!j || !j.ok) throw new Error((j && j.error) || 'resposta sem dado');
             var s = noParque ? sync : j.sync;
-            try {
-              localStorage.setItem(CHAVE_CACHE, JSON.stringify(j));
-              sessionStorage.setItem(MARCA_FRESCA, '1');
-              // o recado da importação atravessa a recarga
-              sessionStorage.setItem(RECADO_SYNC, JSON.stringify({ emp: emp, s: s || null }));
-            } catch (e) {}
-            location.reload();
+            aplicar(j);
+            if (estrelaAtrasada && abaVelhaDaEstrela()) {
+              // só as abas antigas da Estrela ainda recarregam — e o recado
+              // da importação atravessa a recarga
+              try { sessionStorage.setItem(RECADO_SYNC, JSON.stringify({ emp: emp, s: s || null })); } catch (e) {}
+              recarregarNaAba();
+              return;
+            }
+            bt.disabled = false;
+            bt.classList.remove('girando');
+            if (rotulo) rotulo.textContent = 'Atualizar';
+            var rc = recadoSync(s, emp);
+            selo(rc.txt, !rc.bom);
+            setTimeout(function () {
+              if (!document.getElementById('verNovo')) atualizarSelo(empNaTela());
+            }, 8000);
           });
         }).catch(function (e) {
         bt.disabled = false;
@@ -2585,7 +2642,8 @@ let _rtps; window.addEventListener('resize', ()=>{ clearTimeout(_rtps); _rtps=se
         venceu = true;
         reject(falha('prazo', oque + ' não respondeu em ' + (ms / 1000) + 's'));
       }, ms);
-      fetch(url)
+      // no-store (27/09): a resposta do Cofre nunca pode vir do cache HTTP
+      fetch(url, { cache: 'no-store' })
         .then(function (r) {
           return r.text().then(function (txt) {
             try { return JSON.parse(txt); }
@@ -2628,6 +2686,29 @@ let _rtps; window.addEventListener('resize', ()=>{ clearTimeout(_rtps); _rtps=se
      E a Estrela manda: se ela falhar, não há painel. Se o Parque falhar, a
      Estrela sobe assim mesmo e a metade PS avisa por que está vazia — meia
      tela honesta é melhor que tela nenhuma. */
+  /* UMA METADE SÓ (27/09/2026) — a revalidação e o arranque com cópia velha
+     pedem primeiro a rota da empresa que está na tela e só depois a outra.
+     Mesmas rotas e mesmos parâmetros do buscar(); o que muda é a ordem. */
+  function buscarMetade(token, emp) {
+    var q = API + '?token=' + encodeURIComponent(token) +
+            (emp === 'ps' ? '&app=vendas&fn=dados' : '&app=estrela&fn=dados');
+    passo(emp === 'ps' ? 'lendo o Parque…' : 'lendo a Estrela…');
+    return comPrazo2(q, 30000, emp === 'ps' ? 'O Parque' : 'A Estrela');
+  }
+  /* Monta o objeto no formato de sempre — a raiz é a Estrela e `.ps` é o
+     Parque — com a metade que acabou de chegar e a outra de `base`. */
+  function juntar(base, emp, meia) {
+    base = base || {};
+    if (emp === 'ps') {
+      var n = Object.assign({}, base, { ps: meia });
+      delete n.psErro;
+      return n;
+    }
+    var e = Object.assign({}, meia, { ps: base.ps || null });
+    if (!base.ps && base.psErro) e.psErro = base.psErro;
+    return e;
+  }
+
   function buscar(token, sincronizar) {
     var q = API + '?token=' + encodeURIComponent(token);
     // importar da fonte demora mais que só ler o Cofre — o prazo acompanha
@@ -2746,7 +2827,7 @@ let _rtps; window.addEventListener('resize', ()=>{ clearTimeout(_rtps); _rtps=se
       buscar(t).then(function (j) {
         if (j && j.ok) {
           localStorage.setItem(CHAVE_TOKEN, t);
-          try { localStorage.setItem(CHAVE_CACHE, JSON.stringify(j)); } catch (e) {}
+          guardar(j);
           subir(j, false);
         } else {
           bt.disabled = false;
@@ -2764,88 +2845,159 @@ let _rtps; window.addEventListener('resize', ()=>{ clearTimeout(_rtps); _rtps=se
     inp.addEventListener('keydown', function (e) { if (e.key === 'Enter') tentar(); });
   }
 
-  var token = localStorage.getItem(CHAVE_TOKEN);
-  if (!token) { portao(''); return; }
-
-  // veio do botão Atualizar: o dado é destes últimos segundos, já está no
-  // cache, e buscar de novo seria pagar a espera duas vezes pelo mesmo número
-  try {
-    if (sessionStorage.getItem(MARCA_FRESCA)) {
-      sessionStorage.removeItem(MARCA_FRESCA);
-      var recem = doCache();
-      if (recem) { subir(recem, false); ligarRevalidacao(token); return; }
-    }
-  } catch (e) {}
-
-  /* ARRANQUE PELO CACHE (01/09, pedido do Ricardo): quem já abriu o Painel
-     uma vez não espera o "Aquecendo" de novo. A tela sobe NA HORA com a
-     cópia local — o selo mostra o carimbo DO DADO, então a idade nunca é
-     escondida — e a busca no Cofre roda em segundo plano. Três desfechos:
-     carimbo igual → silêncio (o normal dentro da mesma hora de sincronização);
-     carimbo novo → o cache é atualizado e o selo oferece "Mostrar" (recarrega
-     do cache, instantâneo — redesenhar no lugar as ~900 linhas da Estrela
-     nunca foi seguro, ver o comentário do ligarRecarregar); token revogado →
-     portão. Falha de rede → o selo assume a linguagem de cópia local. */
-  /* REVALIDAR (06/09): busca o Cofre em segundo plano e compara com a cópia
-     que está na tela. Desde 06/09 o Cofre responde do cache em menos de 1 s e
-     o batimento de 5 min avança o carimbo mesmo sem venda nova — por isso o
-     carimbo sozinho NÃO abre o "Mostrar": ele só atualiza o selo. O que abre
-     o "Mostrar" é CONTEÚDO diferente (vendas, metas, origem anunciada) —
-     lição de 04/09: a Config muda o que a rota serve sem mexer no carimbo, e
-     o `Sati IA` digitado em `painel.canal_portas` ficou invisível na tela.
-     Roda no arranque, ao voltar para a aba e a cada 5 min enquanto a página
-     está visível. */
-  var REVALIDA_MS = 5 * 60 * 1000, ultimaRevalida = 0, revalidando = false;
+  /* REVALIDAR (06/09; revista em 27/09): busca o Cofre em segundo plano e
+     compara com o que está na tela. Desde 06/09 o Cofre responde do cache em
+     menos de 1 s e o batimento de 5 min avança o carimbo mesmo sem venda nova
+     — por isso o carimbo sozinho só atualiza o selo; o que redesenha é
+     CONTEÚDO diferente (vendas, metas, origem anunciada) — lição de 04/09: a
+     Config muda o que a rota serve sem mexer no carimbo, e o `Sati IA`
+     digitado em `painel.canal_portas` ficou invisível na tela.
+     DADOS FRESCOS AO ABRIR (27/09, pedido do Ricardo — "abrir o painel e ter
+     que clicar em Atualizar, esperar e ainda clicar em Mostrar"):
+       · pede PRIMEIRO a metade que está na tela e aplica assim que ela chega;
+         a outra vem depois, em segundo plano;
+       · o conteúdo novo entra NO LUGAR (aplicar) — o "Mostrar" + recarga
+         ficou só para as abas antigas da Estrela no pai;
+       · cópia local mais velha que COPIA_MAX_MS não sobe antes da rede.
+     Roda no arranque, ao voltar para a aba (> 60 s) e a cada 5 min enquanto a
+     página está visível. Declarado ANTES da checagem do token porque o
+     caminho do portão (primeiro acesso) sai cedo e o botão Atualizar usa
+     estas funções depois. */
+  var REVALIDA_MS  = 5 * 60 * 1000, ultimaRevalida = 0, revalidando = false;
+  /* Cópia mais velha que isto não sobe antes da rede: é o celular aberto de
+     manhã, e números de ontem trocando sozinhos no meio da leitura são piores
+     que 3 s de bola. 6 h é a proposta de 27/09 — o Ricardo decide (1 h, ou 0
+     para nunca subir do cache). */
+  var COPIA_MAX_MS = 6 * 60 * 60 * 1000;
   function assina(x) {
     try { return JSON.stringify({ e: x.vendas, p: (x.ps || {}).vendas, m: (x.ps || {}).metas,
                                   o: (x.ps || {}).origem_anuncio }); }
     catch (e) { return ''; }
   }
+  function assinaEU(x) {
+    try { return JSON.stringify((x || {}).vendas); } catch (e) { return ''; }
+  }
+  function empNaTela() { return document.body.classList.contains('emp-ps') ? 'ps' : 'eu'; }
+
+  /* A cópia local leva a hora em que foi guardada: é por ela que o arranque
+     sabe se a cópia é de hoje. Cópia sem o campo (anterior a 27/09) = velha. */
+  function guardar(j) {
+    try { j._guardadoEm = Date.now(); localStorage.setItem(CHAVE_CACHE, JSON.stringify(j)); } catch (e) {}
+  }
+
+  /* APLICAR (27/09) — o dado novo entra no lugar, sem recarregar a página.
+     Faz com o dado o que o subir() faz, sem as coisas de primeira montagem
+     (tela de carga, portão, ligar botões, chat): guarda a cópia, acerta o
+     selo e, se o CONTEÚDO mudou, empurra o dado para as molduras v2 já
+     montadas (Executivo das duas metades e Receita), que redesenham pelo
+     mesmo caminho dos chips de mês. Devolve se o conteúdo mudou. */
+  function aplicar(j) {
+    var antes = window.__DADOS__ || {};
+    var mudou = assina(j) !== assina(antes);
+    if (assinaEU(j) !== assinaEU(antes)) estrelaAtrasada = true;
+    window.__DADOS__ = j;
+    window.__DADOS_PS__ = j.ps || { vendas: [], meses: [], metas: {}, erro: j.psErro || 'não carregou' };
+    guardar(j);
+    CARIMBO.eu = j.atualizado_em || '';
+    CARIMBO.ps = (j.ps && j.ps.atualizado_em) || '';
+    CARIMBO.copia = false; CARIMBO.motivo = null;
+    CARIMBO.msEu = j.ms || 0; CARIMBO.msPs = (j.ps && j.ps.ms) || 0;
+    CARIMBO.psErro  = (j.ps && j.ps.sync_erro) || '';
+    CARIMBO.psFalha = (j.ps && j.ps.sync_ultima_falha) || '';
+    lerSaude(j.ps);
+    if (mudou) {
+      // os chips de mês do Parque, aqui no pai, acompanham (mês novo na virada)
+      try { if (window.__psReler) window.__psReler(); } catch (e) { console.error('Chips do Parque:', e); }
+      try { if (window.__v2Atualizar) window.__v2Atualizar(); } catch (e) { console.error('Molduras v2:', e); }
+    }
+    if (!document.getElementById('verNovo')) atualizarSelo(empNaTela());
+    return mudou;
+  }
+
+  /* As abas antigas da Estrela no pai (Dashboard · Estoque · Vendas ·
+     Vendas × Estoque · Histórico) NÃO redesenham — a regra de 01/09 continua
+     valendo para as ~900 linhas delas. Com Estrela nova em mãos e uma delas
+     na tela: se a pessoa ainda não mexeu na página, recarrega sozinho (sobe
+     do cache, instantâneo, nada a perder); se já mexeu, oferece o "Mostrar". */
+  var ABAS_VELHAS_EU = ['pDash', 'pEst', 'pVen', 'pSin', 'pEUHist'];
+  function abaVelhaDaEstrela() {
+    if (!document.body.classList.contains('emp-eu')) return false;
+    var p = document.querySelector('.panel.on:not(.ps)');
+    return !!p && ABAS_VELHAS_EU.indexOf(p.id) >= 0;
+  }
+  /* A recarga cai sempre no Executivo (trocarEmpresa). Quem estava numa aba
+     antiga volta para ela — senão o número novo chegaria tirando a pessoa
+     do lugar. Lido no arranque pelo cache (MARCA_FRESCA). */
+  function recarregarNaAba() {
+    try {
+      var p = document.querySelector('.panel.on:not(.ps)');
+      if (p) sessionStorage.setItem(ABA_VOLTA, p.id);
+      sessionStorage.setItem(MARCA_FRESCA, '1');
+    } catch (e) {}
+    location.reload();
+  }
+  function voltarParaAba() {
+    try {
+      var id = sessionStorage.getItem(ABA_VOLTA);
+      sessionStorage.removeItem(ABA_VOLTA);
+      if (!id || ABAS_VELHAS_EU.indexOf(id) < 0 || !document.body.classList.contains('emp-eu')) return;
+      var b = document.querySelector('#tabsEU .tab[data-p="' + id + '"]');
+      if (b) b.click();
+    } catch (e) {}
+  }
+  function oferecerEstrela() {
+    if (!estrelaAtrasada || !abaVelhaDaEstrela()) return;
+    var recarregar = recarregarNaAba;
+    if (!interagiu) { recarregar(); return; }
+    if (document.getElementById('verNovo')) return;
+    selo('Chegaram números novos do Cofre. ' +
+         '<a href="#" id="verNovo" style="color:inherit;font-weight:700;text-decoration:underline">Mostrar</a>');
+    var a = document.getElementById('verNovo');
+    if (a) a.onclick = function (ev) { ev.preventDefault(); recarregar(); };
+  }
+  // quem entra numa aba antiga depois que a Estrela dela ficou para trás
+  document.addEventListener('click', function (ev) {
+    var b = (ev.target && ev.target.closest) ? ev.target.closest('[data-p]') : null;
+    if (b && ABAS_VELHAS_EU.indexOf(b.dataset.p) >= 0) setTimeout(oferecerEstrela, 0);
+  });
+
   function revalidar(token) {
     if (revalidando) return;
     revalidando = true;
     ultimaRevalida = Date.now();
-    var copia = doCache() || window.__DADOS__ || {};
-    buscar(token).then(function (j) {
-      revalidando = false;
-      if (j && j.ok) {
-        try { localStorage.setItem(CHAVE_CACHE, JSON.stringify(j)); } catch (e) {}
-        var carimboEu = j.atualizado_em || '';
-        var carimboPs = (j.ps || {}).atualizado_em || '';
-        var carimboMudou = carimboEu !== (copia.atualizado_em || '') ||
-                           carimboPs !== ((copia.ps || {}).atualizado_em || '');
-        if (assina(j) !== assina(copia)) {
-          selo('Chegaram números novos do Cofre. ' +
-               '<a href="#" id="verNovo" style="color:inherit;font-weight:700;text-decoration:underline">Mostrar</a>');
-          var a = document.getElementById('verNovo');
-          if (a) a.onclick = function (ev) {
-            ev.preventDefault();
-            try { sessionStorage.setItem(MARCA_FRESCA, '1'); } catch (e) {}
-            location.reload();
-          };
-        } else if (carimboMudou || CARIMBO.copia) {
-          // mesmos números, hora nova (ou a rede voltou): o selo acompanha, sem alarde
-          CARIMBO.eu = carimboEu; CARIMBO.ps = carimboPs;
-          CARIMBO.copia = false; CARIMBO.motivo = null;
-          CARIMBO.msEu = j.ms || 0; CARIMBO.msPs = (j.ps && j.ps.ms) || 0;
-          CARIMBO.psErro  = (j.ps && j.ps.sync_erro) || '';
-          CARIMBO.psFalha = (j.ps && j.ps.sync_ultima_falha) || '';
-          lerSaude(j.ps);
-          if (!document.getElementById('verNovo')) {
-            atualizarSelo(document.body.classList.contains('emp-ps') ? 'ps' : 'eu');
-          }
+    var emp = empNaTela(), outra = (emp === 'ps') ? 'eu' : 'ps';
+    var psVeio = false;
+    conferindoAgora = true;
+    if (!document.getElementById('verNovo')) atualizarSelo(emp);
+    buscarMetade(token, emp).then(function (meia) {
+      if (!meia || !meia.ok) {
+        if (tokenRuim(meia)) {
+          localStorage.removeItem(CHAVE_TOKEN);
+          portao('O token deixou de valer. Digite o novo.');
         }
-      } else if (tokenRuim(j)) {
-        localStorage.removeItem(CHAVE_TOKEN);
-        portao('O token deixou de valer. Digite o novo.');
+        // o token vale e o Cofre falhou: a tela fica como está — o carimbo
+        // do selo já diz de quando é o número
+        return;
       }
-      // o token vale e o Cofre falhou: a tela fica como está — o carimbo do
-      // selo já diz de quando é o número
+      aplicar(juntar(window.__DADOS__, emp, meia));
+      if (emp === 'ps') psVeio = true;
+      // a outra metade, em segundo plano: falha dela não mexe na tela
+      return buscarMetade(token, outra).then(function (m2) {
+        if (m2 && m2.ok) {
+          aplicar(juntar(window.__DADOS__, outra, m2));
+          if (outra === 'ps') psVeio = true;
+        }
+      }, function () {});
     }).catch(function (e) {
-      revalidando = false;
+      // a metade da tela não veio: o selo assume a linguagem de cópia local
       CARIMBO.copia = true;
       CARIMBO.motivo = e;
-      atualizarSelo(document.body.classList.contains('emp-ps') ? 'ps' : 'eu');
+    }).then(function () {
+      revalidando = false;
+      conferindoAgora = false;
+      if (!document.getElementById('verNovo')) atualizarSelo(empNaTela());
+      if (psVeio) buscarForaDaRegra(token);   // o "N fora da regra" acompanha
+      oferecerEstrela();
     });
   }
   function ligarRevalidacao(token) {
@@ -2857,8 +3009,36 @@ let _rtps; window.addEventListener('resize', ()=>{ clearTimeout(_rtps); _rtps=se
     }, REVALIDA_MS);
   }
 
+  var token = localStorage.getItem(CHAVE_TOKEN);
+  if (!token) { portao(''); return; }
+
+  // veio de uma recarga pedida pela própria tela (Atualizar ou "Mostrar" numa
+  // aba antiga da Estrela): o dado é destes últimos segundos, já está no
+  // cache, e buscar de novo seria pagar a espera duas vezes pelo mesmo número
+  try {
+    if (sessionStorage.getItem(MARCA_FRESCA)) {
+      sessionStorage.removeItem(MARCA_FRESCA);
+      var recem = doCache();
+      if (recem) {
+        subir(recem, false);
+        voltarParaAba();
+        ultimaRevalida = Date.now();
+        ligarRevalidacao(token);
+        return;
+      }
+    }
+  } catch (e) {}
+
+  /* ARRANQUE PELO CACHE (01/09, pedido do Ricardo; revisto em 27/09): quem
+     abriu o Painel há pouco não espera o "Aquecendo" de novo. A tela sobe NA
+     HORA com a cópia local — o selo mostra o carimbo DO DADO, então a idade
+     nunca é escondida — e a revalidação roda em segundo plano, trocando o
+     número no lugar quando o conteúdo mudou. Token revogado → portão. Falha
+     de rede → o selo assume a linguagem de cópia local.
+     Desde 27/09 isso vale só para cópia de menos de COPIA_MAX_MS. */
   var copia = doCache();
-  if (copia) {
+  var copiaRecente = !!(copia && copia._guardadoEm && (Date.now() - copia._guardadoEm) < COPIA_MAX_MS);
+  if (copiaRecente) {
     // o piso de 1,4s da carga existe para busca de rede não parecer defeito;
     // subindo do cache não há busca — a bola sai da frente sem espera
     CARGA_T0 = Date.now() - CARGA_MIN;
@@ -2868,10 +3048,45 @@ let _rtps; window.addEventListener('resize', ()=>{ clearTimeout(_rtps); _rtps=se
     return;
   }
 
+  /* CÓPIA VELHA (27/09): rede primeiro — e a metade que vai abrir primeiro.
+     A outra metade sobe da cópia e é trocada no lugar quando chegar. A cópia
+     inteira só entra se a rede falhar, dita como cópia no selo. */
+  if (copia) {
+    var empIni = 'eu';
+    try { empIni = localStorage.getItem(CHAVE_EMP) || 'eu'; } catch (e) {}
+    var outraIni = (empIni === 'ps') ? 'eu' : 'ps';
+    buscarMetade(token, empIni).then(function (meia) {
+      if (meia && meia.ok) {
+        var j = juntar(copia, empIni, meia);
+        guardar(j);
+        subir(j, false);
+        ultimaRevalida = Date.now();
+        ligarRevalidacao(token);
+        buscarMetade(token, outraIni).then(function (m2) {
+          if (m2 && m2.ok) aplicar(juntar(window.__DADOS__, outraIni, m2));
+          oferecerEstrela();
+        }, function () {});
+      } else if (tokenRuim(meia)) {
+        localStorage.removeItem(CHAVE_TOKEN);
+        portao('O token deixou de valer. Digite o novo.');
+      } else {
+        CARIMBO.motivo = falha('erro', String(meia && meia.error || 'resposta sem dado'));
+        subir(copia, true);
+        ligarRevalidacao(token);
+      }
+    }).catch(function (e) {
+      CARIMBO.motivo = e;
+      subir(copia, true);
+      ligarRevalidacao(token);
+    });
+    return;
+  }
+
   buscar(token).then(function (j) {
     if (j && j.ok) {
-      try { localStorage.setItem(CHAVE_CACHE, JSON.stringify(j)); } catch (e) {}
+      guardar(j);
       subir(j, false);
+      ultimaRevalida = Date.now();
       ligarRevalidacao(token);
     } else if (tokenRuim(j)) {
       // token revogado ou rotacionado
@@ -2961,6 +3176,20 @@ let _rtps; window.addEventListener('resize', ()=>{ clearTimeout(_rtps); _rtps=se
                             ymPS: window.__psYmAtivo || null, ymEU: window.__euYmAtivo || null,
                             historico: window.__HIST_EU__ || null }, ORIGEM); } catch (e) {}
   }
+  /* DADO NOVO NO LUGAR (27/09): a revalidação do pai chama isto quando o
+     conteúdo mudou. Mesmo envelope do mandarDados, com `atualizacao: true` —
+     é o que deixa a mensagem passar pela trava de "uma vez na vida" lá dentro
+     e redesenhar pelo caminho dos chips de mês. Só vai para moldura já
+     montada: a que ainda não nasceu recebe o dado novo no v2:pronto. */
+  window.__v2Atualizar = function () {
+    ['fExecPS', 'fReceitaPS', 'fExecEU'].forEach(function (id) {
+      var f = document.getElementById(id);
+      if (!f || !f.getAttribute('src') || !f.contentWindow) return;
+      try { f.contentWindow.postMessage({ tipo: 'v2:dados', dados: window.__DADOS__ || null,
+                                          ymPS: window.__psYmAtivo || null, ymEU: window.__euYmAtivo || null,
+                                          historico: window.__HIST_EU__ || null, atualizacao: true }, ORIGEM); } catch (e) {}
+    });
+  };
   /* O histórico da Estrela (17/09) chega DEPOIS, quando a aba Histórico abre.
      Moldura já montada recebe pelo mesmo canal; moldura que ainda não nasceu
      recebe em mandarDados, quando avisar que está pronta. */
