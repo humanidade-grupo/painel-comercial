@@ -74,9 +74,19 @@
   ═══ MECÂNICA (copiada da Esteira do Funil, que é o padrão da casa) ═══
   Token `hub_token_gestao` no localStorage, o mesmo do Painel — quem já usa não
   digita nada. Sem token, nenhum número aparece. O carimbo exibido é o da FOTO
-  (quando o resumo do Cofre foi calculado), nunca a hora do fetch, com tarja
-  acima de 48h. `truncado` ausente ou true bloqueia o desenho inteiro. Todas as
+  (a última importação do Facilita — até 26/09, quando o resumo do Cofre foi
+  calculado), nunca a hora do fetch, com tarja acima de 48h. `truncado` ausente ou true bloqueia o desenho inteiro. Todas as
   contas rodam no navegador, sobre as linhas cruas que a rota devolve.
+
+  27/09/2026 — OS NÚMEROS DO MÊS SÃO OS DO EXECUTIVO. Até aqui a camada de
+  números lia as abas Resumo_* do Cofre, que o projeto "Resumo Mensal do Cofre"
+  (Apps Script à parte, fora dos repositórios, regras de 28/08) recalculava a
+  cada 4 h. O Executivo conta ao vivo, com as regras que vieram depois, e as
+  duas telas discordavam (setembro 82 × 84, abril 29 × 33, ticket com e sem o
+  Temporário). Agora esta página lê a MESMA rota do Executivo
+  (?app=vendas&fn=dados) e conta com as MESMAS regras — ver lerPainel(). As
+  Resumo_* não são mais lidas por esta página. E o token vai no CORPO de um
+  POST, nunca na URL (regra 4 do CLAUDE.md, 25/09).
 
   SEGURANÇA: nenhum segredo neste arquivo. O repositório é público.
 -->
@@ -468,9 +478,10 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
   /* ═══════════════════════════════════════════════════════════════════════
      CONFIGURAÇÃO — o que não vem da rota.
 
-     As metas são o `meta.oficial.*` da Config do Cofre, transcritas como no
-     artefato. Não vêm pela rota porque a rota serve as abas Resumo_*, e a meta
-     não mora nelas. Mês novo: acrescentar aqui.
+     As metas são o `meta.oficial.*` da Config do Cofre. Desde 27/09 elas vêm
+     pela rota do Executivo (`metas` de ?app=vendas&fn=dados) e MANDAM; esta
+     tabela é só o reserva para mês sem meta lá (o mês seguinte, antes da
+     primeira venda). Ver metaDe().
      ═══════════════════════════════════════════════════════════════════════ */
   var METAS = { '2026-03':30, '2026-04':40, '2026-05':50, '2026-06':60,
                 '2026-07':70, '2026-08':80, '2026-09':90, '2026-10':100 };
@@ -533,10 +544,12 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
                   'Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
 
   /* ══════════════════════════════ estado ══════════════════════════════ */
-  var NUMEROS = null;    // resumo do Cofre, por mês
+  var NUMEROS = null;    // por mês — contados aqui sobre a rota do Executivo (27/09)
+  var PAINEL_ERRO = null; // a rota das vendas (?app=vendas&fn=dados) não respondeu
+  var METAS_ROTA = {};    // meta.oficial da Config, pela rota do Executivo
   var FEEDBACK = null;   // respostas do time, por mês
   var LEITURA = null;    // a leitura e o plano do Ricardo, por mês
-  var CARIMBO = '';      // quando o resumo foi CALCULADO — nunca a hora do fetch
+  var CARIMBO = '';      // a última importação do Facilita — nunca a hora do fetch
   var HORAS = null;      // idade do carimbo
   var MS = null;         // quanto a rota demorou, como no rodapé do Painel
   var AVISOS = [];       // recados que a rota mandou (aba faltando, etc.)
@@ -545,7 +558,6 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
   var VENDAS_CARIMBO = '';   // quando o importador do CRM rodou pela última vez
   var VENDAS_ERRO = null;    // a rota devolveu o bloco, mas sem linha e com motivo
   var ROTA_SEM_VENDAS = false; // a rota nem trouxe o bloco: implantação anterior a 03/09
-  var ORIGEM_ANUNCIO = null;   // bloco vendas.origem_anuncio da rota (04/09)
 
   /* ═════════════════════════════ utilidades ═════════════════════════════ */
   var $ = function (s) { return document.querySelector(s); };
@@ -716,13 +728,16 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
     return d === 0 ? 'igual a ' + nomeCurto(id) : sinal + f(Math.abs(d)) + ' vs ' + nomeCurto(id);
   }
 
-  function comPrazo(url, ms) {
+  /* `corpo` presente = POST com o token dentro (regra 4: token nunca na URL).
+     Corpo em texto puro: é pedido "simples", sem a consulta prévia de CORS que
+     o Apps Script não responde. */
+  function comPrazo(url, ms, corpo) {
     return new Promise(function (resolve, reject) {
       var venceu = false;
       var t = setTimeout(function () {
         venceu = true; reject(new Error('o Cofre não respondeu em ' + (ms / 1000) + 's'));
       }, ms);
-      fetch(url, { cache: 'no-store' })
+      fetch(url, corpo ? { method: 'POST', body: corpo, cache: 'no-store' } : { cache: 'no-store' })
         .then(function (r) { return r.json(); })
         .then(function (j) { if (!venceu) { clearTimeout(t); resolve(j); } })
         .catch(function (e) { if (!venceu) { clearTimeout(t); reject(e); } });
@@ -754,75 +769,153 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
      é a conta que costuma estar errada, não o número.
      ═══════════════════════════════════════════════════════════════════════ */
 
-  function lerResumo(resumo){
-    if (!resumo || !resumo.meses || !resumo.meses.linhas.length) return null;
+  /* ══════════ os números do mês — a MESMA lista e as MESMAS regras do Executivo (27/09) ══════════
+     Até 26/09 esta camada lia as abas Resumo_* do Cofre, recalculadas a cada 4 h
+     por um projeto do Apps Script à parte (Resumo Mensal do Cofre, fora dos
+     repositórios) com as regras de 28/08. O Executivo conta ao vivo sobre a rota
+     ?app=vendas&fn=dados, com as regras que vieram depois — e as duas telas
+     passaram a discordar (Ricardo, 26/09): setembro 82 × 84 (as migrações),
+     abril 29 × 33 (as vendas anteriores a 13/04, do lançamento manual), ticket
+     médio com o Temporário dentro × fora.
+     Agora a conta é sobre a MESMA lista, com as MESMAS regras do Executivo
+     (docs/v2/index.html, "A BASE DO TICKET MÉDIO E DO DESCONTO"):
+       · CONTAGEM, VGV, placar, quinzenas, modalidade, forma e origem: TODA venda,
+         a migração inclusive — ela conta na meta.
+       · TICKET MÉDIO: fora o Temporário (preço de tabela, não concessão), a
+         doação (≤ R$ 100) e a migração (conversão, sem tabela).
+       · ORIGEM: o `canal` da rota — a anunciada no Pocket a partir do corte, a
+         do CRM antes, com as portas de entrada viradas "Não informado".
+       · META: a meta.oficial da Config, que a rota traz (metaDe).
+     ⚠️ Mexeu numa regra lá, muda aqui NO MESMO PASSO — ou as telas voltam a
+     discordar em silêncio, que foi exatamente o defeito de 26/09.
+     ═══════════════════════════════════════════════════════════════════════ */
+  var DOACAO_ATE = 100;   // R$ — abaixo disso não é venda, é doação/permuta (Executivo, 11/09)
+  var ehTemp = function (v) { return v.modalidade === 'Temporário'; };
+  var ehMig = function (v) { return v.modalidade === 'Migração'; };
+  var ehDoacao = function (v) { return !ehTemp(v) && !ehMig(v) && Number(v.venda || 0) <= DOACAO_ATE; };
 
-    var cM = resumo.meses.colunas;
-    var g = function (l, termo) { var i = idx(cM, termo); return i < 0 ? null : l[i]; };
+  /* A MESMA ORIGEM EM DUAS GRAFIAS (27/09): "Captação Própria" (a Origem do
+     CRM) e "Captação própria" (a lista do Anúncio no Pocket) viravam duas
+     barras no mesmo mês. Agrupa sem acento e sem caixa; a grafia que fica é a
+     do anúncio — a lista padronizada — e, sem anúncio, a mais frequente.
+     A mesma função mora no Executivo (docs/v2/index.html). */
+  function unificarCanais(V){
+    var chave = function (s) {
+      return String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase().replace(/\s+/g, ' ').trim();
+    };
+    var grafias = {};
+    V.forEach(function (v) {
+      if (!v || !v.canal) return;
+      var g = grafias[chave(v.canal)] = grafias[chave(v.canal)] || {};
+      var e = g[v.canal] = g[v.canal] || { n: 0, anuncio: 0 };
+      e.n++; if (v.origem_fonte === 'anuncio') e.anuncio++;
+    });
+    var fica = {};
+    Object.keys(grafias).forEach(function (k) {
+      var g = grafias[k];
+      fica[k] = Object.keys(g).sort(function (a, b) {
+        return (g[b].anuncio - g[a].anuncio) || (g[b].n - g[a].n) || (a < b ? -1 : 1);
+      })[0];
+    });
+    V.forEach(function (v) { if (v && v.canal) v.canal = fica[chave(v.canal)]; });
+    return V;
+  }
+
+  /* A meta que vale: a da Config (pela rota); sem ela, a tabela METAS. */
+  function metaDe(id){
+    var m = METAS_ROTA[id], n = m ? Number(m.oficial) : 0;
+    return (n > 0 ? n : null) || METAS[id] || null;
+  }
+
+  function lerPainel(ps){
+    if (!ps || !Array.isArray(ps.vendas)) return null;
+    unificarCanais(ps.vendas);
 
     var porMes = {};
-    resumo.meses.linhas.forEach(function (l) {
-      var id = String(g(l,'Mês') || '').trim();
-      if (!/^\d{4}-\d{2}$/.test(id)) return;
+    ps.vendas.forEach(function (v) {
+      if (!v || !v.ym) return;
+      var id = Math.floor(v.ym / 100) + '-' + String(v.ym % 100).padStart(2, '0');
+      (porMes[id] = porMes[id] || []).push(v);
+    });
+
+    var soma = function (l) { return l.reduce(function (a, v) { return a + (Number(v.venda) || 0); }, 0); };
+    var conta = function (itens, campo) {
+      var m = {};
+      itens.forEach(function (v) {
+        var k = String(v[campo] || '').trim() || 'Não informado';
+        m[k] = (m[k] || 0) + 1;
+      });
+      return Object.keys(m).map(function (k) { return { rotulo:k, n:m[k] }; })
+        .sort(function (a, b) { return (b.n - a.n) || (a.rotulo < b.rotulo ? -1 : 1); });
+    };
+
+    var saida = {};
+    Object.keys(porMes).forEach(function (id) {
+      var itens = porMes[id];
       var p = id.split('-').map(Number), ano = p[0], mm = p[1];
       var hoje = new Date();
       var corrente = (hoje.getFullYear() === ano && hoje.getMonth()+1 === mm);
       var du = diasDoMes(ano, mm, corrente ? hoje.getDate() : new Date(ano, mm, 0).getDate());
-      var vendas = numero(g(l,'Vendas')) || 0;
-      var meta = METAS[id] || null;
+      var vendas = itens.length;
+      var meta = metaDe(id);
       var faltam = meta ? Math.max(0, meta - vendas) : null;
       var duRest = du.total - du.ate;
-      porMes[id] = {
+
+      var base = itens.filter(function (v) { return !ehTemp(v) && !ehMig(v) && !ehDoacao(v); });
+
+      var vend = {};
+      itens.forEach(function (v) {
+        var q = String(v.vendedor || '').trim() || '—';
+        var o = vend[q] = vend[q] || { quem:q, n:0, vgv:0 };
+        o.n++; o.vgv += Number(v.venda) || 0;
+      });
+
+      var q1 = itens.filter(function (v) { return Number(String(v.data).slice(8, 10)) <= 15; }).length;
+
+      saida[id] = {
         id:id, ano:ano, mes:mm, corrente:corrente,
         vendas: vendas,
-        vgv: numero(g(l,'VGV')) || 0,
-        ticket: numero(g(l,'Ticket')),
-        descontoMedio: numero(g(l,'Desconto')),
-        pctCheio: numero(g(l,'Preço Cheio')),
-        confirmadas: numero(g(l,'Confirmadas')) || 0,
-        naoConfirmadas: numero(g(l,'Não confirmadas')) || 0,
-        q1: numero(g(l,'Dias 1-15')) || 0,
-        q2: numero(g(l,'Dias 16')) || 0,
-        atualizado: String(g(l,'Atualizado') || '').trim(),
+        vgv: soma(itens),
+        ticket: base.length ? soma(base) / base.length : null,
+        baseTicket: base.length,
+        foraTicket: { temp: itens.filter(ehTemp).length, doacao: itens.filter(ehDoacao).length,
+                      mig: itens.filter(ehMig).length },
+        q1: q1, q2: vendas - q1,
         meta:meta, faltam:faltam, du:du,
         ritmo: du.ate ? vendas / du.ate : 0,
         ritmoNecessario: (faltam !== null && duRest > 0) ? faltam / duRest : null,
         duRestantes: duRest,
-        porVendedor: [], origens: [], formas: [], modalidades: []
+        porVendedor: Object.keys(vend).map(function (k) { return vend[k]; })
+          .sort(function (a, b) { return b.n - a.n; }),
+        origens: conta(itens, 'canal'),
+        formas: conta(itens, 'forma'),
+        modalidades: conta(itens, 'modalidade'),
+        itens: itens,
+        /* A partir do corte do Anúncio (set/26) a rota marca cada venda do CRM
+           com `origem_fonte` anuncio × sem; antes, crm. */
+        origemDasLinhas: itens.some(function (v) { return v.origem_fonte === 'anuncio' || v.origem_fonte === 'sem'; }),
+        comAnuncio: itens.filter(function (v) { return v.origem_fonte === 'anuncio'; }).length,
+        semAnuncio: itens.filter(function (v) { return v.origem_fonte === 'sem'; })
+          .map(function (v) { return { jazigo: v.quadra + '-' + v.jazigo, vendedor: v.vendedor, data: v.data }; })
+          .sort(function (a, b) { return a.data < b.data ? 1 : a.data > b.data ? -1 : 0; })
       };
     });
+    return Object.keys(saida).length ? saida : null;
+  }
 
-    var tV = resumo.vendedores;
-    if (tV && tV.linhas.length){
-      var c = tV.colunas;
-      var iM = idx(c,'Mês'), iV = idx(c,'Vendedor'), iN = idx(c,'Vendas'), iG = idx(c,'VGV');
-      tV.linhas.forEach(function (l) {
-        var m = porMes[String(l[iM]||'').trim()];
-        if (!m) return;
-        m.porVendedor.push({ quem:String(l[iV]||'—').trim(),
-                             n:numero(l[iN])||0, vgv:numero(l[iG])||0 });
-      });
-      Object.keys(porMes).forEach(function (k) {
-        porMes[k].porVendedor.sort(function (a,b) { return b.n - a.n; });
-      });
-    }
-
-    var tD = resumo.dimensoes;
-    if (tD && tD.linhas.length){
-      var c2 = tD.colunas;
-      var jM = idx(c2,'Mês'), jDim = idx(c2,'Dimensão'), jVal = idx(c2,'Valor'), jN = idx(c2,'Vendas');
-      tD.linhas.forEach(function (l) {
-        var m = porMes[String(l[jM]||'').trim()];
-        if (!m) return;
-        var d = String(l[jDim] || '');
-        var alvo = /origem/i.test(d) ? m.origens
-                 : /forma/i.test(d) ? m.formas
-                 : /modalidade/i.test(d) ? m.modalidades : null;
-        if (alvo) alvo.push({ rotulo:String(l[jVal]||'—').trim(), n:numero(l[jN])||0 });
-      });
-    }
-
-    return Object.keys(porMes).length ? porMes : null;
+  /* A linha que diz de onde saiu o ticket — a mesma do card do Executivo. */
+  function notaTicket(n){
+    var f = n.foraTicket, fora = [];
+    if (f.temp) fora.push(f.temp + ' temporári' + (f.temp > 1 ? 'as' : 'a'));
+    if (f.doacao) fora.push(f.doacao + ' doaç' + (f.doacao > 1 ? 'ões' : 'ão'));
+    if (f.mig) fora.push(f.mig + ' migraç' + (f.mig > 1 ? 'ões' : 'ão'));
+    if (!fora.length) return null;
+    var ult = fora.pop();
+    return 'Ticket médio sobre ' + n.baseTicket + ' de ' + n.vendas + ' vendas — fora ' +
+      (fora.length ? fora.join(', ') + ' e ' : '') + ult +
+      ': o temporário e a doação são preço de tabela, não desconto concedido, e a migração é ' +
+      'conversão, sem tabela. A mesma base do Executivo.';
   }
 
   function lerFeedback(bloco){
@@ -1255,8 +1348,8 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
   }
 
   /* ── a faixa de origem do dado ──────────────────────────────────────────
-     O carimbo é o da FOTO — quando o resumo do Cofre foi CALCULADO —, nunca a
-     hora do fetch. Página que busca ao vivo e mostra a hora do fetch parece
+     O carimbo é o da FOTO — a última importação do Facilita, a mesma data que
+     o Executivo mostra —, nunca a hora do fetch. Página que busca ao vivo e mostra a hora do fetch parece
      viva servindo dado de três dias atrás. */
   function faixaFonte(){
     var f = el('div','fonte');
@@ -1274,8 +1367,8 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
                 : 'há ' + Math.floor(HORAS / 24) + ' dias';
       t.append(el('span', null, ' · ' + idade));
     }
-    t.append(el('span', null, ' — é quando o Cofre fechou a conta do mês, não a hora ' +
-      'em que esta página abriu.'));
+    t.append(el('span', null, ' — é a última importação do Facilita (a mesma do Executivo), ' +
+      'não a hora em que esta página abriu.'));
     f.append(t);
 
     var fim = el('span','fim');
@@ -1292,21 +1385,29 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
   }
 
   function tarjas(p){
-    if (!CARIMBO){
+    if (PAINEL_ERRO){
+      var z = el('div','tarja amarela');
+      z.append(el('div','t','Os números do mês não chegaram.'));
+      z.append(Object.assign(el('p'), { innerHTML:
+        'A rota das vendas (<code>?app=vendas&amp;fn=dados</code>, a mesma do Executivo) não ' +
+        'respondeu: <em>' + esc(PAINEL_ERRO) + '</em>. O resto da página está certo; os números ' +
+        'voltam ao recarregar.' }));
+      p.append(z);
+    } else if (!CARIMBO){
       var a = el('div','tarja amarela');
       a.append(el('div','t','Os números chegaram sem data.'));
       a.append(Object.assign(el('p'), { innerHTML:
-        'O resumo foi lido, mas não veio a data em que ele foi calculado — não dá para saber se ' +
-        'estes números são de hoje ou da semana passada. <em>(coluna <code>Atualizado em</code> ' +
-        'vazia na aba <code>Resumo_Mes</code> do Cofre.)</em>' }));
+        'As vendas foram lidas, mas sem a data da última importação do Facilita — não dá para ' +
+        'saber se são de hoje ou da semana passada. <em>(chave <code>facilita.ultima_importacao</code> ' +
+        'vazia na Config do Cofre.)</em>' }));
       p.append(a);
     } else if (HORAS !== null && HORAS >= 48){
       var b = el('div','tarja amarela');
       b.append(el('div','t','Os números têm mais de 48 horas.'));
       b.append(Object.assign(el('p'), { innerHTML:
         'São de <b>' + esc(CARIMBO) + '</b>, ' + Math.floor(HORAS/24) + ' dias atrás. Estão ' +
-        '<b>certos para aquele instante</b> e provavelmente errados para hoje. O resumo é ' +
-        'refeito de tempos em tempos pelo Apps Script; parado quer dizer que a rodada não fechou.' }));
+        '<b>certos para aquele instante</b> e provavelmente errados para hoje. O Cofre importa ' +
+        'o Facilita a cada 5 minutos; parado há tanto tempo quer dizer que a importação não fecha.' }));
       p.append(b);
     }
     AVISOS.forEach(function (av) {
@@ -1329,25 +1430,19 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
       var s0 = el('summary');
       s0.append(el('span','flag crit','sem número'));
       s0.append(el('span','resumo-linha', NUMEROS
-        ? 'Nenhum número para este mês.'
-        : 'O Cofre ainda não tem as abas de resumo.'));
+        ? 'Nenhuma venda neste mês.'
+        : 'Os números do mês não chegaram.'));
       d0.append(s0);
       var c0 = el('div','corpo'), e0 = el('div','empty');
       if (!NUMEROS){
-        e0.append(el('h3', null, 'As abas de resumo ainda não existem no Cofre.'));
-        e0.append(el('p', null, 'Os números do mês não leem venda linha a linha de propósito. Eles leem as ' +
-          'abas Resumo_Mes, Resumo_Vendedor e Resumo_Dim, que o Apps Script calcula sobre a base ' +
-          'inteira — com todas as modalidades contando como venda.'));
-        var ol = el('ol','steps');
-        ['Abra o projeto do resumo no script.google.com.',
-         'Execute atualizarResumo() uma vez.',
-         'Execute instalarGatilho() para o resumo se refazer sozinho.',
-         'Recarregue esta página.'].forEach(function (x) { ol.append(el('li', null, x)); });
-        e0.append(ol);
+        e0.append(el('h3', null, 'A rota das vendas não respondeu.'));
+        e0.append(el('p', null, 'Os números do mês vêm da mesma rota do Executivo ' +
+          '(?app=vendas&fn=dados)' + (PAINEL_ERRO ? ': ' + PAINEL_ERRO : '') +
+          '. Recarregue a página; se insistir, o Executivo também estará sem número.'));
       } else {
         e0.append(el('h3', null, 'Sem vendas neste mês.'));
-        e0.append(el('p', null, 'O resumo do Cofre não tem linha para ' + id +
-          '. Se isso não bate com a realidade, rode atualizarResumo() e recarregue.'));
+        e0.append(el('p', null, 'O Facilita não tem venda em ' + nomeMes(id).toLowerCase() +
+          ' — nem o Executivo, que lê a mesma lista.'));
       }
       c0.append(e0); d0.append(c0); p.append(d0);
       return;
@@ -1382,8 +1477,8 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
 
     if (n.modalidades.length > 1){
       corpo.append(Object.assign(el('p','nota-fina'), { textContent:
-        'Toda venda conta. Perpétuo, Temporário e Reserva são jazigos do mesmo jeito — ' +
-        'o que muda entre elas é a modalidade: ' +
+        'Toda venda conta. Perpétuo, Temporário e Reserva são jazigos do mesmo jeito, e a ' +
+        'migração (temporário convertido em perpétuo) também conta — o que muda é a modalidade: ' +
         n.modalidades.map(function (m) { return m.rotulo.toLowerCase() + ' ' + m.n; }).join(' · ') + '.' }));
     }
 
@@ -1399,6 +1494,7 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
            (n.du.ate + ' de ' + n.du.total + ' dias'))
     );
     corpo.append(tiles);
+    if (notaTicket(n)) corpo.append(Object.assign(el('p','nota-fina'), { textContent: notaTicket(n) }));
 
     if (ant && n.corrente){
       corpo.append(Object.assign(el('p','nota-fina'), { textContent:
@@ -1406,10 +1502,10 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
         n.du.total + ' dias corridos, a diferença ainda tem mês pela frente dentro dela — ' +
         'quem responde "estamos indo bem?" é o ritmo por dia, não a diferença bruta.' +
         (rot3 ? ' Nos gráficos, a terceira barra é a ' + rot3 + ' — ela tira o peso de um mês atípico.'
-              : ' A terceira barra (média dos anteriores) aparece quando houver pelo menos dois meses no resumo.') }));
+              : ' A terceira barra (média dos anteriores) aparece quando houver pelo menos dois meses com venda.') }));
     } else if (!ant){
       corpo.append(Object.assign(el('p','nota-fina'), { textContent:
-        'Sem ' + nomeCurto(idAnt) + ' no resumo do Cofre — não há mês anterior para comparar.' }));
+        'Sem venda em ' + nomeCurto(idAnt) + ' — não há mês anterior para comparar.' }));
     }
 
     if (n.corrente && n.ritmoNecessario !== null){
@@ -1514,14 +1610,14 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
            por origem. Texto livre do vendedor: agrupa sem acento e sem caixa e
            mostra a primeira grafia. */
         (function () {
-          var lista = (VENDAS && VENDAS[id]) || [];
+          var lista = n.itens || [];
           var norm = function (s) { return String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/\s+/g, ' ').trim(); };
           var por = {};
           lista.forEach(function (x) {
-            if (x.origemFonte !== 'anuncio' || !x.origemDetalhe) return;
-            var o = por[x.origem] = por[x.origem] || { origem: x.origem, n: 0, itens: {} };
-            var k = norm(x.origemDetalhe);
-            if (!o.itens[k]) o.itens[k] = { rotulo: x.origemDetalhe, n: 0 };
+            if (x.origem_fonte !== 'anuncio' || !x.origem_detalhe) return;
+            var o = por[x.canal] = por[x.canal] || { origem: x.canal, n: 0, itens: {} };
+            var k = norm(x.origem_detalhe);
+            if (!o.itens[k]) o.itens[k] = { rotulo: x.origem_detalhe, n: 0 };
             o.itens[k].n++; o.n++;
           });
           var grupos = Object.keys(por).map(function (k) { return por[k]; }).sort(function (a, b) { return b.n - a.n; });
@@ -1553,10 +1649,9 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
       bo.append(co); corpo.append(bo);
     }
 
-    if (n.atualizado){
-      corpo.append(Object.assign(el('p','nota-fina'), { textContent:
-        'Resumo do Cofre calculado sobre a base inteira em ' + n.atualizado + '.' }));
-    }
+    corpo.append(Object.assign(el('p','nota-fina'), { textContent:
+      'Contado aqui sobre as vendas do Facilita importadas em ' + (CARIMBO || 'data desconhecida') +
+      ' — a mesma lista e as mesmas regras do Executivo.' }));
 
     d.append(corpo);
     p.append(d);
@@ -1890,7 +1985,7 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
 
     var somaComp = f.compromissos.reduce(function (a,c2) { return a + c2.numero; }, 0);
     var semNum = f.compromissosSemNumero || [];
-    var metaProx = METAS[proximoMes(id)] || null;
+    var metaProx = metaDe(proximoMes(id));
 
     /* O rodapé do cartão diz, nesta ordem de prioridade: quem respondeu com
        frase em vez de número (o buraco menos visível), depois quantos ainda não
@@ -2035,9 +2130,10 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
 
   function rodape(){
     var n = el('div','note');
-    n.textContent = 'Os números vêm das abas Resumo_* do Cofre, calculadas sobre a base inteira ' +
-      'pelo Apps Script. Só a Comissão do mês lê venda linha a linha (aba Vendas_Facilita), e a ' +
-      'conta é feita aqui, no navegador, com a régua escrita na própria página. Ritmo e projeção ' +
+    n.textContent = 'Os números do mês são contados aqui, no navegador, sobre a mesma lista de ' +
+      'vendas que o Executivo lê e com as mesmas regras dele — a conta está escrita na própria ' +
+      'página. A Comissão do mês lê as linhas da aba Vendas_Facilita, com a régua também escrita ' +
+      'aqui. Ritmo e projeção ' +
       'usam dias corridos: o time vende no fim de semana. As respostas vêm da planilha do ' +
       'formulário, e a leitura do mês, da aba Leitura dela. Esta página não escreve nada: ela é o ' +
       'espelho de leitura da gestão, e quem escreve é o Ricardo, no painel da retrospectiva.';
@@ -2096,7 +2192,7 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
       var d = el('details','dobra'); d.open = true;
       var s = el('summary');
       s.append(el('span','flag ok','vendas'));
-      s.append(el('div','resumo-linha', ids.length + ' meses no resumo do Cofre'));
+      s.append(el('div','resumo-linha', ids.length + ' meses com venda no Facilita'));
       d.append(s);
       var corpo = el('div','corpo');
       var linhas = ids.map(function (id) {
@@ -2141,7 +2237,7 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
           MESES_PT[parseInt(id.split('-')[1],10)-1].slice(0,3) + '/' + id.split('-')[0].slice(2),
           f ? f.respondentes + '/' + f.equipe : '—',
           n ? n.vendas : '—',
-          METAS[id] || '—',
+          metaDe(id) || '—',
           f && f.compromissos.length
             ? f.compromissos.reduce(function (a,c3) { return a+c3.numero; },0) : '—',
           prox ? prox.vendas : '—'
@@ -2213,8 +2309,21 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
     if (!token) { abrirPortao(''); return; }
     $('#painel').innerHTML = '<p class="nota-fina">Lendo o Cofre e as respostas do time…</p>';
 
-    comPrazo(API + '?app=retrospectiva&fn=dados&token=' + encodeURIComponent(token), 60000)
-      .then(function (r) {
+    /* Token no CORPO (regra 4). E duas rotas em paralelo: a da Retrospectiva
+       (respostas, leitura, linhas da comissão) e a do Executivo, de onde saem os
+       números do mês (27/09). A do Executivo tem UMA nova tentativa — a entrega
+       do /exec falha às vezes em dia ruim — e, falhando de vez, só os números
+       somem: o resto da página continua certo e útil. */
+    var corpo = JSON.stringify({ token: token });
+    var painel = function () { return comPrazo(API + '?app=vendas&fn=dados', 60000, corpo); };
+    var pedidoPainel = painel()
+      .then(function (j) { return (j && j.ok) || /token/i.test((j && j.error) || '') ? j : painel(); },
+            function () { return painel(); })
+      .catch(function (e) { return { ok: false, error: String((e && e.message) || e) }; });
+
+    Promise.all([comPrazo(API + '?app=retrospectiva&fn=dados', 60000, corpo), pedidoPainel])
+      .then(function (res) {
+        var r = res[0];
         if (!r || r.ok !== true){
           var err = (r && r.error) || 'resposta sem dado';
           if (/token/i.test(err)){
@@ -2225,7 +2334,7 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
           bloqueia('O Cofre respondeu, mas sem dado.', '<p>' + esc(err) + '</p>');
           return;
         }
-        montar(r);
+        montar(r, res[1]);
       })
       .catch(function (e) {
         bloqueia('Não consegui falar com o Cofre.',
@@ -2234,7 +2343,7 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
       });
   }
 
-  function montar(r){
+  function montar(r, ps){
     /* GUARDA DE TRUNCAMENTO, igual à da Esteira. `truncado` AUSENTE é pior que
        true: quer dizer que o Cofre serve uma implantação anterior a esta rota,
        que entrega linhas sem dizer se são todas — e rota que não sabe dizer é
@@ -2264,7 +2373,13 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
     }
 
     MS = typeof r.ms === 'number' ? r.ms : null;
-    CARIMBO = String(r.carimbo || '').trim();
+
+    /* Os números do mês e o carimbo deles vêm da rota do Executivo (27/09). */
+    var psOk = !!(ps && ps.ok === true);
+    PAINEL_ERRO = psOk ? null : ((ps && ps.error) || 'a rota das vendas respondeu sem dado');
+    METAS_ROTA = (psOk && ps.metas) || {};
+    CARIMBO = psOk ? String(ps.atualizado_em || '').trim() : '';
+    if (CARIMBO === '(nunca)') CARIMBO = '';
     HORAS = null;
     if (CARIMBO){
       var d = new Date(CARIMBO.replace(' ', 'T') + (/:\d{2}:\d{2}$/.test(CARIMBO) ? '' : ':00'));
@@ -2272,7 +2387,6 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
     }
 
     AVISOS = [];
-    if (r.resumo && r.resumo.aviso) AVISOS.push(r.resumo.aviso);
     /* O erro das respostas é AVISO e não bloqueio: quando a coluna reservada
        não é reconhecida, a rota não serve resposta nenhuma — e o resto da
        página (números, leitura, série) continua correto e útil. */
@@ -2287,33 +2401,10 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
     VENDAS_CARIMBO = r.vendas ? String(r.vendas.carimbo || '').trim() : '';
     if (r.vendas && r.vendas.aviso) AVISOS.push('vendas: ' + r.vendas.aviso);
 
-    NUMEROS = lerResumo(r.resumo);
+    NUMEROS = psOk ? lerPainel(ps) : null;
     FEEDBACK = lerFeedback(r.respostas);
     LEITURA = lerLeitura(r.leitura);
     VENDAS = (r.vendas && !r.vendas.erro) ? lerVendas(r.vendas) : null;
-    ORIGEM_ANUNCIO = (r.vendas && r.vendas.origem_anuncio) || null;
-
-    /* Origem das vendas (04/09): a partir do corte (`origem_anuncio.desde`,
-       set/26) a origem que vale é a ANUNCIADA no Pocket, e a rota já a põe na
-       coluna Origem do bloco `vendas`. A Resumo_Dim lê a Origem crua do CRM
-       (é o resumo_cofre.gs, fora deste repo) — então, desses meses em diante,
-       o gráfico é contado AQUI, sobre as linhas. Antes do corte, e sem o
-       bloco `vendas`, ele continua lendo a Resumo_Dim. */
-    if (NUMEROS && VENDAS && ORIGEM_ANUNCIO && ORIGEM_ANUNCIO.desde){
-      var desde = String(ORIGEM_ANUNCIO.desde).slice(0, 7);
-      Object.keys(NUMEROS).forEach(function (id) {
-        if (id < desde) return;
-        var lista = VENDAS[id]; if (!lista || !lista.length) return;
-        var m = {};
-        lista.forEach(function (x) { var k = x.origem || '—'; m[k] = (m[k] || 0) + 1; });
-        NUMEROS[id].origens = Object.keys(m).map(function (k) { return { rotulo:k, n:m[k] }; })
-          .sort(function (a, b) { return b.n - a.n; });
-        NUMEROS[id].origemDasLinhas = true;
-        NUMEROS[id].comAnuncio = lista.filter(function (x) { return x.origemFonte === 'anuncio'; }).length;
-        NUMEROS[id].semAnuncio = lista.filter(function (x) { return x.origemFonte === 'sem'; })
-          .sort(function (a, b) { return a.data < b.data ? 1 : a.data > b.data ? -1 : 0; });
-      });
-    }
 
     pintar();
   }

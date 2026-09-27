@@ -3074,9 +3074,39 @@ window.__renderEU = function (dados, ymSel) {
     window.scrollTo({ top: 0 });
   }
 
+  /* A MESMA ORIGEM EM DUAS GRAFIAS (27/09): "Captação Própria" (a Origem do
+     CRM) e "Captação própria" (a lista do Anúncio no Pocket) viravam duas
+     linhas no mix de canal do mesmo mês. Agrupa sem acento e sem caixa; a
+     grafia que fica é a do anúncio — a lista padronizada — e, sem anúncio, a
+     mais frequente. A MESMA função mora na Retrospectiva
+     (docs/retrospectiva/index.html): as duas telas contam igual. */
+  function unificarCanais(V) {
+    var chave = function (s) {
+      return String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase().replace(/\s+/g, ' ').trim();
+    };
+    var grafias = {};
+    V.forEach(function (v) {
+      if (!v || !v.canal) return;
+      var g = grafias[chave(v.canal)] = grafias[chave(v.canal)] || {};
+      var e = g[v.canal] = g[v.canal] || { n: 0, anuncio: 0 };
+      e.n++; if (v.origem_fonte === 'anuncio') e.anuncio++;
+    });
+    var fica = {};
+    Object.keys(grafias).forEach(function (k) {
+      var g = grafias[k];
+      fica[k] = Object.keys(g).sort(function (a, b) {
+        return (g[b].anuncio - g[a].anuncio) || (g[b].n - g[a].n) || (a < b ? -1 : 1);
+      })[0];
+    });
+    V.forEach(function (v) { if (v && v.canal) v.canal = fica[chave(v.canal)]; });
+    return V;
+  }
+
   function subir(dados, deCopia, ymPS, ymEU) {
     DADOS = dados;
     if (!dados.ps) dados.ps = { vendas: [], meses: [], metas: {}, erro: dados.psErro || 'não carregou' };
+    unificarCanais(dados.ps.vendas || []);
     YM_PS = (dados.ps.meses && dados.ps.meses.length) ? dados.ps.meses[0].ym : null;
     /* embutida, o mês já escolhido lá fora chega junto do dado — sem isto a
        moldura abriria sempre no mês padrão, discordando dos chips acima dela */
