@@ -667,11 +667,10 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
   <!-- (27/09) o texto de "de onde vêm os dados" fica fechado: os números sobem na tela (pedido do Ricardo) -->
   <details class="ritmo">
     <summary>De onde vêm estes dados e de quando são</summary>
+    <!-- (28/09) texto trocado a pedido do Ricardo -->
     <p><b>Vendas</b>: cópia do Facilita a cada 5 min (completa a cada 2 h) ·
-    <b>Contratos</b>: espelho da D4Sign às 8h, 14h e 20h, só com o PC do Ricardo ligado e a sessão da D4Sign aberta ·
-    <b>Lançamentos</b>: gravados na hora, com autor e data — os dos colegas aparecem aqui em até 2 min, e na hora em que você volta para esta aba ·
-    Os meses abertos ficam nesta aba até ela fechar; <b>Recarregar</b> busca de novo.
-    As datas no alto são da cópia, não da abertura da página.</p>
+    <b>Contratos</b>: espelho da D4Sign às 8h.</p>
+    <p>Essa tela é um paliativo até a integração entre Facilita e Ivertex sair. Quando ela sair, a tela deixa de ser controle e vira acompanhamento.</p>
   </details>
 
   <div class="tabs" role="tablist" aria-label="Escopo">
@@ -1129,6 +1128,25 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
       if (acao.getAttribute('data-a') === 'recarregar') $('#btRecarregar').click();
       setTimeout(fecharSino, 0);
     }
+  });
+  /* (28/09) Desmarcar o lançamento de negócio que deixou de ser venda — o botão mora no aviso, porque esse
+     negócio não tem linha na tabela. Vai sem `visto`: a lista não traz a referência, e desmarcar o que já está
+     desmarcado volta sem_mudanca. Depois recarrega, e o aviso some. */
+  document.addEventListener('click', function (e) {
+    var bt = e.target.closest && e.target.closest('button[data-desmarca]');
+    if (!bt || bt.disabled) return;
+    var deal = Number(bt.getAttribute('data-desmarca'));
+    if (!confirm('Desmarcar o lançamento do deal ' + deal + '?\n\n' +
+        'Só faça isso se ele NÃO está lançado no Ivertex (ou se o lançamento já foi estornado ou passado para outro número). ' +
+        'O registro guarda quem desmarcou e quando.')) return;
+    bt.disabled = true; bt.textContent = 'desmarcando…';
+    api('marcar', { corpo: { deal: deal, lancado: false } }).then(function (r) {
+      if (!r || r.ok !== true) throw new Error((r && r.error) || 'resposta vazia');
+      $('#btRecarregar').click();
+    }).catch(function (err) {
+      bt.disabled = false; bt.textContent = 'Desmarcar';
+      alert('Não desmarcou o deal ' + deal + ': ' + ((err && err.message) || err));
+    });
   });
   /* (27/09) a legenda dos quadros filtra a lista: liga a pílula de situação; clicar de novo volta para "Tudo" */
   document.addEventListener('click', function (e) {
@@ -1603,17 +1621,25 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
     if (r.boletos) reaplicarMarcasDaSessao(r.boletos);   // marcação feita enquanto a tabela vinha
     if ((r.lancadas_sem_venda || []).length) {
       /* (24/09) "ausentes da Vendas_Facilita" foi lido como "não está no Facilita" — o deal 5766 está lá,
-         em Lead Frio, com a reserva cancelada. O texto diz o que aconteceu com o NEGÓCIO. */
+         em Lead Frio, com a reserva cancelada. O texto diz o que aconteceu com o NEGÓCIO.
+         (28/09) E o negócio pode ter sido EXCLUÍDO — o 5766 foi: a API do Facilita responde "identificador não
+         encontrado". Negócio que não é venda não tem linha na tabela, e o Desmarcar morava só na linha: o aviso
+         mandava desmarcar sem ter onde clicar. O botão vem no próprio aviso (ver data-desmarca). */
       var um = r.lancadas_sem_venda.length === 1;
       aviso(plural(r.lancadas_sem_venda.length, 'lançamento no Ivertex de negócio que deixou de ser venda',
                    'lançamentos no Ivertex de negócios que deixaram de ser venda') + '.',
         '<p>' + (um ? 'Lançado no Ivertex, mas no Facilita o negócio não é mais venda: voltou'
                     : 'Lançados no Ivertex, mas no Facilita os negócios não são mais venda: voltaram') +
-        ' de etapa (por exemplo, para Lead Frio), ' + (um ? 'foi perdido ou perdeu' : 'foram perdidos ou perderam') +
-        ' a proposta. Estorno no ERP, ou ' + (um ? 'o card foi movido' : 'os cards foram movidos') +
-        ' por engano? Confira no Facilita: ' + (um ? 'deal ' : 'deals ') +
-        r.lancadas_sem_venda.map(function (x) { return '<b>' + esc(x.deal) + '</b> (lançado em ' + esc(dbr(x.data_ivertex)) + ' por ' + esc(x.quem) + ')'; }).join(' · ') +
-        '. Também viram linha <code>LANCADA_SEM_VENDA</code> na Divergencias.</p>');
+        ' de etapa (por exemplo, para Lead Frio), ' + (um ? 'foi perdido, perdeu a proposta ou foi excluído'
+                                                          : 'foram perdidos, perderam a proposta ou foram excluídos') +
+        '. Estorno no ERP, ou ' + (um ? 'o card foi movido' : 'os cards foram movidos') +
+        ' por engano? Se a venda foi refeita com outro número, desmarque aqui e lance o número novo; ' +
+        'se não houve venda, estorne no Ivertex e desmarque aqui.</p><p>' +
+        r.lancadas_sem_venda.map(function (x) {
+          return '<b>' + esc(x.deal) + '</b> (lançado em ' + esc(dbr(x.data_ivertex)) + ' por ' + esc(x.quem) + ') ' +
+            '<button type="button" class="chip" data-desmarca="' + esc(x.deal) + '">Desmarcar</button>';
+        }).join(' · ') +
+        '</p><p>Também viram linha <code>LANCADA_SEM_VENDA</code> na Divergencias.</p>');
     }
     if (r.mes !== 'tudo' && !r.pessoal && r.pessoal_motivo) {
       aviso('Os dados de cadastro do cliente não vieram.', '<p>' + esc(r.pessoal_motivo) + '</p>', true);
