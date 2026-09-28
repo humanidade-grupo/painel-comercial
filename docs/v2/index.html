@@ -1485,17 +1485,24 @@ window.__renderPS = function (dados, ymSel) {
       return { n: n, v: (por[n] || []).length, meta: (meta.vendedor || {})[n] || null };
     }).sort(function (a, b) { return b.v - a.v; });
     var maxEsc = Math.max.apply(null, linhas.map(function (l) { return Math.max(l.v, l.meta || 0); }).concat([5]));
+    /* RITMO = RÉGUA DE DISPERSÃO (D13, 06/08; corrigido 28/09): pelo menos metade
+       das vendas do líder — a mesma régua da Parcial no WhatsApp (AlertaParcial.gs,
+       "Mínimo (50% do líder)"). Até 28/09 o farol comparava com a meta individual
+       proporcional ao dia e marcava "atenção" em quem a régua do time dá como em dia. */
+    var lider = linhas[0].v, minimo = Math.ceil(lider * 0.5);
+    var why = cPlacar.querySelector('.why');
+    if (lider > 0) why.textContent = 'ritmo = ao menos 50% do líder (mínimo ' + fN(minimo) + ') · ' + why.textContent;
     var tb = $('#psPlacar');
     tb.innerHTML = '<tr><th style="width:96px">Vendedor</th><th>Jazigos × meta</th>' +
       '<th class="num" style="width:52px">Vendas</th><th class="num" style="width:56px">% meta</th><th style="width:78px">Ritmo</th></tr>';
     linhas.forEach(function (l) {
       var frac = mesCorrente ? diaRef / nDias : 1;
       var espI = l.meta ? l.meta * frac : null;
-      var farol = espI === null ? null : (l.v >= espI ? ['●&nbsp;no ritmo', 'good'] : (l.v >= espI * 0.6 ? ['●&nbsp;atenção', 'warn'] : ['●&nbsp;abaixo', 'crit']));
+      var farol = lider === 0 ? null : (l.v >= minimo ? ['●&nbsp;no ritmo', 'good'] : ['●&nbsp;abaixo&nbsp;−' + (minimo - l.v), 'warn']);
       var tr = document.createElement('tr');
       tr.innerHTML = '<td>' + esc(l.n) + '</td><td class="bar"></td><td class="num">' + fN(l.v) + '</td>' +
         '<td class="num" style="color:var(--ink2)">' + (l.meta ? fPct(l.v / l.meta * 100, 0) : '–') + '</td>' +
-        '<td>' + (farol ? '<span class="statuschip ' + farol[1] + '" style="padding:2px 8px;font-size:10.5px">' + farol[0] + '</span>' : '<span style="color:var(--muted);font-size:11px">sem meta</span>') + '</td>';
+        '<td>' + (farol ? '<span class="statuschip ' + farol[1] + '" style="padding:2px 8px;font-size:10.5px">' + farol[0] + '</span>' : '<span style="color:var(--muted);font-size:11px">–</span>') + '</td>';
       tb.appendChild(tr);
       var w = 340, h = 18, svg = S(w, h); svg.setAttribute('height', h);
       var x = function (v) { return 4 + (v / maxEsc) * (w - 30); };
