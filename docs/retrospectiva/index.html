@@ -781,8 +781,10 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
      (docs/v2/index.html, "A BASE DO TICKET MÉDIO E DO DESCONTO"):
        · CONTAGEM, VGV, placar, quinzenas, modalidade, forma e origem: TODA venda,
          a migração inclusive — ela conta na meta.
-       · TICKET MÉDIO: fora o Temporário (preço de tabela, não concessão), a
-         doação (≤ R$ 100) e a migração (conversão, sem tabela).
+       · TICKET: só o PERPÉTUO, sem doação (≤ R$ 100) — fora o Temporário, a
+         Reserva e a migração — e é a MEDIANA do valor contratado, Face × (1 −
+         Desconto %), não a média (Ricardo, 27/09: a mesma conta do Executivo e
+         do cartão "Minhas vendas" do Pocket).
        · ORIGEM: o `canal` da rota — a anunciada no Pocket a partir do corte, a
          do CRM antes, com as portas de entrada viradas "Não informado".
        · META: a meta.oficial da Config, que a rota traz (metaDe).
@@ -793,6 +795,18 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
   var ehTemp = function (v) { return v.modalidade === 'Temporário'; };
   var ehMig = function (v) { return v.modalidade === 'Migração'; };
   var ehDoacao = function (v) { return !ehTemp(v) && !ehMig(v) && Number(v.venda || 0) <= DOACAO_ATE; };
+  var ehPerp = function (v) { return v.modalidade === 'Perpétuo'; };
+  var ehRes = function (v) { return v.modalidade === 'Reserva'; };
+  var contratado = function (v) {
+    var f = Number(v.face) || 0, d = (v.desc === '' || v.desc == null) ? null : Number(v.desc);
+    if (!(f > 0)) return Number(v.venda) || 0;
+    return (d === null || isNaN(d)) ? f : f * (1 - d / 100);
+  };
+  var mediana = function (a) {
+    if (!a.length) return null;
+    var s = a.slice().sort(function (x, y) { return x - y; }), m = s.length >> 1;
+    return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
+  };
 
   /* A MESMA ORIGEM EM DUAS GRAFIAS (27/09): "Captação Própria" (a Origem do
      CRM) e "Captação própria" (a lista do Anúncio no Pocket) viravam duas
@@ -862,7 +876,7 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
       var faltam = meta ? Math.max(0, meta - vendas) : null;
       var duRest = du.total - du.ate;
 
-      var base = itens.filter(function (v) { return !ehTemp(v) && !ehMig(v) && !ehDoacao(v); });
+      var base = itens.filter(function (v) { return ehPerp(v) && !ehDoacao(v); });
 
       var vend = {};
       itens.forEach(function (v) {
@@ -877,9 +891,10 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
         id:id, ano:ano, mes:mm, corrente:corrente,
         vendas: vendas,
         vgv: soma(itens),
-        ticket: base.length ? soma(base) / base.length : null,
+        ticket: mediana(base.map(contratado)),
         baseTicket: base.length,
-        foraTicket: { temp: itens.filter(ehTemp).length, doacao: itens.filter(ehDoacao).length,
+        foraTicket: { temp: itens.filter(ehTemp).length, res: itens.filter(ehRes).length,
+                      doacao: itens.filter(function (v) { return ehPerp(v) && ehDoacao(v); }).length,
                       mig: itens.filter(ehMig).length },
         q1: q1, q2: vendas - q1,
         meta:meta, faltam:faltam, du:du,
@@ -908,13 +923,14 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
   function notaTicket(n){
     var f = n.foraTicket, fora = [];
     if (f.temp) fora.push(f.temp + ' temporári' + (f.temp > 1 ? 'as' : 'a'));
+    if (f.res) fora.push(f.res + ' reserva' + (f.res > 1 ? 's' : ''));
     if (f.doacao) fora.push(f.doacao + ' doaç' + (f.doacao > 1 ? 'ões' : 'ão'));
     if (f.mig) fora.push(f.mig + ' migraç' + (f.mig > 1 ? 'ões' : 'ão'));
     if (!fora.length) return null;
     var ult = fora.pop();
-    return 'Ticket médio sobre ' + n.baseTicket + ' de ' + n.vendas + ' vendas — fora ' +
+    return 'Ticket (mediana) só do perpétuo: ' + n.baseTicket + ' de ' + n.vendas + ' vendas — fora ' +
       (fora.length ? fora.join(', ') + ' e ' : '') + ult +
-      ': o temporário e a doação são preço de tabela, não desconto concedido, e a migração é ' +
+      ': a reserva é outro produto (na planta), o temporário e a doação são preço de tabela, e a migração é ' +
       'conversão, sem tabela. A mesma base do Executivo.';
   }
 
@@ -1488,7 +1504,7 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
            vs(n.vendas,'vendas') || (pct !== null ? pct + '% da meta' : 'sem meta'),
            pct !== null && pct < 100 ? 'warn' : 'ok'),
       tile('VGV', brlCurto(n.vgv), vs(n.vgv,'vgv', brlCurto) || 'todas as modalidades'),
-      tile('Ticket médio', brl(n.ticket), vs(n.ticket,'ticket', brl) || 'por venda'),
+      tile('Ticket (mediana)', brl(n.ticket), vs(n.ticket,'ticket', brl) || 'só perpétuo'),
       tile('Ritmo', nf(n.ritmo,2) + '/dia',
            vs(n.ritmo,'ritmo', function (x) { return nf(x,2); }) ||
            (n.du.ate + ' de ' + n.du.total + ' dias'))
