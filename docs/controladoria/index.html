@@ -304,6 +304,32 @@ button:focus-visible,select:focus-visible,.row-head:focus-visible,input:focus-vi
 .ivlinha{display:flex;gap:5px;width:100%;align-items:center}
 .ivlinha input.ivref{flex:1 1 auto;min-width:0}
 
+/* ---- (29/09) a OBSERVAÇÃO da venda: uma faixa na própria linha, da coluna Jazigo até o fim ----
+   Sempre à vista, sem clicar. Faixa e não 10ª coluna: a tabela já ocupa a largura inteira da página
+   (1146 px de 1148) e uma coluna a mais ficaria atrás da rolagem lateral — "sempre visível" era a regra. */
+.row-head > .obc{grid-column:2/-1;display:flex;align-items:baseline;flex-wrap:wrap;gap:3px 8px;
+  margin-top:-5px;min-width:0;cursor:default;font-size:12.5px}
+.obrot{font-size:10.5px;text-transform:uppercase;letter-spacing:.07em;color:var(--ink-3);flex:none}
+.obtxt{font:inherit;color:var(--ink);background:var(--accent-soft);border:0;border-radius:6px;padding:2px 8px;
+  text-align:left;cursor:text;white-space:normal;overflow-wrap:anywhere;max-width:100%;line-height:1.45}
+.obtxt:hover{box-shadow:inset 0 0 0 1px var(--accent)}
+.obquem{font-size:11px;color:var(--ink-3);white-space:nowrap}
+.obadd{font:inherit;font-size:11.5px;color:var(--ink-3);background:transparent;border:0;padding:0;cursor:pointer}
+.obadd:hover{color:var(--accent);text-decoration:underline}
+.obed{flex:1 1 360px;display:flex;flex-direction:column;gap:3px;min-width:0}
+.obcampo{font:inherit;font-size:12.5px;line-height:1.45;padding:5px 8px;border-radius:8px;width:100%;box-sizing:border-box;
+  border:1px solid var(--line-strong);background:var(--surface-2);color:var(--ink);resize:vertical}
+.obcampo::placeholder{color:var(--ink-3)}
+.obpe{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:10.5px;color:var(--ink-3)}
+.obcnt{font-variant-numeric:tabular-nums}
+.obcnt.erro{color:var(--crit);font-weight:600}
+.obmsg{font-size:11px;color:var(--ink-3)}
+.obmsg.erro{color:var(--crit)}
+.obmsg.alerta{color:var(--warn)}
+.obc > .obmsg{flex-basis:100%}      /* o aviso (erro, conflito) ganha a linha de baixo inteira */
+.obmsg .ivb{margin-left:4px}
+.obc.mudou .obtxt{box-shadow:inset 0 0 0 2px var(--ok)}
+
 /* a bancada: pagamento, campo a campo, com copiar */
 .pgto{margin-top:16px;border-top:1px dashed var(--line-strong);padding-top:12px}
 .pgto h4{margin:0 0 8px;font-family:var(--mono);font-size:10.5px;text-transform:uppercase;
@@ -988,6 +1014,11 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
      lançada por…"), por Deal ID — a linha redesenhada a qualquer momento mostra o que é verdade. */
   var GRAVANDO = {};
   var MSG_IV = {};
+  /* (29/09) A observação livre por venda: a gravação em voo, a mensagem da última (erro, conflito) e a
+     novidade de um colega que espera a pessoa sair do campo — por Deal ID, só em memória. OBS_ESTADO:
+     'ok' · 'erro' (o Cofre não conseguiu ler a aba) · 'sem' (Cofre anterior à rota: a faixa nem aparece). */
+  var OB_GRAVANDO = {}, MSG_OB = {}, OB_ADIADAS = {}, OBS_ESTADO = 'sem';
+  var OB_MAX = 280;
   var RODAPE_BASE = [];
   /* (24/09) Cada carga numerada: a resposta de um pedido que outro já substituiu é descartada.
      Antes vencia a última resposta a CHEGAR, não o último clique — a tabela trocava de mês no
@@ -1011,6 +1042,7 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
     MEMO_B = {}; B.r = null; B.sel = {};
     SEQ++; SEQ_B++; CARGA = null; CARGA_B = null;  // (24/09) resposta em voo não desenha mais nada
     GRAVANDO = {}; MSG_IV = {}; AVISO_IV = {}; BOLS = {}; MARCAS_SESSAO = {};
+    OB_GRAVANDO = {}; MSG_OB = {}; OB_ADIADAS = {};   // (29/09) observação
     novZerar();   // (24/09, Fase 1) sem token, a tela para de conferir as novidades
     // os modais fecham e esvaziam (nada fica na página), e as leituras deles perdem a vez
     PEDIDO_TUDO++; BM.pedido++; BM.r = null; BM.salvando = false;
@@ -1675,6 +1707,12 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
         }).join(' · ') +
         '</p><p>Também viram linha <code>LANCADA_SEM_VENDA</code> na Divergencias.</p>');
     }
+    /* (29/09) a observação por venda: sem o campo, o Cofre é anterior à rota e a faixa não aparece */
+    OBS_ESTADO = r.observacoes === undefined ? 'sem' : r.observacoes === null ? 'erro' : 'ok';
+    if (OBS_ESTADO === 'erro') {
+      aviso('As observações das vendas não foram lidas.', '<p>' + esc(r.observacoes_motivo || '?') + '</p>' +
+        '<p>A tabela segue normal; só a faixa de observação fica sem texto — <b>não quer dizer "nenhuma observação"</b>. Avise o Ricardo.</p>', true);
+    }
     if (r.mes !== 'tudo' && !r.pessoal && r.pessoal_motivo) {
       aviso('Os dados de cadastro do cliente não vieram.', '<p>' + esc(r.pessoal_motivo) + '</p>', true);
     }
@@ -1715,6 +1753,7 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
               ref: lanc ? String(c['Referência Ivertex'] || '').trim().toUpperCase() : '',
               fonte: c ? String(c['Fonte'] || '') : '' },
         pes: pes[id] || null,
+        ob: (r.observacoes && r.observacoes[id]) || null,   // (29/09) { texto, quem, quando } ou null
         pg: o   // o bloco de pagamento: lista fechada da rota, sem dado pessoal
       };
       v.ct = estadoContrato(v);
@@ -1877,7 +1916,9 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
   }
   function camposVenda(v) {
     // (25/09) + de quem falta a assinatura na D4Sign ("rodrigo" acha os contratos que esperam o Rodrigo)
-    return [v.cli, v.jaz, 'deal ' + v.id, v.vend, v.mod, v.iv.ref, v.pes ? v.pes['CPF'] : '', ((v.ct && v.ct.falta) || []).join(' ')];
+    // (29/09) + o texto da observação ("titular" acha as vendas paradas por troca de titular)
+    return [v.cli, v.jaz, 'deal ' + v.id, v.vend, v.mod, v.iv.ref, v.pes ? v.pes['CPF'] : '', ((v.ct && v.ct.falta) || []).join(' '),
+            v.ob ? v.ob.texto : ''];
   }
   function filtrar(B) {
     return B.filter(function (v) {
@@ -2178,6 +2219,7 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
         '</span>' +
         '<span class="ivc"></span>' +
         '<span class="bolc bolcel"></span>' +
+        (OBS_ESTADO !== 'sem' ? '<span class="obc"></span>' : '') +
       '</div>' +
       '<div class="detail" hidden></div>';
 
@@ -2299,6 +2341,22 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
     });
     cb.addEventListener('keydown', function (e) { e.stopPropagation(); });
 
+    // (29/09) a observação: trata o próprio clique e o teclado, para não abrir/fechar a linha
+    var oc = el.querySelector('.obc');
+    if (oc) {
+      oc.addEventListener('click', function (e) {
+        e.stopPropagation();
+        var b = e.target.closest('button[data-a]'); if (!b) return;
+        var a = b.dataset.a, mi = MSG_OB[v.id];
+        if (a === 'editar') { delete MSG_OB[v.id]; pintarOb(v, oc, true); }
+        else if (a === 'retomar') { delete MSG_OB[v.id]; pintarOb(v, oc, true, mi && mi.pedido); }
+        else if (a === 'dispensar') { delete MSG_OB[v.id]; pintarOb(v, oc); }
+        else if (a === 'forcar') { delete MSG_OB[v.id]; if (mi && mi.pedido != null) gravarOb(v, mi.pedido, true); }
+      });
+      oc.addEventListener('keydown', function (e) { e.stopPropagation(); });
+      pintarOb(v, oc);
+    }
+
     var head = el.querySelector('.row-head'), det = el.querySelector('.detail');
     var abrir = function () {
       var ab = el.dataset.open !== 'true';
@@ -2313,6 +2371,186 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
     });
     el._abrir = abrir;   // (24/09) atualizarLinha reabre o detalhe que estava aberto
     return el;
+  }
+
+  /* ================================================================ observação por venda (29/09)
+     Um texto livre por venda, na faixa da própria linha: o motivo de ela não estar lançada ou de o
+     contrato não ter saído. Clicar no texto (ou no "+ observação") vira campo; Enter ou sair do campo
+     grava; Esc cancela. A gravação manda o texto que a pessoa VIA (`visto`): se um colega escreveu,
+     mudou ou apagou depois, o Cofre devolve `conflito` com o dele, a faixa mostra e pergunta se
+     sobrescreve. Nada disto fica guardado no navegador. */
+  function obNormal(s) { return String(s == null ? '' : s).replace(/[\s\u00a0]+/g, ' ').trim(); }
+  function obTam(s) { return Array.from(String(s)).length; }   // um emoji conta 1, como no Cofre
+  function obQuem(ob) { return ob ? ob.quem + (ob.quando ? ' · ' + fmtCarimbo(ob.quando) : '') : ''; }
+  function celOb(deal) { return document.querySelector('#rows .row[data-deal="' + deal + '"] .obc'); }
+  function pintarOb(v, cel, editar, rascunho, erro) {
+    if (OBS_ESTADO === 'erro') { cel.innerHTML = '<span class="obrot">Obs.</span><span class="obmsg">observações não lidas — veja o aviso no sino</span>'; return; }
+    if (OB_GRAVANDO[v.id]) { cel.innerHTML = '<span class="obrot">Obs.</span><span class="obmsg">gravando…</span>'; return; }
+    if (editar) {
+      var val = rascunho != null ? rascunho : (v.ob ? v.ob.texto : '');
+      cel.innerHTML = '<span class="obrot">Obs.</span><span class="obed">' +
+        '<textarea class="obcampo" rows="2" spellcheck="true" aria-label="Observação da venda ' + esc(v.id) + ' (até ' + OB_MAX + ' caracteres)" ' +
+          'placeholder="Motivo da pendência — não escrever CPF nem dado do cliente">' + esc(val) + '</textarea>' +
+        '<span class="obpe"><span class="obcnt"></span><span>Enter grava · Esc cancela · apagar o texto e gravar tira a observação</span>' +
+          (erro ? '<span class="obmsg erro">' + esc(erro) + '</span>' : '') + '</span></span>';
+      var ta = cel.querySelector('textarea'), fim = false;
+      var conta = function () {
+        var n = obTam(obNormal(ta.value)), c = cel.querySelector('.obcnt');
+        c.textContent = n >= OB_MAX - 40 ? n + ' de ' + OB_MAX : '';
+        c.className = 'obcnt' + (n > OB_MAX ? ' erro' : '');
+      };
+      var gravar = function (doEnter) {
+        if (fim) return;
+        var t = obNormal(ta.value), n = obTam(t);
+        if (t === (v.ob ? v.ob.texto : '')) { fim = true; pintarOb(v, cel); return; }   // nada mudou
+        if (n > OB_MAX) {
+          if (doEnter) { conta(); cel.querySelector('.obcnt').textContent = n + ' de ' + OB_MAX + ' — encurte para gravar'; return; }
+          fim = true; pintarOb(v, cel, true, ta.value, 'passa de ' + OB_MAX + ' caracteres (' + n + ') — encurte para gravar');
+          return;
+        }
+        fim = true; gravarOb(v, t);
+      };
+      ta.addEventListener('input', conta);
+      ta.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') { e.preventDefault(); fim = true; pintarOb(v, cel); return; }
+        if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); gravar(true); }
+      });
+      ta.addEventListener('blur', function () { gravar(false); });
+      conta();
+      if (!erro) { ta.focus(); try { ta.setSelectionRange(ta.value.length, ta.value.length); } catch (x) {} }
+      return;
+    }
+    var mi = MSG_OB[v.id], msg = '';
+    if (mi) {
+      var quemAtual = v.ob && v.ob.quem ? v.ob.quem : 'a outra pessoa';
+      msg = '<span class="obmsg ' + (mi.tipo === 'erro' ? 'erro' : 'alerta') + '">' + esc(mi.txt) +
+        (mi.tipo === 'conflito' ? ' <button type="button" class="ivb" data-a="forcar">' + (mi.pedido ? 'Gravar a minha mesmo assim' : 'Apagar mesmo assim') + '</button>' +
+                                  '<button type="button" class="ivb" data-a="dispensar">' + (v.ob ? 'Manter a de ' + esc(quemAtual) : 'Deixar sem') + '</button>'
+         : mi.tipo === 'erro' && mi.pedido != null ? ' <button type="button" class="ivb" data-a="retomar">Editar de novo</button>' +
+                                                    '<button type="button" class="ivb" data-a="dispensar" aria-label="Dispensar o aviso">ok</button>'
+         : ' <button type="button" class="ivb" data-a="dispensar" aria-label="Dispensar o aviso">ok</button>') + '</span>';
+    }
+    cel.innerHTML = v.ob
+      ? '<span class="obrot">Obs.</span><button type="button" class="obtxt" data-a="editar" title="Clique para editar">' + esc(v.ob.texto) + '</button>' +
+        '<small class="obquem">' + esc(obQuem(v.ob)) + '</small>' + msg
+      : '<button type="button" class="obadd" data-a="editar">+ observação</button>' + msg;
+  }
+  function gravarOb(v, texto, forcar) {
+    if (OB_GRAVANDO[v.id]) return;
+    var corpo = { deal: v.id, texto: texto, visto: v.ob ? v.ob.texto : '' };
+    if (forcar) corpo.forcar = true;
+    OB_GRAVANDO[v.id] = true; delete MSG_OB[v.id]; delete OB_ADIADAS[v.id];
+    var repinta = function () { var c = celOb(v.id); if (c) pintarOb(v, c); };
+    repinta();   // "gravando…"
+    api('observacao', { corpo: corpo }).then(function (r) {
+      delete OB_GRAVANDO[v.id];
+      if (!r || r.ok !== true) {
+        if (r && r.codigo === 'conflito') {
+          aplicarOb(v, r.atual || null);
+          MSG_OB[v.id] = { tipo: 'conflito', pedido: texto,
+            txt: r.atual ? r.atual.quem + ' gravou esta observação em ' + fmtCarimbo(r.atual.quando) + ', depois que você abriu a tela.' +
+                           (texto ? ' Sobrescrever com a sua (“' + texto + '”)?' : ' Apagar mesmo assim?')
+                         : 'Outra pessoa apagou a observação depois que você abriu a tela. Gravar a sua (“' + texto + '”)?' };
+        } else {
+          MSG_OB[v.id] = { tipo: 'erro', pedido: texto,
+            txt: r && (r.codigo === 'invalido' || r.codigo === 'gravando') ? r.error : 'não gravou: ' + ((r && r.error) || 'resposta vazia') };
+        }
+        repinta(); return;
+      }
+      aplicarOb(v, r.obs || null);
+      if (r.sem_mudanca && r.obs && R && r.obs.quem && r.obs.quem !== R.voce) {
+        MSG_OB[v.id] = { tipo: 'alerta', txt: 'já estava assim, gravada por ' + obQuem(r.obs) };
+      }
+      repinta();
+    }, function (e) {
+      delete OB_GRAVANDO[v.id];
+      if (e.tipo === 'token') return;
+      MSG_OB[v.id] = { tipo: 'erro', pedido: texto, txt: e.tipo === 'prazo'
+        ? 'não sei se gravou — a confirmação não chegou em ' + Math.round(PRAZO_GRAVAR / 1000) + ' s. Clique em Editar de novo e grave: repetir é seguro.'
+        : 'não gravou: ' + textoFalha(e) };
+      repinta();
+    });
+  }
+  /* A observação que o Cofre devolveu, na venda e em todo mês guardado na memória que tem o deal. */
+  function aplicarOb(v, ob) { v.ob = ob; lembrarOb(v.id, ob); }
+  function lembrarOb(deal, ob) {
+    var poe = function (m) {
+      if (!m || !(m.vendas || []).concat(m.fila || []).some(function (o) { return Number(o['Deal ID']) === deal; })) return;
+      if (m.observacoes === null || m.observacoes === undefined) return;   // mês lido sem observação: continua dizendo isso
+      if (ob) m.observacoes[deal] = ob; else delete m.observacoes[deal];
+    };
+    Object.keys(MEMO).forEach(function (k) { poe(MEMO[k]); });
+    if (R && !MEMO[R.mes]) poe(R);
+  }
+  function obGuardada(deal) {
+    var achada;
+    Object.keys(MEMO).forEach(function (k) {
+      var m = MEMO[k];
+      if (achada !== undefined || !m.observacoes || !(m.vendas || []).concat(m.fila || []).some(function (o) { return Number(o['Deal ID']) === deal; })) return;
+      achada = m.observacoes[deal] || null;
+    });
+    return achada === undefined ? null : achada;
+  }
+  function mesmaOb(a, b) {
+    if (!a || !b) return !a && !b;
+    return a.texto === b.texto && String(a.quem || '') === String(b.quem || '') && String(a.quando || '') === String(b.quando || '');
+  }
+  /* A pessoa está escrevendo nesta faixa: a novidade do colega espera (senão apagaria o rascunho). */
+  function obEmUso(deal) {
+    var c = celOb(deal);
+    return !!c && (!!c.querySelector('textarea') || c.contains(document.activeElement));
+  }
+  /* "Há novidade": as observações gravadas desde a última consulta, e a apagada — que não deixa linha
+     na aba e aparece pela FALTA do deal em obs_deals. Leitura antiga não passa por cima de gravação nova:
+     o `quando` decide (com segundos na aba; `agora` do Cofre, com minutos). Devolve os textos do aviso. */
+  function aplicarObsNovidades(r) {
+    var feitos = [];
+    if (OBS_ESTADO !== 'ok') return feitos;
+    var agora = String(r.agora || ''), veio = {};
+    (r.observacoes || []).forEach(function (o) {
+      var d = Number(o.deal); if (!d) return;
+      veio[d] = true;
+      obNovidade(d, { texto: String(o.texto || ''), quem: String(o.quem || ''), quando: String(o.quando || '') }, agora, feitos);
+    });
+    if (Array.isArray(r.obs_deals) && /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/.test(agora)) {
+      var tem = {};
+      r.obs_deals.forEach(function (d) { tem[Number(d)] = true; });
+      VENDAS.concat(FILA_FORA).forEach(function (v) { if (v.ob && !tem[v.id] && !veio[v.id]) obNovidade(v.id, null, agora, feitos); });
+      Object.keys(MEMO).forEach(function (k) {
+        var m = MEMO[k]; if (!m.observacoes) return;
+        Object.keys(m.observacoes).forEach(function (d) {
+          if (!tem[Number(d)] && String(m.observacoes[d].quando || '').slice(0, 16) < agora && !OB_GRAVANDO[d]) delete m.observacoes[d];
+        });
+      });
+    }
+    return feitos;
+  }
+  function obNovidade(deal, ob, agora, feitos) {
+    if (OB_GRAVANDO[deal]) return;   // gravação daqui em voo: a resposta dela é que manda
+    var v = achaVenda(deal), antes = v ? v.ob : obGuardada(deal);
+    if (mesmaOb(antes, ob)) { delete OB_ADIADAS[deal]; return; }
+    if (!ob && antes && String(antes.quando || '').slice(0, 16) >= agora) return;   // gravada depois da leitura do Cofre
+    if (ob && antes && String(antes.quando || '') > String(ob.quando || '')) return;   // a daqui é mais nova
+    if (v) {
+      if (obEmUso(deal)) { OB_ADIADAS[deal] = { ob: ob }; return; }
+      aplicarOb(v, ob);
+      var c = celOb(deal);
+      if (c) { pintarOb(v, c); c.classList.add('mudou'); setTimeout(function () { c.classList.remove('mudou'); }, 4000); }
+    } else lembrarOb(deal, ob);
+    var onde = 'deal ' + deal + (v ? ' (' + v.jaz + ')' : '');
+    if (ob && ob.quem && R && ob.quem !== R.voce) feitos.push(ob.quem + ' escreveu uma observação no ' + onde);
+    else if (!ob) feitos.push('a observação do ' + onde + ' foi apagada');
+  }
+  function tentarObAdiadas() {
+    Object.keys(OB_ADIADAS).forEach(function (d) {
+      var v = achaVenda(d);
+      if (!v || OB_GRAVANDO[v.id]) { delete OB_ADIADAS[d]; return; }
+      if (obEmUso(v.id)) return;
+      var ob = OB_ADIADAS[d].ob; delete OB_ADIADAS[d];
+      if (mesmaOb(v.ob, ob)) return;
+      aplicarOb(v, ob);
+      var c = celOb(v.id); if (c) pintarOb(v, c);
+    });
   }
 
   /* (24/09) A mensagem que fica na linha até a pessoa dispensar: erro, "já estava lançada por…",
@@ -3142,6 +3380,7 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
       });
     }
     if (tocou) { renderResumo(); pintarRodape(); }
+    feitos = feitos.concat(aplicarObsNovidades(r));   // (29/09) a observação por venda
     if (feitos.length) {
       toast((feitos.length > 3 ? feitos.slice(0, 3).join(' · ') + ' · e mais ' + plural(feitos.length - 3, 'mudança', 'mudanças')
                                : feitos.join(' · ')) + '.', 'ok');
@@ -3211,6 +3450,7 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
     var a = document.activeElement;
     if (a && a !== document.body && el.contains(a)) return true;
     if (el.querySelector('.ivc input[type=date]')) return true;
+    if (el.querySelector('.obc textarea')) return true;   // (29/09) rascunho de observação: redesenhar a linha o apagaria
     return [].some.call(el.querySelectorAll('.ivc input.ivref'), function (i) { return i.value.trim() !== ''; });
   }
   function tentarAdiadas() {
@@ -3221,6 +3461,7 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
       if (aplicarNaLinha(v, NOV.adiadas[d])) aplicou = true;
     });
     if (aplicou) { renderResumo(); pintarRodape(); }
+    tentarObAdiadas();   // (29/09)
   }
 
   function pintarNovidade() {

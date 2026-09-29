@@ -18,7 +18,11 @@
      (25/09) CENA.somenteGet = true     → o Cofre anterior à @108: leitura por POST recusada ("só aceita GET")
      (25/09) CENA.saudeErro = true      → a saúde que chega volta com erro (a tela tem de guardar e mandar de novo)
    window.LOG guarda cada chamada (rota, corpo, hora `t`, e `abortado` quando a tela cancelou) para a prova.
-   (25/09) e também o método (`metodo`) e se havia token NA URL (`tokenNaUrl`) — tem de ser sempre false. */
+   (25/09) e também o método (`metodo`) e se havia token NA URL (`tokenNaUrl`) — tem de ser sempre false.
+   (29/09) OBSERVAÇÃO por venda: OBS (window.OBS) é a aba simulada; fn=observacao segue a regra do Cofre
+     (sem_mudanca, conflito pelo `visto`, forcar, "" apaga, 280 caracteres). CENA.obs = { 4001: 'erro' | 'nunca' }.
+     CENA.novidades pode trazer { observacoes: [{deal, texto, quem, quando}], obs_deals: [...] } — sem
+     obs_deals, a lista sai da OBS. */
 (function () {
   'use strict';
   try { localStorage.setItem('hub_token_controladoria', 'TOKEN-DE-TESTE-1234567890'); } catch (e) {}
@@ -44,6 +48,8 @@
   };
   var CONTROLE = { 4100: { 'Deal ID': '4100', lancado: 'SIM', data_ivertex: '2026-09-21', quem: 'Bruno', quando: '2026-09-21 10:00', 'Referência Ivertex': 'P20480', Fonte: 'tela' } };
   var MARCAS = {};   // 'deal|n' -> marcação
+  var OBS = window.OBS = { 4002: { texto: 'Cliente pediu troca de titular — contrato refeito à mão, aguardando o e-mail certo', quem: 'Bruno', quando: '2026-09-28 16:42:10' } };
+  var obsDe = function (vs) { var m = {}; vs.forEach(function (v) { if (OBS[v['Deal ID']]) m[v['Deal ID']] = OBS[v['Deal ID']]; }); return m; };
   var carne = function (deal) {
     var ps = [];
     for (var n = 1; n <= 4; n++) ps.push({ 'Deal ID': deal, 'Nº Parcela': n, 'Vencimento': '2026-' + pad(9 + n) + '-05', 'Valor': 50 + n,
@@ -73,6 +79,7 @@
         'Celular': '(32) 90000-0000', 'E-mail': 'x@exemplo.com', 'CEP': '36000-000', 'Logradouro': 'Rua Teste', 'Número': '1', 'Complemento': '', 'Bairro': 'Centro', 'Cidade': 'Juiz de Fora', 'UF': 'MG' }; }),
       pessoal_motivo: '', boletos: boletos, boletos_motivo: '', corte_boleto: '2026-09-25',
       lancadas_sem_venda: window.CENA.semVenda || [], referencias: { lancados: 1, com_referencia: 1 },
+      observacoes: window.CENA.obsErro ? null : obsDe(vs), observacoes_motivo: window.CENA.obsErro ? 'cabeçalho da Observacoes_PonteApp mudou (simulado)' : '',
       anterior: mes === '2026-09' ? (window.CENA.anterior || null) : null,   // (25/09) a fila do mês anterior
       total_aba: 5, n: vs.length, n_fila: 0, no_recorte: vs.length, teto: 3000, truncado: false,
       contagem: [{ aba: 'Vendas_Facilita', chave: 'facilita.total_vendas_api', esperado: 5, lido: recibo }],
@@ -145,9 +152,27 @@
       var ag = new Date();
       return resposta(JSON.stringify({ ok: true, desde: q.desde, agora: iso(ag) + ' ' + pad(ag.getHours()) + ':' + pad(ag.getMinutes()),
         controle: nv.controle || [], boletos: nv.boletos || [], truncado: !!nv.truncado,
+        observacoes: nv.observacoes || [], obs_deals: nv.obs_deals || Object.keys(OBS).map(Number),
         total_vendas: nv.total != null ? String(nv.total) : '5', carimbo_vendas: carimbo, carimbo_d4: nv.d4 || carimbo, ms: 400,
         saude: saude || undefined }),
         C.atrasoNovidades != null ? C.atrasoNovidades : 300, opts.signal);
+    }
+    /* (29/09) a observação por venda, com a regra do Cofre */
+    if (q.fn === 'observacao') {
+      var od = Number(corpo.deal), oc = (C.obs || {})[od];
+      if (oc === 'nunca') return nunca(opts.signal);
+      if (oc === 'erro') return resposta(JSON.stringify({ ok: false, error: 'falha simulada ao gravar' }), 400, opts.signal);
+      var norm = function (x) { return String(x == null ? '' : x).replace(/[\s\u00a0]+/g, ' ').trim(); };
+      var tx = norm(corpo.texto), vi = norm(corpo.visto), at = OBS[od] || null, atx = at ? at.texto : '';
+      if (Array.from(tx).length > 280) return resposta(JSON.stringify({ ok: false, status: 400, codigo: 'invalido', error: 'observação com ' + Array.from(tx).length + ' caracteres — o limite é 280. Nada gravado.' }), 300, opts.signal);
+      if (tx === atx) return resposta(JSON.stringify({ ok: true, sem_mudanca: true, deal: od, obs: at }), 400, opts.signal);
+      if (!corpo.forcar && vi !== atx) {
+        return resposta(JSON.stringify({ ok: false, codigo: 'conflito', deal: od, atual: at,
+          error: (at ? 'a observação foi alterada por ' + at.quem : 'a observação foi apagada por outra pessoa') + ', depois que você abriu a tela — nada gravado' }), 400, opts.signal);
+      }
+      var ag2 = new Date(), qd = iso(ag2) + ' ' + pad(ag2.getHours()) + ':' + pad(ag2.getMinutes()) + ':' + pad(ag2.getSeconds());
+      if (tx) OBS[od] = { texto: tx, quem: 'Ana', quando: qd }; else delete OBS[od];
+      return resposta(JSON.stringify({ ok: true, deal: od, obs: OBS[od] || null, avisos: [] }), C.atrasoObs != null ? C.atrasoObs : 600, opts.signal);
     }
     if (q.fn === 'marcar') {
       var deal = corpo.deal, cena = C.marcar[deal] || 'ok', atraso = C.atrasoMarcar ? C.atrasoMarcar[deal] || 400 : 400;
