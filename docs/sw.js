@@ -1,6 +1,10 @@
 /* Painel Comercial — Parque da Saudade + Estrela Urbanidade
    Service worker: instalação PWA + reserva offline.
-   Atualizado em: 27/09/2026 (madrugada, 4ª) — DADOS FRESCOS AO ABRIR (pedido do Ricardo): a revalidação pede
+   Atualizado em: 28/09/2026 (noite) — MENOS INSTÁVEL (pedido do Ricardo): a página de erro do Google (404) ganha até
+   4 tentativas com espera crescente; falhou, a tela tenta de novo sozinha a cada minuto; soluço vira nota discreta no
+   selo, não tarja; o Atualizar do Parque busca só o que mudou no Facilita (Cofre @120, so=facilita_leve, ~15 s),
+   relê só o Parque e diz o que mudou. Sem bump, o celular seguiria com a tarja laranja.
+   Antes, 27/09/2026 (madrugada, 4ª) — DADOS FRESCOS AO ABRIR (pedido do Ricardo): a revalidação pede
    primeiro a metade na tela e o conteúdo novo entra no lugar pelo `v2:dados` com `atualizacao` — sem "Mostrar"
    e sem recarregar no Executivo e na Receita; cópia com mais de 6 h não sobe antes da rede; o Atualizar deixa de
    recarregar a página. Sem bump, a gestão seguiria clicando em Mostrar.
@@ -261,7 +265,7 @@
    links dos arquivos são drive.google.com, externos, e NÃO entram no cache).
    Estratégia: rede primeiro (pega versão nova quando online), cache como
    reserva offline. A cada deploy, bumpar a versão em CACHE. */
-const CACHE = 'painel-comercial-280926-3';
+const CACHE = 'painel-comercial-280926-4';
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(['./'])).then(() => self.skipWaiting()));

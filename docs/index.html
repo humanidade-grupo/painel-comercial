@@ -2356,7 +2356,16 @@ window.__psReler = function(){
     var ps = (emp === 'ps');
     var nome = ps ? 'Parque da Saudade' : 'Estrela Urbanidade';
     var quando = (ps ? CARIMBO.ps : CARIMBO.eu) || '(sem carimbo)';
-    if (CARIMBO.copia) {
+    /* SOLUÇO NÃO É TARJA (28/09). Número de menos de 30 min na tela e falha de
+       menos de 15 min: o selo fica normal, com uma nota discreta, e a tela tenta
+       de novo sozinha a cada minuto. A tarja laranja fica para o que merece:
+       cópia velha, ou o Cofre fora há mais de 15 min. */
+    var idadeCopia = Date.now() - Number((window.__DADOS__ || {})._guardadoEm || 0);
+    var falhandoHa = CARIMBO.falhaDesde ? Date.now() - CARIMBO.falhaDesde : 0;
+    if (CARIMBO.copia && idadeCopia < SOLUCO_COPIA_MS && falhandoHa < SOLUCO_FALHA_MS) {
+      selo('Cofre — ' + nome + ' · atualizado em <b>' + quando + '</b>' +
+           ' · <span class="conferindo">sem resposta do Cofre agora — tento de novo em 1 min</span>');
+    } else if (CARIMBO.copia) {
       /* O motivo manda na frase (04/09). "Sem conexão" só quando é sem conexão;
          Cofre lento é outra coisa, e quem lê precisa saber qual das duas foi. */
       var m = CARIMBO.motivo || {}, tipo = m.tipo || 'offline';
@@ -2369,7 +2378,7 @@ window.__psReler = function(){
                               '<b>Sem conexão com o Cofre.</b>';
       selo('⚠ ' + cabeca + ' Cópia local — ' + nome +
            ' atualizado em <b>' + quando + '</b>. ' +
-           (tipo === 'offline' ? 'Recarregue quando voltar o sinal.' : 'Recarregue para tentar de novo.'), true);
+           (tipo === 'offline' ? 'Tento de novo quando voltar o sinal.' : 'Tento de novo sozinho a cada minuto.'), true);
     } else if (ps && CARIMBO.psErro) {
       selo('⚠ <b>A última sincronização do Parque falhou</b>' +
            (CARIMBO.psFalha ? ' em <b>' + CARIMBO.psFalha + '</b>' : '') + ': ' +
@@ -2465,7 +2474,7 @@ window.__psReler = function(){
        diz qual delas vai fazer, antes de a pessoa esperar por ela. */
     var btr = document.getElementById('btRec');
     if (btr) btr.title = ps
-      ? 'Força a importação do Facilita agora (~40 s). Os números da tela já se atualizam sozinhos a cada 5 min e ao abrir.'
+      ? 'Busca agora no Facilita as últimas vendas (~15 s). Os números da tela já se atualizam sozinhos a cada 5 min e ao abrir.'
       : 'Força a reimportação da planilha da Estrela agora. Os números da tela já se atualizam sozinhos a cada 5 min e ao abrir.';
 
     atualizarSelo(ps ? 'ps' : 'eu');
@@ -2512,9 +2521,20 @@ window.__psReler = function(){
       /* No Parque a ordem é importar PRIMEIRO e reler DEPOIS — e a releitura
          vai sem `&sync=1`, porque a importação já aconteceu e repeti-la seria
          pagar a espera duas vezes para o mesmo número. */
+      /* (28/09) No Parque: importa SÓ o que mudou por último no Facilita (o modo leve do batimento,
+         ~15 s em vez de ~40) e relê SÓ o Parque — a Estrela não vem do Facilita. O recado diz em
+         português o que mudou na tela, para ninguém precisar de F5 para acreditar. */
+      var t0 = Date.now();
+      var vendasAntes = (((window.__DADOS__ || {}).ps || {}).vendas || []).length;
       (noParque ? sincronizarNoCofre(token) : Promise.resolve(null))
         .then(function (sync) {
-          return buscar(token, noParque ? null : emp).then(function (j) {
+          var releitura = noParque
+            ? buscarMetade(token, 'ps').then(function (meia) {
+                if (!meia || !meia.ok) return meia;
+                return juntar(window.__DADOS__, 'ps', meia);
+              })
+            : buscar(token, emp);
+          return releitura.then(function (j) {
             if (!j || !j.ok) throw new Error((j && j.error) || 'resposta sem dado');
             var s = noParque ? sync : j.sync;
             aplicar(j);
@@ -2529,10 +2549,17 @@ window.__psReler = function(){
             bt.classList.remove('girando');
             if (rotulo) rotulo.textContent = 'Atualizar';
             var rc = recadoSync(s, emp);
+            if (noParque && rc.bom) {
+              var dif = ((j.ps || {}).vendas || []).length - vendasAntes;
+              rc.txt = '✓ <b>Facilita conferido agora</b> (' + Math.round((Date.now() - t0) / 1000) + ' s) — ' +
+                (dif > 0 ? '<b>' + (dif === 1 ? '1 venda nova' : dif + ' vendas novas') + '</b>, já na tela.'
+                 : dif < 0 ? 'a lista mudou (' + (-dif) + ' a menos), já na tela.'
+                 : 'nada novo desde a última importação. Os números na tela são os de agora.');
+            }
             selo(rc.txt, !rc.bom);
             setTimeout(function () {
               if (!document.getElementById('verNovo')) atualizarSelo(empNaTela());
-            }, 8000);
+            }, 10000);
           });
         }).catch(function (e) {
         bt.disabled = false;
@@ -2669,15 +2696,33 @@ window.__psReler = function(){
   /* SEGUNDA TENTATIVA (04/09). O pico das 10:18 foi isolado: a chamada
      seguinte, 18s depois, levou 8s. Então uma rota que estoura o prazo ou
      devolve lixo ganha UMA repescagem antes de a tela cair na cópia local.
-     Sem rede (offline) não se repete: não há o que esperar. */
+     Sem rede (offline) não se repete: não há o que esperar.
+     REPESCAGEM COM ESPERA (28/09, "ainda sinto muito instável"): o que o
+     Ricardo viu às 19:26 foi a página de erro do Google (HTTP 404, "não é
+     JSON") duas vezes seguidas — a falha de ENTREGA do /exec, rápida e
+     passageira (em 24/09, 21–33% das chamadas num dia ruim; às 19:4x do mesmo
+     dia, 40 de 40 certas). Duas tentativas coladas caem no mesmo soluço. Falha
+     RÁPIDA (resposta que não é JSON, rede) ganha até 4 tentativas com espera
+     crescente — 1,5 s, 4 s, 8 s; falha por PRAZO (30 s) segue com uma
+     repescagem só, para ninguém esperar 2 minutos. */
+  var ESPERAS_REPESCAGEM = [1500, 4000, 8000];
   function comPrazo2(url, ms, oque) {
-    return comPrazo(url, ms, oque).catch(function (e) {
-      if (e && e.tipo === 'offline') throw e;
-      passo(oque.toLowerCase() + ' demorou — tentando de novo…');
-      return comPrazo(url, ms, oque).catch(function (e2) {
-        throw falha((e2 && e2.tipo) || 'rede', ((e2 && e2.message) || e2) + ', em duas tentativas');
+    var tentativa = 0;
+    function uma() {
+      return comPrazo(url, ms, oque).catch(function (e) {
+        tentativa++;
+        var tipo = (e && e.tipo) || 'rede';
+        var limite = (tipo === 'prazo') ? 1 : ESPERAS_REPESCAGEM.length;
+        if (tipo === 'offline' || tentativa > limite) {
+          if (tentativa < 2) throw e;
+          throw falha(tipo, ((e && e.message) || e) + ', em ' + tentativa + ' tentativas');
+        }
+        passo(oque.toLowerCase() + ' não respondeu — tentando de novo…');
+        var espera = (tipo === 'prazo') ? 0 : ESPERAS_REPESCAGEM[tentativa - 1];
+        return new Promise(function (ok) { setTimeout(ok, espera); }).then(uma);
       });
-    });
+    }
+    return uma();
   }
 
   /* Uma porta, duas rotas, uma digitação de token — mas EM SÉRIE, não juntas.
@@ -2747,7 +2792,9 @@ window.__psReler = function(){
        Controle + Facilita) levava ~2 min por um dado que esta metade nem lê;
        só o Facilita fica em ~40 s. O teto de 5 min continua para o dia com
        atraso acumulado. */
-    return comPrazo(API + '?token=' + encodeURIComponent(token) + '&app=sync&fn=rodar&so=facilita',
+    /* &so=facilita_leve (28/09, Cofre @120): só os negócios que mudaram por último — o
+       mesmo do batimento de 5 min, ~15 s. Com volta completa aberta o Cofre cai no completo. */
+    return comPrazo(API + '?token=' + encodeURIComponent(token) + '&app=sync&fn=rodar&so=facilita_leve',
                     300000, 'A sincronização');
   }
 
@@ -2869,6 +2916,21 @@ window.__psReler = function(){
      que 3 s de bola. 6 h é a proposta de 27/09 — o Ricardo decide (1 h, ou 0
      para nunca subir do cache). */
   var COPIA_MAX_MS = 6 * 60 * 60 * 1000;
+  /* (28/09) Falhou a revalidação: a tela tenta de novo sozinha em 1 min (não em
+     5, nem pede "Recarregue"), enquanto falhar. E soluço não vira tarja: número
+     de menos de SOLUCO_COPIA_MS e falha de menos de SOLUCO_FALHA_MS ficam numa
+     nota discreta no selo (atualizarSelo). */
+  var RETENTA_MS = 60 * 1000, retentaT = null;
+  var SOLUCO_COPIA_MS = 30 * 60 * 1000, SOLUCO_FALHA_MS = 15 * 60 * 1000;
+  function retentar(token) {
+    if (!CARIMBO.falhaDesde) CARIMBO.falhaDesde = Date.now();
+    if (retentaT) return;
+    retentaT = setTimeout(function () {
+      retentaT = null;
+      if (document.visibilityState === 'visible') revalidar(token);
+      else ultimaRevalida = 0;   // ao voltar para a aba, o visibilitychange revalida na hora
+    }, RETENTA_MS);
+  }
   function assina(x) {
     try { return JSON.stringify({ e: x.vendas, p: (x.ps || {}).vendas, m: (x.ps || {}).metas,
                                   o: (x.ps || {}).origem_anuncio }); }
@@ -2901,6 +2963,8 @@ window.__psReler = function(){
     CARIMBO.eu = j.atualizado_em || '';
     CARIMBO.ps = (j.ps && j.ps.atualizado_em) || '';
     CARIMBO.copia = false; CARIMBO.motivo = null;
+    CARIMBO.falhaDesde = 0;                                   // (28/09) respondeu: a contagem de falha zera
+    if (retentaT) { clearTimeout(retentaT); retentaT = null; }
     CARIMBO.msEu = j.ms || 0; CARIMBO.msPs = (j.ps && j.ps.ms) || 0;
     CARIMBO.psErro  = (j.ps && j.ps.sync_erro) || '';
     CARIMBO.psFalha = (j.ps && j.ps.sync_ultima_falha) || '';
@@ -2976,7 +3040,8 @@ window.__psReler = function(){
           portao('O token deixou de valer. Digite o novo.');
         }
         // o token vale e o Cofre falhou: a tela fica como está — o carimbo
-        // do selo já diz de quando é o número
+        // do selo já diz de quando é o número — e tenta de novo em 1 min
+        else retentar(token);
         return;
       }
       aplicar(juntar(window.__DADOS__, emp, meia));
@@ -2990,8 +3055,10 @@ window.__psReler = function(){
       }, function () {});
     }).catch(function (e) {
       // a metade da tela não veio: o selo assume a linguagem de cópia local
+      // (discreta, se for soluço) e a tela tenta de novo em 1 min
       CARIMBO.copia = true;
       CARIMBO.motivo = e;
+      retentar(token);
     }).then(function () {
       revalidando = false;
       conferindoAgora = false;
@@ -3073,11 +3140,13 @@ window.__psReler = function(){
         CARIMBO.motivo = falha('erro', String(meia && meia.error || 'resposta sem dado'));
         subir(copia, true);
         ligarRevalidacao(token);
+        retentar(token);
       }
     }).catch(function (e) {
       CARIMBO.motivo = e;
       subir(copia, true);
       ligarRevalidacao(token);
+      retentar(token);
     });
     return;
   }
