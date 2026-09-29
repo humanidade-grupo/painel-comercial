@@ -2373,11 +2373,8 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
       return;
     }
     if (r.truncado === true){
+      /* (29/09) o bloco `resumo` saiu da rota com o Resumo Mensal aposentado. */
       var det = [];
-      ['meses','vendedores','dimensoes'].forEach(function (k) {
-        var b = r.resumo && r.resumo[k];
-        if (b && b.truncado) det.push('resumo.' + k + ': ' + b.n + ' de ' + b.total_aba);
-      });
       if (r.respostas && r.respostas.truncado) det.push('respostas: ' + r.respostas.n + ' de ' + r.respostas.total_aba);
       if (r.leitura && r.leitura.truncado) det.push('leitura: ' + r.leitura.n + ' de ' + r.leitura.total_aba);
       if (r.vendas && r.vendas.truncado) det.push('vendas: ' + r.vendas.n + ' de ' + r.vendas.total_aba);

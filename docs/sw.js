@@ -1,6 +1,9 @@
 /* Painel Comercial — Parque da Saudade + Estrela Urbanidade
    Service worker: instalação PWA + reserva offline.
-   Atualizado em: 28/09/2026 (noite, 3ª) — PONTEAPP: as três últimas colunas
+   Atualizado em: 29/09/2026 — RETROSPECTIVA sem o bloco `resumo`: o Cofre aposentou o Resumo Mensal e a
+   rota ?app=retrospectiva deixou de devolver as abas Resumo_*; a guarda de corte da tela para de procurá-lo.
+   Nada muda no que a tela mostra (os números já vinham do Executivo desde 27/09).
+   Antes, 28/09/2026 (noite, 3ª) — PONTEAPP: as três últimas colunas
    (Contrato · Ivertex · Boleto) pararam de se atropelar — cada uma com largura
    própria e um fio separando estado de ação, a pílula cabendo em uma linha e o
    detalhe ("enviado hoje") junto do "2 de 4 assinaram". A tabela voltou a caber
@@ -270,7 +273,7 @@
    links dos arquivos são drive.google.com, externos, e NÃO entram no cache).
    Estratégia: rede primeiro (pega versão nova quando online), cache como
    reserva offline. A cada deploy, bumpar a versão em CACHE. */
-const CACHE = 'painel-comercial-280926-6';
+const CACHE = 'painel-comercial-290926-1';
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(['./'])).then(() => self.skipWaiting()));
