@@ -260,7 +260,11 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
     var tentar = function (n) {
       return uma().catch(function (e) { if (n > 1) return tentar(n - 1); throw e; });
     };
-    return tentar(tentativas);
+    /* codigo 'metodo' = o POST chegou ao Cofre SEM corpo (defeito de entrega do /exec, visto em
+       29/09): nada rodou lá, então repetir é seguro até na gravação — uma vez, e só nesse caso. */
+    return tentar(tentativas).then(function (j) {
+      return j && j.codigo === 'metodo' ? tentar(1) : j;
+    });
   }
 
   /* ══════════════════════════════ portão ══════════════════════════════ */
