@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Configurações — Parque da Saudade</title>
+<link rel="icon" href="../favicon-32.png" sizes="32x32">
+<!--
+  CONFIGURAÇÕES DO COFRE DO PARQUE — tela de GESTÃO, só do Ricardo (29/09/2026).
+
+  Edita os PARÂMETROS da aba Config do Cofre (metas, campanha, painel, estoque, alertas, cortes e
+  exceções da Sanidade) — um campo por vez, com validação, confirmação nas chaves que mudam muita
+  coisa, recusa de conflito e histórico (aba Config_Historico). Nunca mostra estado nem segredo: a
+  lista do que aparece é uma LISTA BRANCA no Cofre (ConfigTela.gs), não "tudo que está na Config".
+
+  SEM LAYOUT APROVADO: a casca é a da Retrospectiva (trilho à esquerda, cartões, portão de token),
+  que já é a do Painel Comercial com o acento do Parque. Nenhum estilo novo além dos controles de
+  formulário, desenhados com as mesmas variáveis.
+
+  TOKEN PRÓPRIO: `hub_token_config`, que SÓ o Ricardo tem (decisão dele, 29/09). NUNCA o
+  hub_token_gestao — esse é um só para três pessoas e o Cofre o recusa nesta rota. O Cofre guarda só
+  o SHA-256 do token. Vai no CORPO de um POST, nunca na URL (regra 4 do CLAUDE.md). Recusado, o token
+  NÃO é apagado do aparelho: ele é a única cópia até o Ricardo levá-lo para outro aparelho.
+
+  O VALIDADOR QUE MANDA É O DO COFRE: a tela só monta o valor no formato que o Cofre espera e mostra
+  a recusa dele, com o motivo. Rotas: ?app=config&fn=parametros | salvar | historico.
+
+  SEGURANÇA: nenhum segredo neste arquivo. O repositório é público.
+-->
+<style>
+:root{
+  --bg:#0b1220;--card:rgba(255,255,255,.045);--card2:rgba(255,255,255,.03);
+  --edge:rgba(255,255,255,.09);--edge2:rgba(255,255,255,.14);
+  --text-1:#eef4fa;--text-2:#9fb2c8;--text-3:#64778f;
+  --s1:#f2c744;--s1b:#f7d977;
+  --grid:rgba(255,255,255,.07);--surface-1:#121c2c;
+  --chip-bg:rgba(255,255,255,.05);
+  --ok:#4ade80;--warn:#fbbf24;--crit:#f87171;
+  --warn-bg:rgba(217,119,6,.14);
+  --radius:16px; --rail:236px;
+  --f-body:-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
+  --shadow:0 10px 34px rgba(0,0,0,.3);
+}
+*{box-sizing:border-box}
+html{color-scheme:dark}
+body{margin:0; color:var(--text-1); min-height:100vh;
+     background:radial-gradient(1200px 600px at 80% -10%,#2b2412 0%,var(--bg) 55%) fixed;
+     font:14px/1.5 var(--f-body); -webkit-font-smoothing:antialiased}
+h1,h2,h3{font-weight:800; letter-spacing:-.005em; text-wrap:balance; margin:0}
+a{color:var(--s1b)}
+.eyebrow{font-size:10.5px; letter-spacing:.07em; text-transform:uppercase; color:var(--text-3); font-weight:700}
+
+.shell{display:flex; min-height:100vh; align-items:stretch}
+.rail{width:var(--rail); flex:0 0 var(--rail); border-right:1px solid var(--edge);
+      background:var(--card2); backdrop-filter:blur(8px); padding:22px 0 28px; display:flex;
+      flex-direction:column; gap:18px; position:sticky; top:0; height:100vh; overflow-y:auto}
+.rail-head{padding:0 20px; display:flex; flex-direction:column; gap:5px}
+.rail-head h1{font-size:18px; line-height:1.25}
+.rail-head p{margin:0; font-size:11.5px; color:var(--text-3)}
+.rail-voltar{margin-top:4px; font-size:11.5px; text-decoration:none; display:inline-flex;
+             align-items:center; gap:5px; color:var(--text-3)}
+.rail-voltar:hover{color:var(--text-1)}
+.rail-group{display:flex; flex-direction:column; gap:2px}
+.rail-group .eyebrow{padding:0 20px 6px}
+.rail-pe{padding:0 20px; margin-top:auto; display:flex; flex-direction:column; gap:6px}
+.tab{appearance:none; border:0; background:none; cursor:pointer; font-family:var(--f-body);
+     font-size:13.5px; font-weight:600; color:var(--text-3); text-align:left; padding:9px 20px;
+     display:flex; align-items:center; gap:9px; border-left:2px solid transparent; width:100%}
+.tab:hover{color:var(--text-1); background:rgba(255,255,255,.035)}
+.tab[aria-selected="true"]{color:var(--s1b); border-left-color:var(--s1); background:rgba(255,255,255,.05)}
+.tab .dot{width:6px; height:6px; border-radius:50%; flex:0 0 6px; background:var(--edge2)}
+.tab .n{margin-left:auto; font-size:11px; color:var(--text-3); font-variant-numeric:tabular-nums}
+.tab:focus-visible{outline:2px solid var(--s1); outline-offset:-2px}
+.main{flex:1 1 auto; min-width:0; padding:22px 28px 70px; max-width:1000px}
+
+.month-head{display:flex; flex-direction:column; gap:7px; margin-bottom:20px}
+.month-head h2{font-size:26px; line-height:1.15}
+.month-head .sub{color:var(--text-2); font-size:13px; max-width:70ch; margin:0}
+.nota-fina{font-size:12px; color:var(--text-3); margin:6px 0}
+.trocar{background:none; border:none; color:var(--text-3); font:inherit; font-size:12px;
+        cursor:pointer; text-decoration:underline; padding:0; text-align:left}
+.trocar:hover{color:var(--text-1)}
+
+.card{background:var(--card); border:1px solid var(--edge); border-radius:18px;
+      backdrop-filter:blur(8px); box-shadow:var(--shadow); padding:15px 17px}
+.campos{display:flex; flex-direction:column; gap:12px}
+.campo{display:flex; flex-direction:column; gap:8px}
+.campo-topo{display:flex; align-items:baseline; gap:10px; flex-wrap:wrap}
+.campo-topo code{font-size:13px; font-weight:700; color:var(--text-1); overflow-wrap:anywhere}
+.ajuda{margin:0; font-size:12px; color:var(--text-2); max-width:80ch; white-space:pre-wrap}
+.campo-linha{display:flex; align-items:flex-start; gap:10px; flex-wrap:wrap}
+.campo-controle{flex:1 1 320px; min-width:0}
+
+.flag{font-size:11px; letter-spacing:.05em; text-transform:uppercase; font-weight:700;
+      padding:3px 10px; border-radius:999px; white-space:nowrap;
+      background:var(--warn-bg); color:var(--warn); border:1px solid rgba(251,191,36,.3)}
+.flag.ok{background:rgba(22,163,74,.15); color:var(--ok); border-color:rgba(74,222,128,.35)}
+.flag.crit{background:rgba(220,38,38,.13); color:var(--crit); border-color:rgba(248,113,113,.3)}
+.flag.neutra{background:var(--chip-bg); color:var(--text-3); border-color:var(--edge)}
+
+/* Os controles de formulário: as mesmas variáveis do portão de token. */
+.inp{width:100%; padding:9px 12px; border-radius:11px; border:1px solid var(--edge2);
+     background:#0b1424; color:var(--text-1); font:14px/1.35 var(--f-body)}
+.inp:focus{outline:2px solid var(--s1); outline-offset:1px}
+textarea.inp{min-height:84px; resize:vertical; font-family:ui-monospace,Consolas,monospace; font-size:13px}
+.inp.curto{max-width:180px}
+.inp.medio{max-width:320px}
+.sufixo{display:inline-flex; align-items:center; gap:6px; color:var(--text-2)}
+.check{display:inline-flex; align-items:center; gap:9px; cursor:pointer; font-size:13.5px; padding:6px 0}
+.check input{width:18px; height:18px; accent-color:var(--s1)}
+.linhas-vend{display:flex; flex-direction:column; gap:6px}
+.linha-vend{display:flex; gap:6px; align-items:center}
+.linha-vend .inp.nome{flex:1 1 auto}
+.linha-vend .inp.num{flex:0 0 90px}
+
+.btn{appearance:none; border:1px solid var(--edge2); background:var(--chip-bg);
+     color:var(--text-1); font:700 12.5px/1.2 var(--f-body); padding:8px 14px;
+     border-radius:999px; cursor:pointer; display:inline-flex; align-items:center; gap:7px; white-space:nowrap}
+.btn:hover{border-color:var(--s1); color:var(--s1b)}
+.btn[disabled]{opacity:.45; cursor:default; border-color:var(--edge2); color:var(--text-1)}
+.btn.prim{background:var(--s1); color:#2b2412; border-color:var(--s1)}
+.btn.prim:hover{color:#2b2412; background:var(--s1b)}
+.btn.prim[disabled]{background:var(--chip-bg); color:var(--text-3); border-color:var(--edge2)}
+.btn:focus-visible{outline:2px solid var(--s1); outline-offset:2px}
+.btn.mini{padding:5px 10px; font-size:11.5px}
+
+.estado{font-size:12.5px; color:var(--text-3); min-height:18px}
+.estado.ok{color:var(--ok)} .estado.erro{color:var(--crit)}
+.confirma{border:1px solid rgba(251,191,36,.35); background:var(--warn-bg); border-radius:14px;
+          padding:11px 14px; display:flex; flex-direction:column; gap:9px; font-size:13px; color:#ffeccd}
+.confirma b{color:var(--warn)}
+.confirma .acoes{display:flex; gap:8px; flex-wrap:wrap}
+.conflito{border:1px solid rgba(248,113,113,.35); background:rgba(220,38,38,.1); border-radius:14px;
+          padding:11px 14px; font-size:13px; display:flex; flex-direction:column; gap:8px}
+.conflito pre{margin:0; white-space:pre-wrap; font-size:12.5px; color:var(--text-1)}
+
+.table-wrap{overflow:auto; border:1px solid var(--edge); border-radius:10px; background:var(--card2)}
+table{border-collapse:collapse; width:100%; font-size:12.5px; font-variant-numeric:tabular-nums; min-width:640px}
+th,td{padding:7px 10px; text-align:left; border-bottom:1px solid var(--grid); vertical-align:top}
+th{font-size:10.5px; letter-spacing:.05em; text-transform:uppercase; color:var(--text-3); font-weight:700;
+   border-bottom:1px solid var(--edge2); position:sticky; top:0; background:var(--surface-1); white-space:nowrap}
+td.val{white-space:pre-wrap; overflow-wrap:anywhere; max-width:280px}
+
+.tarja{border:1px solid rgba(248,113,113,.45); background:rgba(220,38,38,.12); border-radius:16px;
+       padding:14px 16px; color:#ffd5d5}
+.tarja .t{font-size:15px; font-weight:800; margin-bottom:4px; color:#ffb4b4}
+
+/* portão de token (idêntico ao da Retrospectiva e da Esteira) */
+.gate{position:fixed; inset:0; z-index:60; display:flex; align-items:center; justify-content:center;
+      background:rgba(8,14,24,.94); backdrop-filter:blur(6px); padding:20px}
+.gatebox{background:#101a2a; border:1px solid rgba(255,255,255,.14); border-radius:18px; padding:22px; max-width:400px; width:100%}
+.gatebox h2{margin:0 0 6px; font-size:17px}
+.gatebox p{color:var(--text-2); font-size:13px; margin:0 0 14px}
+.gatebox input{width:100%; padding:11px 13px; border-radius:11px; border:1px solid rgba(255,255,255,.14);
+               background:#0b1424; color:var(--text-1); font:15px/1.2 inherit; letter-spacing:.04em}
+.gatebox button{width:100%; margin-top:10px; padding:11px; border-radius:11px; border:none;
+                background:var(--s1); color:#2b2412; font:700 14px/1.2 inherit; cursor:pointer}
+.gatebox .erro{color:var(--crit); font-size:12.5px; margin-top:9px; min-height:16px}
+
+/* A guarda do [hidden] (regra desta casa): toda classe que declara `display` ganha o par. */
+.shell[hidden],.rail[hidden],.rail-head[hidden],.rail-group[hidden],.rail-pe[hidden],.rail-voltar[hidden],
+.tab[hidden],.main[hidden],.month-head[hidden],.campos[hidden],.campo[hidden],.campo-topo[hidden],
+.campo-linha[hidden],.sufixo[hidden],.check[hidden],.linhas-vend[hidden],.linha-vend[hidden],
+.btn[hidden],.confirma[hidden],.conflito[hidden],.gate[hidden]{display:none}
+
+@media (max-width: 860px){
+  .shell{flex-direction:column}
+  .rail{width:100%; flex:0 0 auto; height:auto; position:static; border-right:0;
+        border-bottom:1px solid var(--edge); padding:16px 0 10px}
+  .rail-group{flex-direction:row; overflow-x:auto; gap:0; padding-bottom:2px}
+  .rail-group .eyebrow{display:none}
+  .rail-pe{flex-direction:row; flex-wrap:wrap; gap:12px; margin-top:0}
+  .tab{width:auto; white-space:nowrap; border-left:0; border-bottom:2px solid transparent; padding:9px 14px}
+  .tab[aria-selected="true"]{border-left:0; border-bottom-color:var(--s1)}
+  .tab .n{margin-left:4px}
+  .main{padding:20px 16px 70px}
+  .month-head h2{font-size:23px}
+}
+@media (max-width: 640px){
+  .main{padding:14px 10px 60px}
+  .rail-head{padding:0 12px}
+  .rail-head h1{font-size:16px}
+  .tab{padding:8px 12px; font-size:13px}
+  .month-head h2{font-size:20px}
+  .card{padding:11px 12px}
+}
+@media (prefers-reduced-motion: reduce){*{animation:none !important; transition:none !important}}
+html.embutido .rail-voltar{display:none !important}
+html.embutido body{min-height:0}
+html.embutido .shell{min-height:0}
+html.embutido .rail{height:auto; position:static}
+</style>
+<script>
+try { if (window.top !== window.self) document.documentElement.classList.add('embutido'); } catch (e) { document.documentElement.classList.add('embutido'); }
+</script>
+</head>
+<body>
+
+<div class="gate" id="gate">
+  <div class="gatebox">
+    <h2>Configurações do Cofre</h2>
+    <p>Parque da Saudade. Esta tela muda os parâmetros do Cofre — metas, campanha, alertas — e é
+       só do Ricardo: pede o token de Configurações, que é outro, não o do Painel. Você digita uma
+       vez: ele fica guardado neste aparelho.</p>
+    <input id="tk" type="password" autocomplete="off" spellcheck="false" placeholder="token de Configurações" aria-label="Token de Configurações">
+    <button id="btEntrar" type="button">Entrar</button>
+    <div class="erro" id="gateErro"></div>
+  </div>
+</div>
+
+<div class="shell" id="app" hidden>
+  <nav class="rail" aria-label="Seções">
+    <div class="rail-head">
+      <h1>Configurações</h1>
+      <p>Parque da Saudade · parâmetros do Cofre</p>
+      <a class="rail-voltar" href="../">&larr; Painel Comercial</a>
+    </div>
+    <div class="rail-group" id="tabs" role="tablist" aria-orientation="vertical">
+      <span class="eyebrow">Seções</span>
+    </div>
+    <div class="rail-pe">
+      <button class="trocar" id="btRecarregar" type="button">Reler do Cofre</button>
+      <button class="trocar" id="btMostrarToken" type="button">Levar o token para outro aparelho</button>
+    </div>
+  </nav>
+  <main class="main" id="painel" role="tabpanel"></main>
+</div>
+
+<script>
+(function () {
+  'use strict';
+  var API = 'https://script.google.com/macros/s/AKfycbydLmUEX3g6FeojFGAcVHfNKoPsr4d9oTBUdi7GtcfsirQL6xHJM0BELVGcCrcqrICY/exec';
+  var CHAVE_TOKEN = 'hub_token_config';   // PRÓPRIO — nunca o hub_token_gestao
+  var HIST = '__historico';
+
+  var $ = function (s, el) { return (el || document).querySelector(s); };
+  var esc = function (s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  };
+  function token() { try { return localStorage.getItem(CHAVE_TOKEN) || ''; } catch (e) { return ''; } }
+
+  /* Token no CORPO de um POST (regra 4). A entrega do /exec falha às vezes em dia ruim: a LEITURA
+     tenta de novo; a GRAVAÇÃO não — quem decide repetir é a pessoa, vendo a mensagem. */
+  function chamar(fn, corpo, tentativas) {
+    var body = JSON.stringify(Object.assign({ token: token() }, corpo || {}));
+    tentativas = tentativas || 1;
+    var uma = function () {
+      return new Promise(function (resolve, reject) {
+        var venceu = false;
+        var t = setTimeout(function () { venceu = true; reject(new Error('o Cofre não respondeu em 60s')); }, 60000);
+        fetch(API + '?app=config&fn=' + fn, { method: 'POST', body: body, cache: 'no-store' })
+          .then(function (r) { return r.json(); })
+          .then(function (j) { if (!venceu) { clearTimeout(t); resolve(j); } })
+          .catch(function (e) { if (!venceu) { clearTimeout(t); reject(e); } });
+      });
+    };
+    var tentar = function (n) {
+      return uma().catch(function (e) { if (n > 1) return tentar(n - 1); throw e; });
+    };
+    return tentar(tentativas);
+  }
+
+  /* ══════════════════════════════ portão ══════════════════════════════ */
+  function abrirPortao(msg) {
+    $('#gate').hidden = false;
+    $('#gateErro').textContent = msg || '';
+    $('#app').hidden = true;
+    setTimeout(function () { $('#tk').focus(); }, 60);
+  }
+  function fecharPortao() { $('#gate').hidden = true; $('#app').hidden = false; }
+  $('#btEntrar').onclick = function () {
+    var v = $('#tk').value.trim();
+    if (!v) { $('#gateErro').textContent = 'Digite o token.'; return; }
+    try { localStorage.setItem(CHAVE_TOKEN, v); } catch (e) {}
+    $('#tk').value = ''; carregar();
+  };
+  $('#tk').addEventListener('keydown', function (e) { if (e.key === 'Enter') $('#btEntrar').click(); });
+  $('#btRecarregar').onclick = function () { carregar(); };
+  $('#btMostrarToken').onclick = function () {
+    if (!window.confirm('Mostrar o token de Configurações na tela, para digitar em outro aparelho?\n\nQuem vir o token pode mudar os parâmetros do Cofre.')) return;
+    window.prompt('Token de Configurações deste aparelho (copie e digite no outro):', token());
+  };
+
+  /* ══════════════════════════════ estado ══════════════════════════════ */
+  var DADOS = null;       // resposta do fn=parametros
+  var SECAO = null;       // seção aberta
+  var CAMPOS = {};        // chave -> {p, ler(), inicial, el}
+
+  function carregar() {
+    if (!token()) { abrirPortao(''); return; }
+    fecharPortao();
+    $('#painel').innerHTML = '<p class="nota-fina">Lendo os parâmetros do Cofre…</p>';
+    chamar('parametros', {}, 3).then(function (r) {
+      if (!r || r.ok !== true) {
+        if (r && r.codigo === 'token') { abrirPortao('Token recusado. Esta tela aceita só o token de Configurações do Ricardo.'); return; }
+        bloqueia('O Cofre respondeu, mas sem os parâmetros.', (r && r.error) || 'resposta sem dado');
+        return;
+      }
+      DADOS = r;
+      if (!SECAO || (SECAO !== HIST && r.secoes.indexOf(SECAO) < 0)) SECAO = r.secoes[0];
+      montarTrilho();
+      abrir(SECAO);
+    }).catch(function (e) {
+      bloqueia('Não consegui falar com o Cofre.', (e && e.message) || String(e));
+    });
+  }
+  function bloqueia(t, msg) {
+    $('#painel').innerHTML = '<div class="tarja"><div class="t">' + esc(t) + '</div><p>' + esc(msg) + '</p></div>';
+  }
+
+  function montarTrilho() {
+    var g = $('#tabs');
+    g.innerHTML = '<span class="eyebrow">Seções</span>';
+    DADOS.secoes.concat([HIST]).forEach(function (s) {
+      var b = document.createElement('button');
+      b.className = 'tab'; b.type = 'button'; b.setAttribute('role', 'tab');
+      var n = s === HIST ? '' : DADOS.parametros.filter(function (p) { return p.secao === s; }).length;
+      b.innerHTML = '<span class="dot"></span>' + esc(s === HIST ? 'Histórico' : s) + (n ? '<span class="n">' + n + '</span>' : '');
+      b.dataset.secao = s;
+      b.onclick = function () { abrir(s); };
+      g.appendChild(b);
+    });
+  }
+
+  var SUB = {
+    'Metas': 'Meta oficial e desafio do mês (número de vendas) e a meta de cada vendedor. A meta de um mês novo aparece aqui quando a chave dele existir na Config.',
+    'Campanha': 'A regra da campanha comercial que o Pocket mostra ao vendedor. O Cofre confere cada campo com as mesmas regras que a campanha usa para ler.',
+    'Painel': 'Como o Painel conta as vendas: de onde vêm, quais contam, como os nomes aparecem e quais canais são "portas".',
+    'Estoque': 'As quadras que a rota pública do Pocket (sem token) mostra.',
+    'Alertas': 'As mensagens automáticas no WhatsApp. Cada interruptor liga ou desliga um envio.',
+    'Cortes': 'Datas a partir das quais a PonteApp tira conclusões (contrato e boleto).',
+    'Exceções da Sanidade': 'Checagens da Sanidade aceitas até uma data — uma por linha, no formato "<Checagem>: aceito até AAAA-MM-DD (motivo)".'
+  };
+
+  function abrir(s) {
+    SECAO = s;
+    Array.prototype.forEach.call(document.querySelectorAll('#tabs .tab'), function (b) {
+      b.setAttribute('aria-selected', String(b.dataset.secao === s));
+    });
+    if (s === HIST) { abrirHistorico(); return; }
+    CAMPOS = {};
+    var m = $('#painel');
+    m.innerHTML = '<div class="month-head"><span class="eyebrow">Configurações · Cofre do Parque</span>' +
+      '<h2>' + esc(s) + '</h2><p class="sub">' + esc(SUB[s] || '') + '</p>' +
+      '<p class="nota-fina">Cada campo se grava sozinho, no botão dele. O Cofre confere o valor antes de gravar e registra quem mudou o quê no Histórico.</p></div>' +
+      '<div class="campos" id="campos"></div>';
+    var box = $('#campos');
+    DADOS.parametros.filter(function (p) { return p.secao === s; }).forEach(function (p) {
+      box.appendChild(montarCampo(p));
+    });
+  }
+
+  /* ══════════════════════════════ campos ══════════════════════════════ */
+  function linhasDe(v) { return String(v || '').split(/;\s*|\n/).map(function (x) { return x.trim(); }).filter(Boolean); }
+
+  /* Cada tipo: desenha o controle e sabe ler o valor dele no formato que o Cofre espera. */
+  var TIPOS = {
+    numero: function (p, el) {
+      el.innerHTML = '<input class="inp curto" inputmode="decimal" autocomplete="off">';
+      var i = $('input', el); i.value = p.valor;
+      return function () { return i.value.trim(); };
+    },
+    inteiro: function (p, el) {
+      el.innerHTML = '<span class="sufixo"><input class="inp curto" type="number" min="0" max="60" step="1"> dias úteis</span>';
+      var i = $('input', el); i.value = p.valor;
+      return function () { return i.value.trim(); };
+    },
+    percentual: function (p, el) {
+      el.innerHTML = '<span class="sufixo"><input class="inp curto" inputmode="decimal" autocomplete="off"> %</span>';
+      var i = $('input', el); i.value = String(p.valor).replace(/%$/, '');
+      return function () { var v = i.value.trim(); return v === '' ? '' : v + '%'; };
+    },
+    data: function (p, el) {
+      el.innerHTML = '<input class="inp medio" type="date">' + (p.vazio ? ' <button class="btn mini" type="button">Limpar</button>' : '');
+      var i = $('input', el); i.value = /^\d{4}-\d{2}-\d{2}$/.test(p.valor) ? p.valor : '';
+      var b = $('button', el); if (b) b.onclick = function () { i.value = ''; i.dispatchEvent(new Event('input', { bubbles: true })); };
+      return function () { return i.value; };
+    },
+    sim_nao: function (p, el) {
+      el.innerHTML = '<label class="check"><input type="checkbox"> <span></span></label>';
+      var i = $('input', el), t = $('span', el);
+      var rot = function () { t.textContent = i.checked ? 'Sim' : 'Não'; };
+      i.checked = p.valor === 'sim'; rot(); i.addEventListener('change', rot);
+      return function () { return i.checked ? 'sim' : 'nao'; };
+    },
+    interruptor: function (p, el) {
+      el.innerHTML = '<label class="check"><input type="checkbox"> <span></span></label>';
+      var i = $('input', el), t = $('span', el);
+      var rot = function () { t.textContent = i.checked ? 'Ligado' : 'Desligado'; };
+      i.checked = p.valor === 'true'; rot(); i.addEventListener('change', rot);
+      return function () { return i.checked ? 'true' : 'false'; };
+    },
+    escolha: function (p, el) {
+      var nomes = { nao: 'não', sim: 'sim' };
+      el.innerHTML = '<select class="inp medio">' + p.opcoes.map(function (o) {
+        return '<option value="' + esc(o) + '">' + esc(nomes[o] || o) + '</option>';
+      }).join('') + (p.opcoes.indexOf(p.valor) < 0 ? '<option value="' + esc(p.valor) + '">' + esc(p.valor || '(vazio)') + ' — fora da lista</option>' : '') + '</select>';
+      var i = $('select', el); i.value = p.valor;
+      return function () { return i.value; };
+    },
+    texto: function (p, el) {
+      el.innerHTML = '<input class="inp" autocomplete="off">';
+      var i = $('input', el); i.value = p.valor;
+      return function () { return i.value.trim(); };
+    },
+    apelido: function (p, el) { return TIPOS.texto(p, el); },
+    texto_longo: function (p, el) {
+      el.innerHTML = '<textarea class="inp" rows="3"></textarea>';
+      var i = $('textarea', el); i.value = p.valor;
+      return function () { return i.value.trim(); };
+    },
+    escopo: function (p, el) {
+      el.innerHTML = '<textarea class="inp" rows="4" placeholder="M-19: 166, 169&#10;M-20: todos"></textarea>';
+      var i = $('textarea', el); i.value = p.valor;
+      return function () { return i.value.trim(); };
+    },
+    excecoes: function (p, el) {
+      el.innerHTML = '<textarea class="inp" rows="3" placeholder="Telefone: aceito até 2026-10-31 (motivo)"></textarea>';
+      var i = $('textarea', el); i.value = p.valor;
+      return function () { return i.value.trim(); };
+    },
+    /* Listas: um item por linha na tela; o Cofre grava com "; ". */
+    lista: function (p, el) {
+      el.innerHTML = '<textarea class="inp" rows="3"></textarea><p class="nota-fina">Um item por linha.</p>';
+      var i = $('textarea', el); i.value = linhasDe(p.valor).join('\n');
+      return function () { return linhasDe(i.value).join('; '); };
+    },
+    portas: function (p, el) {
+      el.innerHTML = '<textarea class="inp" rows="3"></textarea><p class="nota-fina">Um canal por linha, escrito como vem do Facilita.</p>';
+      var i = $('textarea', el); i.value = linhasDe(p.valor).join('\n');
+      return function () { return i.value.split('\n').map(function (x) { return x.trim(); }).filter(Boolean).join('; '); };
+    },
+    quadras: function (p, el) {
+      el.innerHTML = '<textarea class="inp" rows="3"></textarea><p class="nota-fina">Uma quadra por linha (ex.: M-19).</p>';
+      var i = $('textarea', el); i.value = linhasDe(p.valor).join('\n');
+      return function () { return linhasDe(i.value).join('; '); };
+    },
+    pares: function (p, el) {
+      el.innerHTML = '<textarea class="inp" rows="4" placeholder="Nome como vem do Facilita=Nome na tela"></textarea><p class="nota-fina">Um por linha: <code>Nome como vem do Facilita=Nome na tela</code>.</p>';
+      var i = $('textarea', el); i.value = String(p.valor || '').split(/;\s*/).filter(Boolean).join('\n');
+      return function () { return i.value.split('\n').map(function (x) { return x.trim(); }).filter(Boolean).join('; '); };
+    },
+    /* meta.vendedor: linhas vendedor + número; grava "Nome:nº; Nome:nº". */
+    metas_vendedor: function (p, el) {
+      el.innerHTML = '<div class="linhas-vend"></div><button class="btn mini mais" type="button">+ vendedor</button>';
+      var box = $('.linhas-vend', el);
+      var add = function (nome, n) {
+        var l = document.createElement('div'); l.className = 'linha-vend';
+        l.innerHTML = '<input class="inp nome" placeholder="vendedor" autocomplete="off"><input class="inp num" inputmode="decimal" placeholder="meta" autocomplete="off">' +
+                      '<button class="btn mini" type="button" aria-label="Tirar esta linha">✕</button>';
+        l.querySelector('.nome').value = nome || ''; l.querySelector('.num').value = n || '';
+        l.querySelector('button').onclick = function () { l.remove(); box.dispatchEvent(new Event('input', { bubbles: true })); };
+        box.appendChild(l);
+      };
+      String(p.valor || '').split(/;\s*/).filter(Boolean).forEach(function (it) {
+        var j = it.lastIndexOf(':'); add(j < 0 ? it : it.slice(0, j).trim(), j < 0 ? '' : it.slice(j + 1).trim());
+      });
+      $('button.mais', el).onclick = function () { add('', ''); box.lastChild.querySelector('.nome').focus(); };
+      return function () {
+        return Array.prototype.map.call(box.querySelectorAll('.linha-vend'), function (l) {
+          var nome = l.querySelector('.nome').value.trim(), n = l.querySelector('.num').value.trim();
+          return nome || n ? nome + ':' + n : '';
+        }).filter(Boolean).join('; ');
+      };
+    }
+  };
+
+  /* O que a confirmação diz, nas chaves que mudam muita coisa. */
+  function efeito(p, novo) {
+    var k = p.chave;
+    if (k === 'painel.fonte_vendas') return 'Muda de onde vêm TODAS as vendas do Painel inteiro (Executivo, Retrospectiva, Pocket): <b>' + esc(novo) + '</b>. ambas = CRM Facilita + lançamentos manuais; facilita = só o CRM; vendas = só a aba Vendas (congelada desde 19/09).';
+    if (k === 'painel.so_confirmadas') return novo === 'sim'
+      ? 'O Painel inteiro passa a contar <b>só as vendas confirmadas</b> (com comprovante): os números de todos os meses podem cair.'
+      : 'O Painel inteiro volta a contar <b>todas as vendas</b>, confirmadas ou não.';
+    if (k === 'campanha.ativa') return novo === 'sim'
+      ? 'A campanha <b>liga</b>: o Pocket passa a mostrar o desconto a todos os vendedores (rota pública), se as datas e o escopo estiverem certos.'
+      : 'A campanha <b>desliga</b>: o Pocket deixa de mostrar o desconto a todos os vendedores.';
+    if (k === 'estoque.quadras_publicas') {
+      var a = linhasDe(p.valor), b = linhasDe(novo);
+      var entra = b.filter(function (x) { return a.indexOf(x) < 0; }), sai = a.filter(function (x) { return b.indexOf(x) < 0; });
+      return 'A rota pública do Pocket (sem token) passa a mostrar as quadras <b>' + esc(b.join(', ')) + '</b>.' +
+        (entra.length ? ' Entra: <b>' + esc(entra.join(', ')) + '</b>.' : '') + (sai.length ? ' Sai: <b>' + esc(sai.join(', ')) + '</b>.' : '');
+    }
+    var alertas = {
+      'alertas.ativo': 'todos os alertas no WhatsApp (chave geral)',
+      'alertas.parcial.ativo': 'o parcial do dia no WhatsApp',
+      'alertas.ponteapp.ativo': 'o alerta de lentidão da PonteApp no WhatsApp',
+      'alertas.resumo_ponteapp.ativo': 'o resumo diário da PonteApp no WhatsApp'
+    };
+    if (alertas[k]) return (novo === 'true' ? '<b>Liga</b> ' : '<b>Desliga</b> ') + esc(alertas[k]) + '. Vale a partir do próximo envio.';
+    return 'Esta chave muda muita coisa de uma vez.';
+  }
+
+  function montarCampo(p) {
+    var c = document.createElement('div');
+    c.className = 'card campo';
+    c.innerHTML =
+      '<div class="campo-topo"><code>' + esc(p.chave) + '</code>' +
+        (p.sensivel ? '<span class="flag">pede confirmação</span>' : '') +
+        (p.aviso ? '<span class="flag crit">valor de hoje fora do formato</span>' : '') + '</div>' +
+      (p.observacao ? '<p class="ajuda">' + esc(p.observacao) + '</p>' : '') +
+      (p.aviso ? '<p class="ajuda" style="color:var(--crit)">' + esc(p.aviso) + '</p>' : '') +
+      '<div class="campo-linha"><div class="campo-controle"></div>' +
+        '<button class="btn prim salvar" type="button" disabled>Salvar</button>' +
+        '<button class="btn desfazer" type="button" hidden>Desfazer</button></div>' +
+      '<div class="confirma" hidden></div><div class="conflito" hidden></div>' +
+      '<div class="estado"></div>';
+    var ctl = $('.campo-controle', c);
+    var ler = TIPOS[p.tipo] ? TIPOS[p.tipo](p, ctl) : TIPOS.texto(p, ctl);
+    var reg = { p: p, ler: ler, inicial: ler(), el: c };
+    CAMPOS[p.chave] = reg;
+    var btS = $('.salvar', c), btD = $('.desfazer', c), est = $('.estado', c);
+    var mudou = function () {
+      var sujo = reg.ler() !== reg.inicial;
+      btS.disabled = !sujo; btD.hidden = !sujo;
+      if (sujo) { est.className = 'estado'; est.textContent = 'Alterado — ainda não gravado.'; }
+      else if (est.textContent === 'Alterado — ainda não gravado.') est.textContent = '';
+      $('.confirma', c).hidden = true;
+    };
+    c.addEventListener('input', mudou);
+    c.addEventListener('change', mudou);
+    btD.onclick = function () { refazer(p.chave, p.valor, ''); };
+    btS.onclick = function () {
+      var novo = reg.ler();
+      if (p.sensivel) {
+        var cf = $('.confirma', c);
+        cf.innerHTML = '<div>' + efeito(p, novo) + '</div><div class="acoes">' +
+          '<button class="btn prim" type="button">Confirmar e gravar</button><button class="btn" type="button">Cancelar</button></div>';
+        cf.hidden = false;
+        var bs = cf.querySelectorAll('button');
+        bs[0].onclick = function () { cf.hidden = true; gravar(reg, novo); };
+        bs[1].onclick = function () { cf.hidden = true; };
+        return;
+      }
+      gravar(reg, novo);
+    };
+    return c;
+  }
+
+  /* Redesenha um campo com o valor que o Cofre tem agora. */
+  function refazer(chave, valor, msg, classe) {
+    var reg = CAMPOS[chave]; if (!reg) return;
+    reg.p.valor = valor; delete reg.p.aviso;
+    var novo = montarCampo(reg.p);
+    reg.el.replaceWith(novo);
+    if (msg) { var e = $('.estado', novo); e.className = 'estado ' + (classe || ''); e.textContent = msg; }
+  }
+
+  function gravar(reg, novo) {
+    var c = reg.el, est = $('.estado', c), btS = $('.salvar', c);
+    btS.disabled = true; est.className = 'estado'; est.textContent = 'Gravando no Cofre…';
+    chamar('salvar', { chave: reg.p.chave, valor_anterior: reg.p.valor, valor_novo: novo }).then(function (r) {
+      if (r && r.ok) {
+        var hora = r.quando ? r.quando.slice(11, 16) : '';
+        refazer(reg.p.chave, r.valor_gravado, r.sem_mudanca ? 'Nada a gravar: o Cofre já tinha este valor.' : 'Gravado' + (hora ? ' às ' + hora : '') + '. Está no Histórico.', 'ok');
+        return;
+      }
+      if (r && r.codigo === 'conflito') {
+        var cf = $('.conflito', c);
+        cf.innerHTML = '<div><b>Mudou desde que você abriu a tela — nada foi gravado.</b> O valor que está no Cofre agora é:</div>' +
+          '<pre>' + esc(r.valor_atual === '' ? '(vazio)' : r.valor_atual) + '</pre>' +
+          '<div><button class="btn" type="button">Usar o valor de agora</button></div>';
+        cf.hidden = false;
+        cf.querySelector('button').onclick = function () { refazer(reg.p.chave, r.valor_atual, 'Mostrando o valor que está no Cofre agora. Mude de novo, se quiser.'); };
+        est.textContent = ''; btS.disabled = false;
+        return;
+      }
+      if (r && r.codigo === 'token') { abrirPortao('Token recusado. Esta tela aceita só o token de Configurações do Ricardo.'); return; }
+      est.className = 'estado erro';
+      est.textContent = 'Não gravou: ' + ((r && r.error) || 'o Cofre respondeu sem dizer por quê') + '.';
+      btS.disabled = false;
+    }).catch(function (e) {
+      est.className = 'estado erro';
+      est.textContent = 'Sem resposta do Cofre (' + ((e && e.message) || e) + '). Pode ter gravado ou não: toque em "Reler do Cofre" antes de tentar de novo.';
+      btS.disabled = false;
+    });
+  }
+
+  /* ══════════════════════════════ histórico ══════════════════════════════ */
+  function abrirHistorico() {
+    var m = $('#painel');
+    m.innerHTML = '<div class="month-head"><span class="eyebrow">Configurações · Cofre do Parque</span><h2>Histórico</h2>' +
+      '<p class="sub">As últimas 50 mudanças feitas por esta tela (aba Config_Historico do Cofre). Mudança feita direto na planilha não aparece aqui.</p></div>' +
+      '<p class="nota-fina" id="histMsg">Lendo…</p><div id="histTab"></div>';
+    chamar('historico', {}, 3).then(function (r) {
+      if (!r || !r.ok) { $('#histMsg').textContent = 'Não li o histórico: ' + ((r && r.error) || 'sem resposta'); return; }
+      if (!r.linhas.length) { $('#histMsg').textContent = 'Nenhuma mudança registrada ainda.'; return; }
+      $('#histMsg').textContent = r.total > r.linhas.length ? 'Mostrando ' + r.linhas.length + ' de ' + r.total + ' linhas.' : r.linhas.length + ' linha(s).';
+      $('#histTab').innerHTML = '<div class="table-wrap"><table><thead><tr><th>Quando</th><th>Quem</th><th>Chave</th><th>Antes</th><th>Depois</th></tr></thead><tbody>' +
+        r.linhas.map(function (l) {
+          return '<tr><td>' + esc(l.quando) + '</td><td>' + esc(l.quem) + '</td><td><code>' + esc(l.chave) + '</code></td>' +
+                 '<td class="val">' + esc(l.antes) + '</td><td class="val">' + esc(l.depois) + '</td></tr>';
+        }).join('') + '</tbody></table></div>';
+    }).catch(function (e) { $('#histMsg').textContent = 'Sem resposta do Cofre: ' + ((e && e.message) || e); });
+  }
+
+  carregar();
+})();
+</script>
+</body>
+</html>

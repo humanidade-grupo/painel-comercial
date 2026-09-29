@@ -196,6 +196,8 @@ h1{font-size:19px}
 body{padding-bottom:64px}
 /* a barra do Parque tem duas filas (8 itens em 4 colunas) — reservar o dobro */
 body.emp-ps{padding-bottom:116px}
+/* com a aba Configurações (só no aparelho do Ricardo) são 9 itens: três filas */
+body.emp-ps.com-config{padding-bottom:168px}
 .filters{gap:10px 14px;padding:10px 11px}
 .fgroup{min-width:0}
 .chip{padding:4px 9px;font-size:12px}
@@ -429,6 +431,10 @@ align-items:center;gap:3px;cursor:pointer;min-width:0}
   <button class="tab" role="tab" aria-selected="false" data-p="pPSDocs" type="button">Docs</button>
   <a class="tab" href="https://humanidade-grupo.github.io/pocket-nps/#home" target="_blank" rel="noopener">Pocket<span class="ext">↗</span></a>
   <button class="tab" role="tab" aria-selected="false" data-p="pPSObraPonte" type="button">PonteApp</button>
+  <!-- CONFIGURAÇÕES (29/09/26): só do Ricardo. A aba nasce ESCONDIDA e só aparece no aparelho que
+       tem o token PRÓPRIO dela (hub_token_config) — quem entra com o token de gestão, que é de três
+       pessoas, nem vê a aba; e a rota ?app=config recusa esse token de qualquer jeito. -->
+  <button class="tab" role="tab" aria-selected="false" data-p="pPSConfig" type="button" id="abaConfig" style="display:none">Configurações</button>
 </div>
 
 <div class="tabs" id="tabsEU" role="tablist">
@@ -787,6 +793,9 @@ align-items:center;gap:3px;cursor:pointer;min-width:0}
 <section class="panel ps" id="pPSRetro">
   <iframe id="fRetro" data-src="./retrospectiva/" title="Retrospectiva do Time Comercial — Parque da Saudade" style="width:100%;border:0;display:block;min-height:70vh"></iframe>
 </section>
+<section class="panel ps" id="pPSConfig">
+  <iframe id="fConfig" data-src="./configuracoes/" title="Configurações do Cofre — Parque da Saudade" style="width:100%;border:0;display:block;min-height:70vh"></iframe>
+</section>
 <section class="panel ps" id="pPSPerfil">
   <iframe id="fPerfil" data-src="./perfil-cliente/" title="Quem compra no Parque da Saudade" style="width:100%;border:0;display:block;min-height:70vh"></iframe>
 </section>
@@ -1037,7 +1046,24 @@ border-radius:5px;border:1px solid rgba(251,191,36,.45);color:var(--warn)}
   <button type="button" data-p="pPSObraPonte" aria-selected="false">
     <svg viewBox="0 0 24 24"><path d="M3 15h18"/><path d="M5 15V9"/><path d="M19 15V9"/><path d="M9 15a3 3 0 0 1 6 0"/></svg>
     <span>PonteApp</span></button>
+  <button type="button" data-p="pPSConfig" aria-selected="false" id="bnavConfig" style="display:none">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
+    <span>Config.</span></button>
 </nav>
+<script>
+/* Configurações (29/09): a aba só aparece onde existe o token PRÓPRIO dela. Não é a trava — a trava
+   é a rota, que só aceita o token do Ricardo —; é só para ninguém mais ver uma porta que não abre.
+   Script à parte, logo depois do rodapé: o código do Parque só roda depois que os dados chegam, e a
+   aba tem de aparecer mesmo com o portão de token de gestão aberto. */
+(function(){
+  var tem = '';
+  try { tem = localStorage.getItem('hub_token_config') || ''; } catch(e){}
+  if (!tem) return;
+  document.getElementById('abaConfig').style.display = '';
+  document.getElementById('bnavConfig').style.display = '';
+  document.body.classList.add('com-config');
+})();
+</script>
 
 <nav class="bnav" id="bnav">
   <button type="button" data-p="pDash" aria-selected="false">
