@@ -212,16 +212,23 @@ button:focus-visible,select:focus-visible,.row-head:focus-visible,input:focus-vi
 .tablewrap{margin-top:24px;background:var(--surface);border:1px solid var(--line);
   border-radius:var(--r);overflow:hidden}
 .thead,.row-head{display:grid;
-  grid-template-columns:22px 104px minmax(150px,1.5fr) 96px 78px 100px minmax(168px,1.1fr) 152px 178px;
-  gap:10px;align-items:center}
+  /* (28/09) As três últimas colunas estavam se atropelando: a pílula do Contrato não cabia e
+     invadia o Ivertex, cujo campo ocupava a largura inteira e jogava os botões para uma segunda
+     fila. Agora cada uma tem largura própria, um fio as separa, e TUDO começa na mesma linha de
+     cima (align-items:start) — antes cada célula flutuava na altura do seu próprio conteúdo. */
+  grid-template-columns:22px 96px minmax(140px,1.2fr) 86px 62px 88px minmax(180px,1fr) 168px 196px;
+  gap:10px;align-items:start}
+/* célula de grade não encolhe abaixo do conteúdo sem isto — era o que deixava a pílula
+   do Contrato passar por cima da coluna do Ivertex */
+.thead > div,.row-head > span{min-width:0}
 .thead{padding:9px 14px;background:var(--surface-2);border-bottom:1px solid var(--line);
   font-size:10.5px;text-transform:uppercase;letter-spacing:.07em;color:var(--ink-3)}
 .scroller{overflow-x:auto}
-.scroller>*{min-width:1156px}
+.scroller>*{min-width:1146px}
 .row{border-bottom:1px solid var(--line);display:block}
 .row:last-child{border-bottom:0}
 .row-head{width:100%;text-align:left;font:inherit;color:inherit;background:transparent;
-  border:0;padding:11px 14px;cursor:pointer}
+  border:0;padding:12px 14px;cursor:pointer}
 .row-head:hover{background:var(--surface-2)}
 .row[data-open="true"] .row-head{background:var(--surface-2)}
 .caret{color:var(--ink-3);font-size:11px;transition:transform .15s}
@@ -231,6 +238,16 @@ button:focus-visible,select:focus-visible,.row-head:focus-visible,input:focus-vi
 .cli span{display:block;font-size:11.5px;color:var(--ink-3)}
 .num{font-variant-numeric:tabular-nums;font-size:13px}
 .dim{color:var(--ink-2);font-size:12.5px}
+
+/* ---- as três colunas do fim: ESTADO (contrato) · AÇÃO (Ivertex) · AÇÃO (boleto) ----
+   Cada uma com o mesmo ritmo por dentro: estado em cima, detalhe abaixo, botão no fim. O fio
+   à esquerda das duas de ação separa o que a tela SABE do que a pessoa FAZ. */
+.ctc{display:flex;flex-direction:column;gap:4px;align-items:flex-start}
+.thead > div:nth-child(8),.thead > div:nth-child(9),
+.row-head > .ivc,.row-head > .bolc{border-left:1px solid var(--line);padding-left:12px;align-self:stretch}
+.row-head .pill{white-space:normal}      /* a pílula quebra DENTRO da coluna dela */
+.ctc .sig{margin-top:1px}
+.ctc .sigtxt{margin-top:0}
 
 /* estado do contrato */
 .pill{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:3px 9px;
@@ -265,10 +282,11 @@ button:focus-visible,select:focus-visible,.row-head:focus-visible,input:focus-vi
 .tog small.erro{color:var(--crit);opacity:1}
 
 /* lançar: "Hoje" ou a data real */
-.ivbox{display:flex;flex-direction:column;gap:5px;align-items:flex-start}
-.ivrow{display:flex;gap:5px;flex-wrap:wrap}
-.ivb{font:inherit;font-size:12px;padding:4px 10px;border-radius:999px;cursor:pointer;
-  border:1px solid var(--line-strong);background:var(--surface-2);color:var(--ink-2)}
+.ivbox{display:flex;flex-direction:column;gap:5px;align-items:flex-start;width:100%}
+/* os dois botões ficam lado a lado, sempre: em duas filas a coluna dobrava de altura */
+.ivrow{display:flex;gap:5px;flex-wrap:nowrap}
+.ivb{font:inherit;font-size:11.5px;padding:4px 9px;border-radius:999px;cursor:pointer;
+  white-space:nowrap;border:1px solid var(--line-strong);background:var(--surface-2);color:var(--ink-2)}
 .ivb:hover{border-color:var(--accent);color:var(--ink)}
 .ivb.pri{background:var(--brand);border-color:var(--brand);color:var(--ground)}
 .ivb.del{color:var(--crit)}
@@ -278,7 +296,7 @@ button:focus-visible,select:focus-visible,.row-head:focus-visible,input:focus-vi
 .ivmsg{font-size:10.5px;color:var(--ink-3)}
 .ivmsg.erro{color:var(--crit)}
 .ivmsg.aviso{color:var(--warn)}
-.ivbox input.ivref{font:inherit;font-size:12px;padding:3px 8px;border-radius:8px;width:100%;
+.ivbox input.ivref{font:inherit;font-size:12px;padding:4px 8px;border-radius:8px;width:100%;
   text-transform:uppercase;letter-spacing:.04em;font-variant-numeric:tabular-nums;
   border:1px solid var(--line-strong);background:var(--surface-2);color:var(--ink)}
 .ivbox input.ivref::placeholder{text-transform:none;letter-spacing:0;color:var(--ink-3)}
@@ -401,6 +419,13 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
   border:1px solid var(--line-strong);background:var(--surface-2);color:var(--ink-2)}
 .bolb:hover{border-color:var(--accent);color:var(--ink)}
 .bolb.pri{background:var(--brand);border-color:var(--brand);color:var(--ground)}
+/* Na LINHA da venda, o "pri" quer dizer URGÊNCIA (venceu, ou nada enviado ainda) — não é a ação
+   principal da linha, que é lançar no Ivertex. Dois botões marrons lado a lado disputavam o olho
+   e nenhum dos dois dizia nada; em âmbar ele volta a significar "olhe para mim". */
+.bolc .bolb.pri{background:var(--warn-soft);border-color:var(--warn);color:var(--warn);font-weight:500}
+.bolc .bolb.pri:hover{border-color:var(--accent);color:var(--ink)}
+.bolc .bolb{white-space:nowrap}
+.bolc .bol-lin{max-width:100%}
 .rodape-bol{margin-top:12px;font-size:11.5px;color:var(--ink-3)}
 /* modal do boleto */
 .bm{padding:0;overflow:hidden}
@@ -2125,6 +2150,9 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
     var pc = pill(v), c = v.ct;
     var el = document.createElement('div');
     el.className = 'row'; el.dataset.open = 'false';
+    var est = pc[1], det = '';
+    var ip = est.indexOf(' · ');
+    if (ip > 0) { det = est.slice(ip + 3); est = est.slice(0, ip); }
     var tot = Math.min(c.total || 0, 10);
     var barras = '';
     for (var i = 0; i < tot; i++) barras += '<b class="' + (i < c.assinadas ? 'on' : '') + '"></b>';
@@ -2136,10 +2164,12 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
         '<span class="dim">' + esc(v.vend) + '</span>' +
         '<span class="num dim">' + esc(dbr(v.data)) + '</span>' +
         '<span class="num">' + esc(brlc(v.valor)) + '</span>' +
-        '<span><span class="pill ' + pc[0] + '"><i></i>' + esc(pc[1]) + '</span>' +
-          (c.total ? '<span class="sig">' + barras + '</span><span class="sigtxt">' + c.assinadas + ' de ' + c.total + ' assinaram' +
+        '<span class="ctc"><span class="pill ' + pc[0] + '" title="' + esc(pc[1]) + '"><i></i>' + esc(est) + '</span>' +
+          (c.total ? '<span class="sig">' + barras + '</span><span class="sigtxt">' +
+            (det ? esc(det) + ' · ' : '') + c.assinadas + ' de ' + c.total + ' assinaram' +
             (c.fraco ? ' · <span class="fraco" title="Documento casado com a venda só pelo jazigo escrito no nome — o casamento mais fraco. O normal é pelo e-mail do cliente.">pelo jazigo no nome</span>' : '') +
-          '</span>' : (c.fraco ? '<span class="sigtxt fraco" title="Documento casado com a venda só pelo jazigo escrito no nome — o casamento mais fraco.">pelo jazigo no nome</span>' : '')) +
+          '</span>' : ((det ? '<span class="sigtxt">' + esc(det) + '</span>' : '') +
+            (c.fraco ? '<span class="sigtxt fraco" title="Documento casado com a venda só pelo jazigo escrito no nome — o casamento mais fraco.">pelo jazigo no nome</span>' : ''))) +
         '</span>' +
         '<span class="ivc"></span>' +
         '<span class="bolc bolcel"></span>' +

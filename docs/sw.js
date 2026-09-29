@@ -1,5 +1,10 @@
 /* Painel Comercial — Parque da Saudade + Estrela Urbanidade
    Service worker: instalação PWA + reserva offline.
+   Atualizado em: 28/09/2026 (noite, 3ª) — PONTEAPP: as três últimas colunas
+   (Contrato · Ivertex · Boleto) pararam de se atropelar — cada uma com largura
+   própria e um fio separando estado de ação, a pílula cabendo em uma linha e o
+   detalhe ("enviado hoje") junto do "2 de 4 assinaram". A tabela voltou a caber
+   sem rolagem lateral e a linha encolheu de 92 para 82 px.
    Atualizado em: 28/09/2026 (noite) — MENOS INSTÁVEL (pedido do Ricardo): a página de erro do Google (404) ganha até
    4 tentativas com espera crescente; falhou, a tela tenta de novo sozinha a cada minuto; soluço vira nota discreta no
    selo, não tarja; o Atualizar do Parque busca só o que mudou no Facilita (Cofre @120, so=facilita_leve, ~15 s),
@@ -265,7 +270,7 @@
    links dos arquivos são drive.google.com, externos, e NÃO entram no cache).
    Estratégia: rede primeiro (pega versão nova quando online), cache como
    reserva offline. A cada deploy, bumpar a versão em CACHE. */
-const CACHE = 'painel-comercial-280926-4';
+const CACHE = 'painel-comercial-280926-5';
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(['./'])).then(() => self.skipWaiting()));
