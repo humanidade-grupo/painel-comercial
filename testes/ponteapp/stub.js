@@ -8,6 +8,8 @@
      CENA.atraso = { '2026-08': 3000 }  → atraso por mês
      CENA.marcar = { 4001: 'erro', 4002: 'ok', 4003: 'conflito', 4100: 'sem_mudanca_outro' }
      CENA.token = 'recusado' | 'config'
+     (30/09) CENA.entrega = n  → as próximas n chamadas chegam ao Cofre SEM token (codigo 'entrega')
+             CENA.recusaFalsa = n → as próximas n respondem 'token' (o Cofre de antes da @131 com o pedido vazio)
      CENA.boleto = 'ok' | 'conflito' ; CENA.atrasoBoleto = ms
      CENA.semVenda = [{ deal, data_ivertex, quem }] → lançamentos de negócio que deixou de ser venda
      CENA.novidades = [{ controle: [...linhas da Controle_ERP], boletos: [...marcações], total, d4, truncado } | 'html']
@@ -110,6 +112,10 @@
     window.LOG.push(entrada);
     if (opts.signal) opts.signal.addEventListener('abort', function () { entrada.abortado = true; });
     var C = window.CENA;
+    if (C.entrega > 0) { C.entrega--; entrada.cena = 'entrega';
+      return resposta(JSON.stringify({ ok: false, codigo: 'entrega', error: 'o pedido chegou incompleto — nada foi lido nem gravado' }), 200, opts.signal); }
+    if (C.recusaFalsa > 0) { C.recusaFalsa--; entrada.cena = 'recusaFalsa';
+      return resposta(JSON.stringify({ ok: false, codigo: 'token', error: 'token ausente ou inválido' }), 200, opts.signal); }
     if (C.token === 'recusado') return resposta(JSON.stringify({ ok: false, codigo: 'token', error: 'token ausente ou inválido' }), 200, opts.signal);
     if (C.token === 'config') return resposta(JSON.stringify({ ok: false, codigo: 'config', error: 'O cadastro de quem usa a PonteApp (Config controladoria.pessoas) está ilegível — avise o Ricardo (o texto não é uma lista JSON válida — confira vírgulas e aspas).' }), 200, opts.signal);
     /* (25/09, Fase 1) a saúde: de carona em qualquer POST, ou sozinha no fn=saude */

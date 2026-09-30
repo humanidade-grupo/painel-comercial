@@ -1419,6 +1419,25 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
       tentativa++; motivo = 'o Facilita pediu o jeito antigo'; avisa();
       return umaTentativa(url + '&token=' + encodeURIComponent(tk), { cache: 'no-store', credentials: 'omit' }, prazo);
     });
+    /* (30/09) O TOKEN SÓ SAI DO APARELHO POR RECUSA CONFIRMADA. O /exec às vezes entrega o POST sem corpo
+       (visto em 29/09): o Cofre recebia o pedido sem token e respondia "token recusado", e a tela apagava
+       o token — a "sessão que expira sozinha". Agora: `entrega` (o Cofre da @131 em diante: o pedido
+       chegou sem token) repete até 3 vezes; `token` repete UMA vez antes de valer, que é o que cobre o
+       Cofre de antes da @131. Nos dois casos nada rodou no Cofre (ele confere o token antes de tudo), então
+       repetir é seguro até na gravação. */
+    var reEntrega = 0, reToken = 0;
+    var confere = function (r) {
+      var nao = r && r.ok !== true;
+      var entrega = nao && r.codigo === 'entrega' && reEntrega < 3;
+      var recusa = nao && (r.codigo === 'token' || (!r.codigo && r.error === ERRO_TOKEN)) && reToken < 1;
+      if (!entrega && !recusa) return r;
+      if (entrega) reEntrega++; else reToken++;
+      tentativa++; motivo = 'o pedido chegou incompleto ao Facilita'; avisa();
+      return new Promise(function (res) { setTimeout(res, 1500); })
+        .then(function () { return umaTentativa(url, Object.assign({}, opts), prazo); })
+        .then(confere);
+    };
+    caminho = caminho.then(confere);
     return caminho.then(function (r) {
       fim();
       anotarSaude(fn, t0, tentativa, r);
@@ -1445,6 +1464,7 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
     return c === 'config' ? 'O cadastro da PonteApp está com problema.'
          : c === 'reconstrucao' ? 'A cópia do Facilita está sendo refeita — a PonteApp volta quando terminar.'
          : c === 'versao' ? 'Esta página ficou desatualizada.'
+         : c === 'entrega' ? 'O pedido chegou incompleto ao Facilita, mesmo repetindo. Tente de novo em instantes.'
          : 'O Facilita respondeu, mas sem dado.';
   }
   function textoFalha(e) {
