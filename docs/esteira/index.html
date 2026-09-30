@@ -113,6 +113,8 @@ h1{font-size:clamp(26px,4.4vw,38px); font-weight:800; line-height:1.12; margin:0
 .tarja code{background:rgba(0,0,0,.3); padding:1px 5px; border-radius:5px; font-size:12px}
 .tarja.amarela{background:var(--warn-soft); border-color:rgba(251,191,36,.5); color:#ffeccd}
 .tarja.amarela .t{color:var(--warn)}
+.tarja .denovo{margin-top:8px; background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.25);
+  color:inherit; font:inherit; font-size:13px; font-weight:700; padding:7px 14px; border-radius:999px; cursor:pointer}
 
 /* ---------- seções ---------- */
 section{margin-top:44px}
@@ -710,17 +712,66 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
     return a.length % 2 ? a[m] : Math.round((a[m - 1] + a[m]) / 2);
   }
 
-  function comPrazo(url, ms) {
+  /* LEITURA QUE AGUENTA A ENTREGA DO GOOGLE (30/09). A Esteira ficava em "o Cofre não
+     respondeu em 45s". Medido no Edge do Ricardo, na mesma manhã, a ?app=leads&fn=list:
+     o SERVIDOR monta a resposta em 2,7 s (1.834 leads, 602 KB), mas de 5 chamadas 3
+     voltaram como página de erro do Google (8 KB, depois de 24–37 s) e as boas
+     levaram 8,6 s e 42 s. A demora é a entrega do /exec, sorteada a cada chamada — a
+     mesma que a PonteApp mediu em 24/09. Uma tentativa só, com prazo fixo, perde no
+     sorteio. Então, como na PonteApp: se a resposta não chegou em 12 s, sai um segundo
+     pedido igual SEM cancelar o primeiro; página de erro ou rede caída puxam outro
+     (1,5 s depois). Vale o primeiro JSON; os outros são cancelados. No máximo 2 no ar,
+     6 no total (com 3 de 5 falhando, como no dia medido, 4 ainda perdiam ~1 vez em 8)
+     e 2,5 min no geral. Só leitura passa por aqui: repetir não grava nada.
+     `aoEsperar(segundos, pedidos)` conta a espera na tela. */
+  var PEDIDO_EXTRA_APOS = 12000, NO_AR_MAX = 2, PEDIDOS_MAX = 6, PRAZO_TOTAL = 150000;
+  function comPrazo(url, aoEsperar) {
     return new Promise(function (resolve, reject) {
-      var venceu = false;
-      var t = setTimeout(function () {
-        venceu = true; reject(new Error('o Cofre não respondeu em ' + (ms / 1000) + 's'));
-      }, ms);
-      fetch(url, { cache: 'no-store' })
-        .then(function (r) { return r.json(); })
-        .then(function (j) { if (!venceu) { clearTimeout(t); resolve(j); } })
-        .catch(function (e) { if (!venceu) { clearTimeout(t); reject(e); } });
+      var t0 = Date.now(), fim = false, noAr = 0, lancados = 0, ultimoErro = '';
+      var ctls = [], relogio = null, extra = null;
+      var acabar = function () {
+        fim = true; clearInterval(relogio); clearTimeout(extra); clearTimeout(geral);
+        ctls.forEach(function (c) { try { c.abort(); } catch (e) {} });
+      };
+      var geral = setTimeout(function () {
+        if (fim) return; acabar();
+        reject(new Error('o Cofre não respondeu em ' + (PRAZO_TOTAL / 1000) + 's (' + lancados + ' pedidos' +
+                         (ultimoErro ? '; o último: ' + ultimoErro : '') + ')'));
+      }, PRAZO_TOTAL);
+      var falhou = function (msg) {
+        noAr--; ultimoErro = msg;
+        if (fim) return;
+        if (lancados < PEDIDOS_MAX) { setTimeout(lancar, 1500); return; }
+        if (noAr <= 0) { acabar(); reject(new Error(msg + ' — em ' + lancados + ' pedidos')); }
+      };
+      var lancar = function () {
+        if (fim || noAr >= NO_AR_MAX || lancados >= PEDIDOS_MAX) return;
+        noAr++; lancados++;
+        var ctl = typeof AbortController === 'function' ? new AbortController() : null;
+        if (ctl) ctls.push(ctl);
+        clearTimeout(extra);
+        extra = setTimeout(lancar, PEDIDO_EXTRA_APOS);   // este não respondeu a tempo: sai outro ao lado
+        fetch(url, { cache: 'no-store', signal: ctl ? ctl.signal : undefined })
+          .then(function (r) { return r.text(); })
+          .then(function (txt) {
+            ctls = ctls.filter(function (c) { return c !== ctl; });   // chegou: não há o que cancelar
+            if (fim) return;
+            var j = null; try { j = JSON.parse(txt); } catch (e) {}
+            if (!j || typeof j !== 'object') { falhou('veio uma página de erro no lugar da resposta'); return; }
+            acabar(); resolve(j);
+          })
+          .catch(function (e) { if (!fim) falhou('a conexão caiu (' + String((e && e.message) || e).slice(0, 60) + ')'); });
+      };
+      if (aoEsperar) relogio = setInterval(function () { aoEsperar(Math.floor((Date.now() - t0) / 1000), lancados); }, 1000);
+      lancar();
     });
+  }
+  /* "Lendo os dados… 14 s · 2º pedido" — a espera à vista, em vez de silêncio até o erro. */
+  function esperaTexto(base) {
+    return function (s, n) {
+      var el = $('#avisos .espera'); if (!el) return;
+      el.textContent = base + ' ' + s + ' s' + (n > 1 ? ' · ' + n + 'º pedido (o Cofre está demorando a responder)' : '');
+    };
   }
 
   // ================================================================ estado
@@ -957,7 +1008,7 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
      cada renderTudo() re-monta a seção sobre ela — sem nova ida à rota. */
   var ORIGEM_R = null;
   function carregarOrigem(token) {
-    comPrazo(API + '?app=origem&fn=dados&token=' + encodeURIComponent(token), 30000)
+    comPrazo(API + '?app=origem&fn=dados&token=' + encodeURIComponent(token))
       .then(function (r) { ORIGEM_R = r; montarOrigem(r); })
       .catch(function (e) { montarOrigem({ ok: false, erro: e.message || String(e) }); });
   }
@@ -967,9 +1018,9 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
     var token = '';
     try { token = localStorage.getItem(CHAVE_TOKEN) || ''; } catch (e) {}
     if (!token) { abrirPortao(''); return; }
-    $('#avisos').innerHTML = '<p class="sec-note" style="margin-top:20px">Lendo os dados…</p>';
+    $('#avisos').innerHTML = '<p class="sec-note espera" style="margin-top:20px">Lendo os dados…</p>';
 
-    comPrazo(API + '?app=leads&fn=list&token=' + encodeURIComponent(token), 45000)
+    comPrazo(API + '?app=leads&fn=list&token=' + encodeURIComponent(token), esperaTexto('Lendo os dados…'))
       .then(function (r) {
         if (!r || r.ok !== true) {
           var err = (r && r.error) || 'resposta sem dado';
@@ -988,7 +1039,10 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
       .catch(function (e) {
         bloqueia('Não consegui falar com o Cofre.',
           '<p>' + esc(e.message || e) + '</p><p>Nenhum número aparece enquanto isso: tela vazia é ' +
-          'melhor que tela desatualizada com cara de atual.</p>');
+          'melhor que tela desatualizada com cara de atual.</p>' +
+          '<button class="denovo" type="button">Tentar de novo</button>');
+        // (30/09) a falha costuma ser da entrega, e passa: tentar de novo sem recarregar a página
+        var bt = $('#avisos .denovo'); if (bt) bt.onclick = carregar;
       });
   }
 
@@ -1524,7 +1578,7 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
     var token = '';
     try { token = localStorage.getItem(CHAVE_TOKEN) || ''; } catch (e) {}
     if (!token) return;
-    comPrazo(API + '?app=etapas&fn=list&tipo=mudanca&token=' + encodeURIComponent(token), 45000)
+    comPrazo(API + '?app=etapas&fn=list&tipo=mudanca&token=' + encodeURIComponent(token))
       .then(function (r) {
         if (!r || r.ok !== true) { LOG_ERRO = (r && r.error) || 'resposta sem dado'; }
         else if (r.truncado === true) { LOG_ERRO = 'o log veio cortado (' + r.n + ' de ' + r.total_aba + ')'; }
