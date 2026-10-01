@@ -963,15 +963,11 @@ window.__renderPS = function (dados, ymSel) {
   var cPag = el('<div class="card s4"><h3>Pagamento</h3><div class="why">condição e forma</div><div id="psCond"></div><div id="psForma" style="margin-top:6px"></div></div>');
   g.appendChild(cCanal); g.appendChild(cModal); g.appendChild(cPag);
 
-  /* -------- FAROL (aguarda origem) -------- */
-  g.appendChild(el('<div class="sect"><h2>Farol — previsibilidade</h2><div class="ln"></div><span class="lockchip">🔒 liga quando a Origem do Lead chegar ao Cofre</span></div>'));
-  g.appendChild(el('<div class="card s4 lock"><h3>Funil do mês</h3><div class="why">leads → visita → proposta → venda (Facilita)</div>' +
-    '<div class="body" id="psFunil"></div><div class="need">depende: coletor Facilita → Cofre</div></div>'));
-  g.appendChild(el('<div class="card s4 lock"><h3>Custo por venda, por canal</h3><div class="why">CPL · CAC · ROAS</div>' +
-    '<div class="body" id="psCac"></div><div class="need">depende: campo Origem + planilha de gastos</div></div>'));
-  g.appendChild(el('<div class="card s4 lock"><h3>Previsão 90 dias</h3><div class="why">piso · provável · teto — pipeline × conversão histórica</div>' +
-    '<div class="body"><div class="tile"><div class="val">—</div><div class="delta flat">pipeline × conversão histórica</div></div></div>' +
-    '<div class="need">depende: funil + 3 meses de histórico de origem</div></div>'));
+  /* O bloco "Farol — previsibilidade" (três cartões travados, com barras
+     ilustrativas de PDV/Meta/Google/Indicação) saiu em 30/09/26: era a maquete
+     de agosto. O funil já é a Esteira, o veredito é este Executivo e a faixa
+     de aquisição nasce como bloco próprio — fonte viva no Drive:
+     00-gestao-comercial/farol/farol_documento_unico_300926_1909.md. */
 
   /* ================= desenhos ================= */
 
@@ -1617,24 +1613,6 @@ window.__renderPS = function (dados, ymSel) {
   })();
   quebraCard($('#psCond'), topN(grupo(doMes, function (v) { return v.cond || 'Não informado'; }), 4), total, 'vendas');
   quebraCard($('#psForma'), topN(grupo(doMes, function (v) { return v.forma || 'Não informado'; }), 4), total, 'vendas');
-
-  /* FAROL — esqueleto ilustrativo, travado */
-  (function () {
-    var w = 300, h = 118, svg = S(w, h);
-    [['Leads', .95], ['Visita', .5], ['Proposta', .27], ['Venda', .14]].forEach(function (o, i) {
-      var yy = 6 + i * 28, bw = o[1] * (w - 120);
-      N('rect', { x: 74, y: yy, width: bw, height: 16, rx: 4, fill: C.accent, opacity: 1 - i * .18 }, svg);
-      T(68, yy + 12, o[0], 'lab-t', 'end', svg);
-    });
-    $('#psFunil').appendChild(svg);
-    var svg2 = S(300, 110);
-    [['PDV', .62], ['Meta Ads', .8], ['Google', .95], ['Indicação', .2]].forEach(function (o, i) {
-      var yy = 6 + i * 26, bw = o[1] * (300 - 140);
-      N('rect', { x: 86, y: yy, width: bw, height: 15, rx: 4, fill: C.blue }, svg2);
-      T(80, yy + 11, o[0], 'lab-t', 'end', svg2);
-    });
-    $('#psCac').appendChild(svg2);
-  })();
 
   /* A seção "Como o cliente paga" saiu daqui em 19/09/26 (decisão do Ricardo,
      no mesmo dia em que nasceu): virou a aba Receita Contratada, que é esta
