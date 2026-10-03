@@ -1,6 +1,9 @@
 /* Painel Comercial — Parque da Saudade + Estrela Urbanidade
    Service worker: instalação PWA + reserva offline.
-   Atualizado em: 29/09/2026 (noite) — PONTEAPP: OBSERVAÇÃO LIVRE POR VENDA. Cada linha da tabela
+   Atualizado em: 03/10/2026 (noite) — ABA ESTOQUE DO PARQUE (pedido do Rodrigo): depois de Receita
+   Contratada, o VGV dos jazigos — Total, Vendido e Estoque — por quadra (M-19, M-20, M-21, Retomada),
+   construído × a construir. Página própria ./estoque/ em moldura, rota ?app=estoque-vgv do Cofre (@139).
+   Antes, 29/09/2026 (noite) — PONTEAPP: OBSERVAÇÃO LIVRE POR VENDA. Cada linha da tabela
    ganha uma faixa "Obs." (sempre à vista, sem clicar) com o motivo da pendência e quem escreveu;
    clicar vira campo (Enter ou sair grava, Esc cancela, até 280 caracteres), rota fn=observacao do Cofre.
    Antes, 29/09/2026 — RETROSPECTIVA sem o bloco `resumo`: o Cofre aposentou o Resumo Mensal e a
@@ -276,7 +279,7 @@
    links dos arquivos são drive.google.com, externos, e NÃO entram no cache).
    Estratégia: rede primeiro (pega versão nova quando online), cache como
    reserva offline. A cada deploy, bumpar a versão em CACHE. */
-const CACHE = 'painel-comercial-300926-3';
+const CACHE = 'painel-comercial-031026-1';
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(['./'])).then(() => self.skipWaiting()));

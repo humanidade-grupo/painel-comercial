@@ -409,6 +409,10 @@ align-items:center;gap:3px;cursor:pointer;min-width:0}
        duplicado: os helpers de gráfico, as cores e o pacote do Cofre são os
        mesmos do Executivo. -->
   <button class="tab" role="tab" aria-selected="false" data-p="pPSObraReceita" type="button">Receita Contratada</button>
+  <!-- ESTOQUE (03/10/26, pedido do Rodrigo): o VGV dos jazigos — Total, Vendido e Estoque — por
+       quadra, construído × a construir. Página própria (./estoque/), embutida por moldura como a
+       Retrospectiva; lê ?app=estoque-vgv do Cofre. A aba "Estoque" da Estrela é outra coisa. -->
+  <button class="tab" role="tab" aria-selected="false" data-p="pPSEstoque" type="button">Estoque</button>
   <!-- Retrospectiva e Perfil Cliente rodam DENTRO do Painel desde
        01/09 (2ª rodada do dia): molduras como a do Executivo, carregadas na
        primeira abertura e mantidas vivas — trocar de aba não recarrega nada,
@@ -790,6 +794,9 @@ align-items:center;gap:3px;cursor:pointer;min-width:0}
 <section class="panel ps" id="pPSEsteira">
   <iframe id="fEsteira" data-src="./esteira/" title="Esteira do Funil — Parque da Saudade" style="width:100%;border:0;display:block;min-height:70vh"></iframe>
 </section>
+<section class="panel ps" id="pPSEstoque">
+  <iframe id="fEstoque" data-src="./estoque/" title="Estoque de jazigos — Parque da Saudade" style="width:100%;border:0;display:block;min-height:70vh"></iframe>
+</section>
 <section class="panel ps" id="pPSRetro">
   <iframe id="fRetro" data-src="./retrospectiva/" title="Retrospectiva do Time Comercial — Parque da Saudade" style="width:100%;border:0;display:block;min-height:70vh"></iframe>
 </section>
@@ -1028,6 +1035,9 @@ border-radius:5px;border:1px solid rgba(251,191,36,.45);color:var(--warn)}
   <button type="button" data-p="pPSObraReceita" aria-selected="false">
     <svg viewBox="0 0 24 24"><path d="M3 21h18"/><path d="M6 21V9"/><path d="M12 21V4"/><path d="M18 21v-7"/></svg>
     <span>Receita</span></button>
+  <button type="button" data-p="pPSEstoque" aria-selected="false">
+    <svg viewBox="0 0 24 24"><path d="M3 21h18"/><path d="M5 21V10l7-5 7 5v11"/><path d="M10 21v-5h4v5"/></svg>
+    <span>Estoque</span></button>
   <button type="button" data-p="pPSPerfil" aria-selected="false">
     <svg viewBox="0 0 24 24"><path d="M16 20v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2"/><circle cx="9.5" cy="7" r="3.5"/></svg>
     <span>Perfil</span></button>

@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Estoque de Jazigos — Parque da Saudade</title>
+<link rel="icon" href="../favicon-32.png" sizes="32x32">
+<!--
+  ESTOQUE DE JAZIGOS — Parque da Saudade (03/10/2026, pedido do Rodrigo).
+
+  ORIGEM DO LAYOUT: o artefato claude.ai 7W87FVr7jR9TdinDj8QHmW, versão 3, aprovado
+  pelo Rodrigo e pelo Ricardo em 03/10. Desde que esta página subiu, o artefato é
+  REGISTRO, não referência (regra 8): os números dele são a foto de 13/09.
+  A ORDEM dos blocos é a dele — abertura, três cartões de VGV, três de Ticket Médio,
+  tabela por quadra, construído × a construir, notas. O bloco "Disparo semanal" do
+  artefato era explicação para o Ricardo e não veio para a tela.
+  O QUE MUDOU em relação a ele: (1) o dado é ao vivo, da rota do Cofre; (2) quadra,
+  grupo, entrega e nota vêm da rota (Config do Cofre), nada cravado aqui; (3) o Ticket
+  Médio Vendido e Estoque divide por jazigos COM PREÇO, como o Total (regra 6 da tarefa;
+  a maquete dividia pelo total de jazigos); (4) a coluna "Outras" e o aviso só aparecem
+  quando há jazigo em situação fora de Disponível/Reservado/Vendido/Indisponível;
+  (5) tarja de foto acima de 48 h e de varredura incompleta, como as outras telas.
+
+  POR QUE PÁGINA PRÓPRIA E NÃO VISTA DA MOLDURA v2: o v2 recebe do pai, por
+  postMessage, o pacote de vendas (?app=vendas&fn=dados). Este dado vem de outra rota
+  e não tem filtro de mês; enfiá-lo no v2 mexeria no Executivo (proibido nesta tarefa)
+  e acoplaria duas telas que não dividem nada além da cara. Página própria embutida
+  por moldura (como Esteira e Retrospectiva) é menos código e zero risco no Executivo.
+  A CARA é a do Executivo: as mesmas variáveis, .cpHead, .card, .tile, .selo, .sect,
+  table.placar, .notas e o tema dourado do Parque, copiados de docs/v2/index.html.
+
+  DE ONDE VEM CADA NÚMERO: POST ?app=estoque-vgv&fn=dados, token de gestão no CORPO
+  (regra 4). A rota devolve só agregado por quadra (nenhuma unidade, nenhum cliente)
+  e o Ticket Médio já calculado — esta página não refaz conta, só soma nada e mostra.
+  A prova é a tela bater com conferirEstoqueVGV() no editor do Cofre.
+
+  VOCABULÁRIO (Ricardo, 03/10): VGV Total / VGV Vendido / VGV Estoque e Ticket Médio
+  Total / Vendido / Estoque. Nunca "cheio", "VGV Tabela" ou "estoque atual".
+-->
+<style>
+  :root{
+    color-scheme:dark;
+    --bg:#0b1220; --card:#121b2e; --card2:#0e1626; --edge:rgba(255,255,255,.07);
+    --ink:#eef2fa; --ink2:#9aa9c4; --muted:#64718c;
+    --grid:#1e2940; --axis:#2a3752;
+    --blue:#4A8FE0; --mag:#D55181; --gray:#48566e; --crit:#d03b3b;
+    --bluebg:rgba(74,143,224,.14); --accentbg:rgba(192,135,8,.14); --magbg:rgba(213,81,129,.14);
+    --vend:#33415c;
+    font-family:system-ui,-apple-system,"Segoe UI",sans-serif;
+  }
+  /* o tema do Parque, o mesmo do Executivo (body.emp-ps no v2) */
+  body.emp-ps{ --accent:#C08708; --chipbg:#CC900B; --chiptx:#1a1302; --warn:#ec835a; --warnbg:rgba(236,131,90,.12) }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--ink);font-size:14px;line-height:1.45;
+    background-image:radial-gradient(1100px 500px at 85% -10%,rgba(204,144,11,.08),transparent 60%)}
+  .wrap{max-width:1240px;margin:0 auto;padding:18px 22px 56px}
+  @media(max-width:640px){.wrap{padding-inline:16px}}
+  html.embutido .wrap{padding-top:10px}
+  .voltar{display:inline-block;color:var(--muted);font-size:11.5px;text-decoration:none;border:1px solid var(--edge);
+    border-radius:8px;padding:5px 10px;background:var(--card2);margin-bottom:6px}
+  html.embutido .voltar{display:none !important}
+  html.embutido body{background-image:none}
+
+  .grid{display:grid;grid-template-columns:repeat(12,1fr);gap:14px}
+  .card{background:linear-gradient(180deg,rgba(255,255,255,.022),rgba(255,255,255,0)),var(--card);
+        border:1px solid var(--edge);border-radius:16px;padding:16px 18px;position:relative;min-width:0}
+  .card h3{font-size:12px;font-weight:600;color:var(--ink2);letter-spacing:.06em;text-transform:uppercase;margin-bottom:2px}
+  .card .why{font-size:11.5px;color:var(--muted);margin-bottom:10px}
+  .s12{grid-column:span 12}.s4{grid-column:span 4}
+  @media(max-width:980px){.s4{grid-column:span 12}}
+  .sect{grid-column:span 12;display:flex;align-items:center;gap:10px;margin-top:10px;flex-wrap:wrap}
+  .sect h2{font-size:13px;font-weight:650;color:var(--ink)}
+  .sect .ln{flex:1;height:1px;background:var(--grid);min-width:40px}
+  .sect .tag{font-size:10.5px;color:var(--muted)}
+
+  .cpHead{grid-column:span 12;padding:18px 0 24px;border-bottom:1px solid var(--grid);margin-bottom:2px}
+  .cpHead .eyebrow{font-size:10.5px;font-weight:700;letter-spacing:.10em;text-transform:uppercase;
+    color:var(--accent);margin:0 0 12px}
+  .cpHead .tit{font-size:clamp(26px,4.4vw,38px);font-weight:800;line-height:1.12;
+    letter-spacing:-.01em;margin:0 0 14px;text-wrap:balance}
+  .cpHead .deck{font-size:15px;line-height:1.6;color:var(--ink2);margin:0 0 18px;max-width:78ch}
+  .cpHead .deck b{color:var(--ink);font-weight:700}
+  .cpHead .escopo{font-size:12.5px;line-height:1.55;color:var(--muted);margin:0}
+  .cpHead .escopo b{color:var(--ink2);font-weight:700}
+
+  .selo{display:inline-flex;align-items:center;gap:5px;font-size:9.5px;font-weight:700;
+    letter-spacing:.08em;text-transform:uppercase;border-radius:6px;padding:3px 7px;margin:0 0 8px}
+  .selo.total{color:var(--ink2);background:rgba(255,255,255,.06)}
+  .selo.vend{color:var(--mag);background:var(--magbg)}
+  .selo.est{color:var(--accent);background:var(--accentbg)}
+  .tile .val{font-size:30px;font-weight:650;margin:2px 0 1px;font-variant-numeric:tabular-nums}
+  .tile.hero .val{font-size:40px;letter-spacing:-.01em}
+  .tile .st{font-size:11.5px;color:var(--ink2)}
+  .tile .st b{color:var(--ink);font-weight:650}
+  .tile .st .sp{color:var(--warn)}
+  /* os números da faixa na mesma altura, como no Executivo (21/09) */
+  @supports (grid-template-rows: subgrid) {
+    .grid > .card.tile-fila{display:grid;grid-template-rows:subgrid;grid-row:span 5;row-gap:0;align-content:start}
+    .grid > .card.tile-fila > .selo{justify-self:start}
+  }
+
+  .pill{display:inline-flex;align-items:center;gap:6px;font-size:10.5px;font-weight:700;letter-spacing:.04em;
+    border-radius:7px;padding:3px 9px;white-space:nowrap}
+  .pill i{width:8px;height:8px;border-radius:2px;display:inline-block}
+  .pill.c{color:var(--accent);background:var(--accentbg)} .pill.c i{background:var(--accent)}
+  .pill.a{color:var(--blue);background:var(--bluebg);border:1px dashed rgba(74,143,224,.5)} .pill.a i{background:var(--blue)}
+
+  .rolax{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  table.placar{width:100%;border-collapse:collapse;font-size:12.5px;min-width:1120px}
+  table.placar td,table.placar th{padding:9px 8px;text-align:left;vertical-align:middle}
+  table.placar th{font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;
+     font-weight:600;border-bottom:1px solid var(--grid)}
+  table.placar tr.grp th{border-bottom:0;padding-bottom:0;font-size:9.5px;letter-spacing:.08em}
+  table.placar tr.grp th.t{color:var(--ink2)} table.placar tr.grp th.v{color:var(--mag)} table.placar tr.grp th.e{color:var(--accent)}
+  table.placar .num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+  table.placar tr+tr td{border-top:1px solid rgba(255,255,255,.04)}
+  table.placar td b{font-weight:650}
+  table.placar td small{display:block;font-size:10.5px;color:var(--muted)}
+  table.placar tr.sub td{color:var(--ink2);background:rgba(255,255,255,.02)}
+  table.placar tr.tot td{border-top:1px solid var(--axis);font-weight:650}
+  table.placar th.gA,table.placar td.gA{border-left:1px solid var(--grid)}
+  .mini{display:flex;height:8px;border-radius:4px;overflow:hidden;background:var(--vend);min-width:90px}
+  .mini span{display:block}
+  .aviso{display:inline-block;font-size:10.5px;color:var(--warn);background:var(--warnbg);border-radius:6px;padding:1px 6px;margin-top:3px}
+
+  .barra{display:flex;height:22px;border-radius:6px;overflow:hidden;background:var(--grid);margin:6px 0 8px}
+  .barra span{display:block;height:100%}
+  .legend{display:flex;gap:14px;flex-wrap:wrap;font-size:11.5px;color:var(--ink2)}
+  .legend i{width:9px;height:9px;border-radius:3px;display:inline-block;margin-right:5px;vertical-align:-1px}
+  .par{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+  @media(max-width:480px){.par{grid-template-columns:1fr}}
+  .bloco{background:var(--card2);border:1px solid var(--edge);border-radius:12px;padding:11px 12px}
+  .bloco.aconstruir{border:1px dashed var(--axis)}
+  .bloco .per{font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+  .bloco .n{font-size:22px;font-weight:650;margin:3px 0 1px;font-variant-numeric:tabular-nums}
+  .bloco .st{font-size:11px;color:var(--ink2)}
+
+  .notas{grid-column:span 12;background:var(--card2);border:1px solid var(--edge);
+    border-radius:12px;padding:13px 15px;font-size:12px;color:var(--ink2);line-height:1.55}
+  .notas b{color:var(--ink)}
+  .notas p{margin:0 0 8px}
+  .notas p:last-child{margin:0}
+
+  /* tarjas: as da casa (Retrospectiva/Esteira) na paleta do Executivo */
+  .tarja{grid-column:span 12;background:rgba(208,59,59,.13);border:1px solid rgba(248,113,113,.5);color:#ffd9d9;
+    border-radius:14px;padding:14px 16px}
+  .tarja p{margin:6px 0 0}
+  .tarja .t{font-size:15px;font-weight:800;color:#ffb4b4}
+  .tarja code{background:rgba(0,0,0,.3);padding:1px 5px;border-radius:5px;font-size:12px}
+  .tarja.amarela{background:var(--warnbg);border-color:rgba(236,131,90,.45);color:#ffe2d3}
+  .tarja.amarela .t{color:var(--warn)}
+  .espera{grid-column:span 12;color:var(--ink2);font-size:13px;padding:30px 0}
+
+  .selofim{display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap;align-items:center;
+    padding:12px 4px 2px;font-size:11px;color:var(--muted)}
+  .selofim button{background:none;border:1px solid var(--edge);border-radius:7px;color:var(--muted);
+    font:inherit;padding:2px 8px;cursor:pointer}
+
+  /* portão de token — o da Retrospectiva, na paleta do Executivo */
+  .gate{position:fixed;inset:0;z-index:60;display:flex;align-items:center;justify-content:center;
+        background:rgba(8,14,24,.94);backdrop-filter:blur(6px);padding:20px}
+  .gatebox{background:#101a2a;border:1px solid rgba(255,255,255,.14);border-radius:18px;padding:22px;max-width:400px;width:100%}
+  .gatebox h2{margin:0 0 6px;font-size:17px}
+  .gatebox p{color:var(--ink2);font-size:13px;margin:0 0 14px}
+  .gatebox input{width:100%;padding:11px 13px;border-radius:11px;border:1px solid rgba(255,255,255,.14);
+                 background:#0b1424;color:var(--ink);font:15px/1.2 inherit;letter-spacing:.04em}
+  .gatebox button{width:100%;margin-top:10px;padding:11px;border-radius:11px;border:none;
+                  background:var(--chipbg);color:var(--chiptx);font:700 14px/1.2 inherit;cursor:pointer}
+  .gatebox .erro{color:#f87171;font-size:12.5px;margin-top:9px;min-height:16px}
+
+  /* A GUARDA DO [hidden] (regra da casa): toda classe que declara `display` ganha o par —
+     senão o conteúdo nasce à mostra por cima do portão de token. */
+  .voltar[hidden],.grid[hidden],.sect[hidden],.selo[hidden],.pill[hidden],.pill i[hidden],.mini[hidden],
+  .mini span[hidden],.aviso[hidden],.barra[hidden],.barra span[hidden],.legend[hidden],.legend i[hidden],
+  .par[hidden],.selofim[hidden],.gate[hidden],.card[hidden],.tarja[hidden]{display:none}
+</style>
+<script>
+  /* embutido como aba do Painel: o cabeçalho de lá já é o "voltar" */
+  try { if (window.top !== window.self) document.documentElement.classList.add('embutido'); }
+  catch (e) { document.documentElement.classList.add('embutido'); }
+</script>
+</head>
+<body class="emp-ps">
+
+<div class="gate" id="gate" hidden>
+  <div class="gatebox">
+    <h2>Estoque de Jazigos</h2>
+    <p>Parque da Saudade. O VGV das quadras à venda, lido do Facilita pelo Cofre. Pede o
+       token do Painel Comercial — você digita uma vez e ele fica guardado neste aparelho.</p>
+    <input id="tk" type="password" autocomplete="off" spellcheck="false" placeholder="token" aria-label="Token de acesso">
+    <button id="btEntrar" type="button">Entrar</button>
+    <div class="erro" id="gateErro"></div>
+  </div>
+</div>
+
+<div class="wrap">
+  <a class="voltar" href="../">← Painel Comercial</a>
+  <div class="grid" id="tela"><p class="espera">Lendo o estoque no Cofre…</p></div>
+  <div class="selofim" id="selofim" hidden></div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+  var API = 'https://script.google.com/macros/s/AKfycbydLmUEX3g6FeojFGAcVHfNKoPsr4d9oTBUdi7GtcfsirQL6xHJM0BELVGcCrcqrICY/exec';
+  var CHAVE_TOKEN = 'hub_token_gestao';   // o mesmo do Painel — não duplicar
+  var $ = function (id) { return document.getElementById(id); };
+
+  var esc = function (s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); };
+  var n = function (v) { return Number(v || 0).toLocaleString('pt-BR'); };
+  var mi = function (v) { return 'R$ ' + (Number(v || 0) / 1e6).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' mi'; };
+  var rs = function (v) { return v === null || v === undefined ? '—' : 'R$ ' + Math.round(v).toLocaleString('pt-BR'); };
+  var pct = function (a, b) { return b ? Math.round(a / b * 100) + '%' : '—'; };
+  var ROT = { construida: 'Construída', a_construir: 'A construir' };
+  var CLS = { construida: 'c', a_construir: 'a' };
+  var COR = { construida: 'var(--accent)', a_construir: 'var(--blue)' };
+  var juntar = function (l) { return l.length < 2 ? l.join('') : l.slice(0, -1).join(', ') + ' e ' + l[l.length - 1]; };
+
+  /* ══════════ portão ══════════ */
+  function abrirPortao(msg) {
+    $('gate').hidden = false;
+    $('gateErro').textContent = msg || '';
+    $('tela').innerHTML = '';
+    $('selofim').hidden = true;
+    setTimeout(function () { $('tk').focus(); }, 60);
+  }
+  $('btEntrar').onclick = function () {
+    var v = $('tk').value.trim();
+    if (!v) { $('gateErro').textContent = 'Digite o token.'; return; }
+    try { localStorage.setItem(CHAVE_TOKEN, v); } catch (e) {}
+    $('tk').value = ''; $('gate').hidden = true; carregar();
+  };
+  $('tk').addEventListener('keydown', function (e) { if (e.key === 'Enter') $('btEntrar').click(); });
+
+  /* POST com o token no corpo (regra 4), texto puro: pedido "simples", sem consulta prévia de CORS. */
+  function pedir(corpo) {
+    return new Promise(function (resolve, reject) {
+      var venceu = false;
+      var t = setTimeout(function () { venceu = true; reject(new Error('o Cofre não respondeu em 60 s')); }, 60000);
+      fetch(API + '?app=estoque-vgv&fn=dados', { method: 'POST', body: corpo, cache: 'no-store' })
+        .then(function (r) { return r.json(); })
+        .then(function (j) { if (!venceu) { clearTimeout(t); resolve(j); } })
+        .catch(function (e) { if (!venceu) { clearTimeout(t); reject(e); } });
+    });
+  }
+
+  function bloqueia(titulo, html) {
+    $('tela').innerHTML = '<div class="tarja"><div class="t">' + esc(titulo) + '</div>' + html + '</div>';
+  }
+
+  function carregar() {
+    var token = '';
+    try { token = localStorage.getItem(CHAVE_TOKEN) || ''; } catch (e) {}
+    if (!token) { abrirPortao(''); return; }
+    $('tela').innerHTML = '<p class="espera">Lendo o estoque no Cofre…</p>';
+    var corpo = JSON.stringify({ token: token });
+    /* uma nova tentativa quando a falha não é de token: a entrega do /exec soluça em dia ruim */
+    pedir(corpo)
+      .then(function (j) { return (j && j.ok) || /token/i.test((j && j.error) || '') ? j : pedir(corpo); },
+            function () { return pedir(corpo); })
+      .then(function (r) {
+        if (!r || r.ok !== true) {
+          var err = (r && r.error) || 'resposta sem dado';
+          if (/token/i.test(err)) {
+            try { localStorage.removeItem(CHAVE_TOKEN); } catch (e) {}
+            abrirPortao('Token recusado. Confira e digite de novo.');
+            return;
+          }
+          bloqueia('O Cofre respondeu, mas sem dado.', '<p>' + esc(err) + '</p>');
+          return;
+        }
+        if (!r.quadras || !r.geral || !r.grupos) {
+          bloqueia('Esta página não vai desenhar: a rota respondeu em outro formato.',
+            '<p>O Cofre pode estar servindo uma implantação anterior a 03/10/2026. O conserto é publicar o Cofre ' +
+            '(Implantar ▸ Gerenciar implantações ▸ ✏️ ▸ Nova versão).</p>');
+          return;
+        }
+        desenhar(r);
+      })
+      .catch(function (e) {
+        bloqueia('Não consegui falar com o Cofre.',
+          '<p>' + esc(e.message || e) + '</p><p>Nenhum número aparece enquanto isso: tela vazia é melhor ' +
+          'que tela desatualizada com cara de atual.</p>');
+      });
+  }
+
+  /* horas desde o carimbo 'AAAA-MM-DD HH:MM' (hora de Brasília, a do Cofre) */
+  function horasDesde(c) {
+    var m = String(c || '').match(/^(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2})/);
+    if (!m) return null;
+    var t = Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4] + 3, +m[5]);   // -03:00
+    return (Date.now() - t) / 3600000;
+  }
+  var dm = function (c) { var m = String(c || '').match(/^\d{4}-(\d{2})-(\d{2}) (\d{2}:\d{2})/); return m ? m[2] + '/' + m[1] + ' ' + m[3] : String(c || '—'); };
+
+  /* ══════════ desenho ══════════ */
+  function desenhar(r) {
+    var Q = r.quadras, T = r.geral, C = r.grupos.construida, A = r.grupos.a_construir;
+    var qC = Q.filter(function (x) { return x.obra === 'construida'; });
+    var qA = Q.filter(function (x) { return x.obra === 'a_construir'; });
+    var nomes = function (l) { return juntar(l.map(function (x) { return esc(x.quadra); })); };
+    var temOutros = T.outros.n > 0;
+    var h = '';
+
+    // as defesas da casa: foto velha, retrato incompleto, situação desconhecida
+    var hs = horasDesde(r.atualizado_em);
+    if (hs === null) {
+      h += '<div class="tarja amarela"><div class="t">O estoque chegou sem data.</div><p>Não dá para saber se ' +
+           'estes números são de hoje. <em>(chave <code>facilita.estoque_atualizado</code> vazia na Config do Cofre.)</em></p></div>';
+    } else if (hs >= 48) {
+      h += '<div class="tarja amarela"><div class="t">O estoque tem mais de 48 horas.</div><p>É de <b>' + esc(dm(r.atualizado_em)) +
+           '</b>, ' + Math.floor(hs / 24) + ' dias atrás: certo para aquele instante, provavelmente errado para hoje. ' +
+           'A varredura do Facilita roda toda madrugada; parada há tanto tempo quer dizer que ela não fecha.</p></div>';
+    }
+    if (!r.varredura_completa) {
+      h += '<div class="tarja amarela"><div class="t">Retrato incompleto.</div><p>A varredura do estoque no Facilita ' +
+           'ainda está no meio: parte dos jazigos pode estar com a situação ou o preço da volta anterior. ' +
+           'Ela fecha sozinha em poucos minutos.</p></div>';
+    }
+    if (temOutros) {
+      h += '<div class="tarja amarela"><div class="t">' + n(T.outros.n) + ' jazigos em situação fora das quatro conhecidas.</div>' +
+           '<p>No Facilita: <b>' + esc(T.outros.situacoes.join(', ')) + '</b>. Eles entram no VGV Total e ficam fora de ' +
+           'Vendido e de Estoque, na coluna "Outras" da tabela.</p></div>';
+    }
+
+    // 1. abertura
+    h += '<div class="cpHead">' +
+      '<p class="eyebrow">Parque da Saudade · Estoque de jazigos</p>' +
+      '<h1 class="tit">Quanto vale o que ainda há para vender</h1>' +
+      '<p class="deck">As quadras à venda somam <b>' + mi(T.total.vgv) + '</b> de VGV Total. Já foram vendidos <b>' +
+        mi(T.vendido.vgv) + '</b> e restam <b>' + mi(T.estoque.vgv) + '</b> de VGV Estoque em <b>' + n(T.estoque.n) +
+        ' jazigos</b>: <b>' + mi(C.estoque.vgv) + '</b> em quadra construída e <b>' + mi(A.estoque.vgv) +
+        '</b> em quadra a construir.</p>' +
+      '<p class="escopo"><b>Quadras:</b> ' + nomes(Q) + '. <b>Fonte:</b> Facilita, pelo Cofre. <b>Total</b> é a quadra ' +
+        'inteira, <b>Vendido</b> é o jazigo vendido e <b>Estoque</b> é o jazigo disponível.</p>' +
+    '</div>';
+
+    // 2. VGV · 3. Ticket Médio
+    var tile = function (cls, selo, rot, tit, why, val, st) {
+      return '<div class="card tile tile-fila s4 ' + cls + '"><span class="selo ' + selo + '">' + rot + '</span><h3>' + tit + '</h3>' +
+        '<div class="why">' + why + '</div><div class="val">' + val + '</div><div class="st">' + st + '</div></div>';
+    };
+    var semPreco = T.total.sem_preco ? ' · <span class="sp">' + n(T.total.sem_preco) + ' sem preço</span>' : '';
+    h += tile('hero', 'total', 'Total', 'VGV Total', 'A quadra inteira, antes de qualquer venda.', mi(T.total.vgv),
+              '<b>' + n(T.total.n) + '</b> jazigos' + semPreco);
+    h += tile('hero', 'vend', 'Vendido', 'VGV Vendido', 'Jazigos vendidos, pelo valor de tabela.', mi(T.vendido.vgv),
+              '<b>' + n(T.vendido.n) + '</b> jazigos · <b>' + pct(T.vendido.vgv, T.total.vgv) + '</b> do VGV Total');
+    h += tile('hero', 'est', 'Estoque', 'VGV Estoque', 'Jazigos disponíveis hoje.', mi(T.estoque.vgv),
+              '<b>' + n(T.estoque.n) + '</b> jazigos · <b>' + pct(T.estoque.vgv, T.total.vgv) + '</b> do VGV Total');
+    h += tile('', 'total', 'Total', 'Ticket Médio Total', '', rs(T.ticket.total), 'VGV Total ÷ ' + n(T.total.com_preco) + ' jazigos com preço');
+    h += tile('', 'vend', 'Vendido', 'Ticket Médio Vendido', '', rs(T.ticket.vendido), 'VGV Vendido ÷ ' + n(T.vendido.com_preco) + ' jazigos com preço');
+    h += tile('', 'est', 'Estoque', 'Ticket Médio Estoque', '', rs(T.ticket.estoque), 'VGV Estoque ÷ ' + n(T.estoque.com_preco) + ' jazigos com preço');
+
+    // 4. Por quadra
+    var pill = function (o) { return o ? '<span class="pill ' + CLS[o] + '"><i></i>' + ROT[o] + '</span>' : ''; };
+    var sub = function (x) {
+      if (!x.obra) return '';
+      var p = [];
+      if (x.nota) p.push(esc(x.nota));
+      if (x.obra === 'a_construir' && x.entrega) p.push('entrega em ' + esc(x.entrega));
+      return p.length ? '<small>' + p.join(' · ') + '</small>' : '';
+    };
+    var linha = function (x, nome, cls, obra) {
+      var falta = x.total.sem_preco;
+      return '<tr class="' + (cls || '') + '">' +
+        '<td><b>' + esc(nome) + '</b>' + sub(x) + '</td>' +
+        '<td>' + pill(obra) + '</td>' +
+        '<td class="num gA">' + n(x.total.n) + '</td>' +
+        '<td class="num"><b>' + mi(x.total.vgv) + '</b>' + (falta ? '<br><span class="aviso">' + n(falta) + ' sem preço</span>' : '') + '</td>' +
+        '<td class="num">' + rs(x.ticket.total) + '</td>' +
+        '<td class="num gA">' + n(x.vendido.n) + '</td>' +
+        '<td class="num"><b>' + mi(x.vendido.vgv) + '</b></td>' +
+        '<td class="num">' + rs(x.ticket.vendido) + '</td>' +
+        '<td class="num gA"><b>' + n(x.estoque.n) + '</b></td>' +
+        '<td class="num"><b>' + mi(x.estoque.vgv) + '</b>' + (x.estoque.sem_preco ? '<br><span class="aviso">' + n(x.estoque.sem_preco) + ' sem preço</span>' : '') + '</td>' +
+        '<td class="num">' + rs(x.ticket.estoque) + '</td>' +
+        '<td><div class="mini" title="' + pct(x.estoque.vgv, x.total.vgv) + ' do VGV Total ainda em estoque"><span style="width:' +
+          (x.total.vgv ? x.estoque.vgv / x.total.vgv * 100 : 0) + '%;background:' + (obra ? COR[obra] : 'var(--ink2)') + '"></span></div></td>' +
+        '<td class="num">' + pct(x.estoque.vgv, x.total.vgv) + '</td>' +
+        '<td class="num gA">' + n(x.reservado.n) + '</td>' +
+        '<td class="num">' + n(x.indisponivel.n) + '</td>' +
+        (temOutros ? '<td class="num" title="' + esc(x.outros.situacoes.join(', ')) + '">' + n(x.outros.n) + '</td>' : '') +
+      '</tr>';
+    };
+    h += '<div class="sect"><h2>Por quadra</h2><div class="ln"></div><span class="tag">total · vendido · estoque</span></div>';
+    h += '<div class="card s12"><div class="rolax"><table class="placar"><thead>' +
+      '<tr class="grp"><th colspan="2"></th><th colspan="3" class="gA t">Total</th><th colspan="3" class="gA v">Vendido</th>' +
+      '<th colspan="5" class="gA e">Estoque</th><th colspan="' + (temOutros ? 3 : 2) + '" class="gA">Fora das contas</th></tr>' +
+      '<tr><th>Quadra</th><th>Situação</th>' +
+      '<th class="num gA">Jazigos</th><th class="num">VGV Total</th><th class="num">Ticket Médio</th>' +
+      '<th class="num gA">Jazigos</th><th class="num">VGV Vendido</th><th class="num">Ticket Médio</th>' +
+      '<th class="num gA">Jazigos</th><th class="num">VGV Estoque</th><th class="num">Ticket Médio</th><th colspan="2">Estoque / Total</th>' +
+      '<th class="num gA">Reserv.</th><th class="num">Indisp.</th>' + (temOutros ? '<th class="num">Outras</th>' : '') + '</tr></thead><tbody>';
+    [['construida', qC, C], ['a_construir', qA, A]].forEach(function (g) {
+      if (!g[1].length) return;
+      g[1].forEach(function (x) { h += linha(x, x.quadra, '', g[0]); });
+      h += linha(g[2], 'Subtotal ' + ROT[g[0]].toLowerCase(), 'sub', g[0]);
+    });
+    h += linha(T, 'Jazigos à venda', 'tot', '');
+    h += '</tbody></table></div></div>';
+
+    // 5. Construído × a construir
+    h += '<div class="sect"><h2>Construído × a construir</h2><div class="ln"></div><span class="tag">onde está o valor</span></div>';
+    var barraCard = function (tit, k) {
+      var vc = C[k].vgv, va = A[k].vgv, tot = vc + va;
+      return '<div class="card s4"><h3>' + tit + '</h3>' +
+        '<div class="barra"><span style="width:' + (tot ? vc / tot * 100 : 0) + '%;background:var(--accent)"></span>' +
+        '<span style="width:' + (tot ? va / tot * 100 : 0) + '%;background:var(--blue)"></span></div>' +
+        '<div class="legend"><span><i style="background:var(--accent)"></i>Construído ' + pct(vc, tot) + '</span>' +
+        '<span><i style="background:var(--blue)"></i>A construir ' + pct(va, tot) + '</span></div>' +
+        '<div class="par"><div class="bloco"><div class="per">Construído</div><div class="n">' + mi(vc) + '</div>' +
+          '<div class="st">' + n(C[k].n) + ' jazigos<br>' + nomes(qC) + '</div></div>' +
+        '<div class="bloco aconstruir"><div class="per">A construir</div><div class="n">' + mi(va) + '</div>' +
+          '<div class="st">' + n(A[k].n) + ' jazigos<br>' + nomes(qA) + '</div></div></div></div>';
+    };
+    h += barraCard('VGV Total', 'total');
+    h += barraCard('VGV Vendido', 'vendido');
+    h += barraCard('VGV Estoque', 'estoque');
+
+    // 6. notas
+    var entregas = qA.map(function (x) {
+      return esc(x.quadra) + (x.nota ? ' ' + esc(x.nota) : '') + (x.entrega ? ' (entrega em ' + esc(x.entrega) + ')' : '');
+    });
+    h += '<div class="notas">' +
+      '<p><b>VGV Total</b> = soma do valor de tabela que cada jazigo da quadra tem no Facilita, em qualquer situação. ' +
+      '<b>VGV Vendido</b> = a mesma soma só dos jazigos com situação Vendido: é valor de tabela da época em que o jazigo saiu, ' +
+      'não o valor da venda. <b>VGV Estoque</b> = a mesma soma só dos jazigos com situação Disponível.</p>' +
+      '<p><b>Ticket Médio</b> = VGV ÷ jazigos com preço, em cada uma das três colunas.</p>' +
+      '<p><b>Total não é Vendido + Estoque:</b> jazigo Reservado e Indisponível' + (temOutros ? ' (e em situação fora dessas)' : '') +
+      ' entra no Total e fica fora das outras duas contas. As últimas colunas da tabela mostram quantos são.</p>' +
+      '<p><b>Construída</b>: ' + nomes(qC) + '. <b>A construir</b>: ' + juntar(entregas) + '. A Reserva não entra nesta tela.</p>' +
+      '<p><b>Jazigo sem preço</b>: quando o Facilita tem jazigo com valor zero ou vazio, a tela mostra quantos são ao lado do ' +
+      'VGV e eles ficam fora do ticket médio. Hoje: <b>' + n(T.total.sem_preco) + '</b>.</p>' +
+    '</div>';
+
+    $('tela').innerHTML = h;
+
+    var sf = $('selofim');
+    sf.innerHTML = '<span>Estoque lido do Facilita em <b>' + esc(dm(r.atualizado_em)) + '</b>' +
+      (r.ao_vivo_em ? ' · relido ao vivo em ' + esc(dm(r.ao_vivo_em)) : '') +
+      (typeof r.ms === 'number' ? ' · resposta em ' + r.ms + ' ms' : '') + '</span>';
+    var bt = document.createElement('button');
+    bt.type = 'button'; bt.textContent = 'trocar token';
+    bt.onclick = function () { try { localStorage.removeItem(CHAVE_TOKEN); } catch (e) {} abrirPortao(''); };
+    sf.appendChild(bt);
+    sf.hidden = false;
+  }
+
+  carregar();
+})();
+</script>
+</body>
+</html>
