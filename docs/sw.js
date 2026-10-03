@@ -1,6 +1,8 @@
 /* Painel Comercial — Parque da Saudade + Estrela Urbanidade
    Service worker: instalação PWA + reserva offline.
-   Atualizado em: 03/10/2026 (noite) — ABA ESTOQUE DO PARQUE (pedido do Rodrigo): depois de Receita
+   Atualizado em: 03/10/2026 (noite, 2ª) — ESTOQUE: plural certo na tarja de situação fora das quatro
+   conhecidas ("1 jazigo"); o pre-reserve passou a contar como Reservado no Cofre (@140).
+   Antes, 03/10/2026 (noite) — ABA ESTOQUE DO PARQUE (pedido do Rodrigo): depois de Receita
    Contratada, o VGV dos jazigos — Total, Vendido e Estoque — por quadra (M-19, M-20, M-21, Retomada),
    construído × a construir. Página própria ./estoque/ em moldura, rota ?app=estoque-vgv do Cofre (@139).
    Antes, 29/09/2026 (noite) — PONTEAPP: OBSERVAÇÃO LIVRE POR VENDA. Cada linha da tabela
@@ -279,7 +281,7 @@
    links dos arquivos são drive.google.com, externos, e NÃO entram no cache).
    Estratégia: rede primeiro (pega versão nova quando online), cache como
    reserva offline. A cada deploy, bumpar a versão em CACHE. */
-const CACHE = 'painel-comercial-031026-1';
+const CACHE = 'painel-comercial-031026-2';
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(['./'])).then(() => self.skipWaiting()));

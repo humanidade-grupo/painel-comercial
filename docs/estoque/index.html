@@ -320,8 +320,8 @@
            'Ela fecha sozinha em poucos minutos.</p></div>';
     }
     if (temOutros) {
-      h += '<div class="tarja amarela"><div class="t">' + n(T.outros.n) + ' jazigos em situação fora das quatro conhecidas.</div>' +
-           '<p>No Facilita: <b>' + esc(T.outros.situacoes.join(', ')) + '</b>. Eles entram no VGV Total e ficam fora de ' +
+      h += '<div class="tarja amarela"><div class="t">' + n(T.outros.n) + (T.outros.n === 1 ? ' jazigo' : ' jazigos') + ' em situação fora das quatro conhecidas.</div>' +
+           '<p>No Facilita: <b>' + esc(T.outros.situacoes.join(', ')) + '</b>. ' + (T.outros.n === 1 ? 'Ele entra' : 'Eles entram') + ' no VGV Total e fica' + (T.outros.n === 1 ? '' : 'm') + ' fora de ' +
            'Vendido e de Estoque, na coluna "Outras" da tabela.</p></div>';
     }
 
