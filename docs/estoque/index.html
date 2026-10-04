@@ -409,6 +409,17 @@
     h += linha(T, 'Jazigos à venda', 'tot', '');
     h += '</tbody></table></div></div>';
 
+    /* (04/10) JAZIGO RESERVA — fora de todas as contas acima: é compra na planta, sem estoque (ilimitado).
+       Só o vendido, "para ter uma visão" (Ricardo). Rota antiga, sem `reserva`: o cartão não aparece. */
+    var RV = r.reserva;
+    if (RV && RV.vendido) {
+      h += '<div class="sect"><h2>Jazigo Reserva</h2><div class="ln"></div><span class="tag">na planta · sem estoque · fora das contas acima</span></div>';
+      h += tile('', 'vend', 'Vendido', 'Reservas vendidas', 'O cliente compra na planta e escolhe o jazigo na entrega, em 5 anos.',
+                n(RV.vendido.n), (RV.reservado && RV.reservado.n ? n(RV.reservado.n) + ' ainda como reservadas no Facilita' : 'no Facilita'));
+      h += tile('', 'vend', 'Vendido', 'VGV Vendido', 'Valor de tabela da Reserva no Facilita.', mi(RV.vendido.vgv), n(RV.vendido.n) + ' jazigos');
+      h += tile('', 'vend', 'Vendido', 'Ticket Médio Vendido', '', rs(RV.ticket), 'VGV Vendido ÷ ' + n(RV.vendido.com_preco) + ' jazigos com preço');
+    }
+
     // 5. Construído × a construir
     h += '<div class="sect"><h2>Construído × a construir</h2><div class="ln"></div><span class="tag">onde está o valor</span></div>';
     var barraCard = function (tit, k) {
@@ -440,7 +451,8 @@
       '<p><b>Total = Vendido + Estoque</b>' + (nFora ? ' + ' + [temIndisp ? 'Indisponível' : '', temOutros ? 'situação fora das conhecidas' : '']
         .filter(Boolean).join(' + ') + ': esses entram no Total e ficam fora das outras duas contas, na coluna "Fora"' : '') +
       '. Embaixo dos jazigos vendidos, a tabela mostra quantos ainda estão como reservados no Facilita.</p>' +
-      '<p><b>Construída</b>: ' + nomes(qC) + '. <b>A construir</b>: ' + juntar(entregas) + '. A Reserva não entra nesta tela.</p>' +
+      '<p><b>Construída</b>: ' + nomes(qC) + '. <b>A construir</b>: ' + juntar(entregas) + '. A <b>Reserva</b> não entra em nenhuma conta de Total, Vendido ou Estoque: ela não tem estoque (é compra na planta). ' +
+      'Só o vendido dela aparece, à parte, no bloco Jazigo Reserva — pela mesma regra (Vendido ou Reservado).</p>' +
       '<p><b>Jazigo sem preço</b>: quando o Facilita tem jazigo com valor zero ou vazio, a tela mostra quantos são ao lado do ' +
       'VGV e eles ficam fora do ticket médio. Hoje: <b>' + n(T.total.sem_preco) + '</b>.</p>' +
     '</div>';

@@ -1,6 +1,7 @@
 /* Painel Comercial — Parque da Saudade + Estrela Urbanidade
    Service worker: instalação PWA + reserva offline.
-   Atualizado em: 04/10/2026 (3ª) — ESTOQUE: a coluna Indisp. ("Fora") só aparece quando há Indisponível; a barra
+   Atualizado em: 04/10/2026 (4ª) — ESTOQUE: bloco "Jazigo Reserva" só com o vendido (a Reserva não tem estoque).
+   Antes, 04/10/2026 (3ª) — ESTOQUE: a coluna Indisp. ("Fora") só aparece quando há Indisponível; a barra
    Estoque/Total ganha a largura.
    Antes, 04/10/2026 (2ª) — ESTOQUE: Reservado (e pré-reserva) conta como VENDIDO, pela regra da casa
    (decisão do Ricardo); a coluna Reserv. vira um detalhe embaixo dos jazigos vendidos.
@@ -288,7 +289,7 @@
    links dos arquivos são drive.google.com, externos, e NÃO entram no cache).
    Estratégia: rede primeiro (pega versão nova quando online), cache como
    reserva offline. A cada deploy, bumpar a versão em CACHE. */
-const CACHE = 'painel-comercial-041026-3';
+const CACHE = 'painel-comercial-041026-4';
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(['./'])).then(() => self.skipWaiting()));
