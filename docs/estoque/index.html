@@ -124,7 +124,7 @@
   .mini{display:flex;height:8px;border-radius:4px;overflow:hidden;background:var(--vend);min-width:56px;flex:1}
   /* (04/10) barra e % na MESMA célula: em duas colunas a tabela passava da largura do cartão e o
      "%" saía cortado pela borda ("34%" lido como "349") */
-  .barpct{display:flex;align-items:center;gap:7px;min-width:104px}
+  .barpct{display:flex;align-items:center;gap:8px;min-width:150px}
   .barpct .pct{font-variant-numeric:tabular-nums;white-space:nowrap;min-width:32px;text-align:right}
   .mini span{display:block}
   .aviso{display:inline-block;font-size:10.5px;color:var(--warn);background:var(--warnbg);border-radius:6px;padding:1px 6px;margin-top:3px}
@@ -307,6 +307,9 @@
     var qA = Q.filter(function (x) { return x.obra === 'a_construir'; });
     var nomes = function (l) { return juntar(l.map(function (x) { return esc(x.quadra); })); };
     var temOutros = T.outros.n > 0;
+    /* (04/10) a coluna Indisp. só aparece quando há Indisponível — zerada, ela só tirava largura
+       da barra (pedido do Ricardo). Volta sozinha se o Facilita voltar a ter, como a "Outras". */
+    var temIndisp = T.indisponivel.n > 0, nFora = (temIndisp ? 1 : 0) + (temOutros ? 1 : 0);
     var h = '';
 
     // as defesas da casa: foto velha, retrato incompleto, situação desconhecida
@@ -384,19 +387,20 @@
         '<td><div class="barpct"><div class="mini" title="' + pct(x.estoque.vgv, x.total.vgv) + ' do VGV Total ainda em estoque"><span style="width:' +
           (x.total.vgv ? x.estoque.vgv / x.total.vgv * 100 : 0) + '%;background:' + (obra ? COR[obra] : 'var(--ink2)') + '"></span></div>' +
           '<span class="pct">' + pct(x.estoque.vgv, x.total.vgv) + '</span></div></td>' +
-        '<td class="num gA">' + n(x.indisponivel.n) + '</td>' +
-        (temOutros ? '<td class="num" title="' + esc(x.outros.situacoes.join(', ')) + '">' + n(x.outros.n) + '</td>' : '') +
+        (temIndisp ? '<td class="num gA">' + n(x.indisponivel.n) + '</td>' : '') +
+        (temOutros ? '<td class="num' + (temIndisp ? '' : ' gA') + '" title="' + esc(x.outros.situacoes.join(', ')) + '">' + n(x.outros.n) + '</td>' : '') +
       '</tr>';
     };
     h += '<div class="sect"><h2>Por quadra</h2><div class="ln"></div><span class="tag">total · vendido · estoque</span></div>';
     h += '<div class="card s12"><div class="rolax"><table class="placar"><thead>' +
       '<tr class="grp"><th colspan="2"></th><th colspan="3" class="gA t">Total</th><th colspan="3" class="gA v">Vendido</th>' +
-      '<th colspan="4" class="gA e">Estoque</th><th colspan="' + (temOutros ? 2 : 1) + '" class="gA">Fora</th></tr>' +
+      '<th colspan="4" class="gA e">Estoque</th>' + (nFora ? '<th colspan="' + nFora + '" class="gA">Fora</th>' : '') + '</tr>' +
       '<tr><th>Quadra</th><th>Situação</th>' +
       '<th class="num gA">Jazigos</th><th class="num">VGV Total</th><th class="num">Ticket Médio</th>' +
       '<th class="num gA">Jazigos</th><th class="num">VGV Vendido</th><th class="num">Ticket Médio</th>' +
       '<th class="num gA">Jazigos</th><th class="num">VGV Estoque</th><th class="num">Ticket Médio</th><th>Estoque / Total</th>' +
-      '<th class="num gA">Indisp.</th>' + (temOutros ? '<th class="num">Outras</th>' : '') + '</tr></thead><tbody>';
+      (temIndisp ? '<th class="num gA">Indisp.</th>' : '') + (temOutros ? '<th class="num' + (temIndisp ? '' : ' gA') + '">Outras</th>' : '') +
+      '</tr></thead><tbody>';
     [['construida', qC, C], ['a_construir', qA, A]].forEach(function (g) {
       if (!g[1].length) return;
       g[1].forEach(function (x) { h += linha(x, x.quadra, '', g[0]); });
@@ -433,9 +437,9 @@
       'proposta e a 1ª parcela ou a entrada paga; a pré-reserva conta junto): é valor de tabela da época em que o jazigo saiu, ' +
       'não o valor da venda. <b>VGV Estoque</b> = a mesma soma só dos jazigos com situação Disponível.</p>' +
       '<p><b>Ticket Médio</b> = VGV ÷ jazigos com preço, em cada uma das três colunas.</p>' +
-      '<p><b>Total = Vendido + Estoque + Indisponível</b>' + (temOutros ? ' + situação fora das conhecidas' : '') +
-      ': o jazigo Indisponível entra no Total e fica fora das outras duas contas. Embaixo dos jazigos vendidos, a tabela ' +
-      'mostra quantos ainda estão como reservados no Facilita.</p>' +
+      '<p><b>Total = Vendido + Estoque</b>' + (nFora ? ' + ' + [temIndisp ? 'Indisponível' : '', temOutros ? 'situação fora das conhecidas' : '']
+        .filter(Boolean).join(' + ') + ': esses entram no Total e ficam fora das outras duas contas, na coluna "Fora"' : '') +
+      '. Embaixo dos jazigos vendidos, a tabela mostra quantos ainda estão como reservados no Facilita.</p>' +
       '<p><b>Construída</b>: ' + nomes(qC) + '. <b>A construir</b>: ' + juntar(entregas) + '. A Reserva não entra nesta tela.</p>' +
       '<p><b>Jazigo sem preço</b>: quando o Facilita tem jazigo com valor zero ou vazio, a tela mostra quantos são ao lado do ' +
       'VGV e eles ficam fora do ticket médio. Hoje: <b>' + n(T.total.sem_preco) + '</b>.</p>' +
