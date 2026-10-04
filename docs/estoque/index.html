@@ -339,7 +339,7 @@
         ' jazigos</b>: <b>' + mi(C.estoque.vgv) + '</b> em quadra construída e <b>' + mi(A.estoque.vgv) +
         '</b> em quadra a construir.</p>' +
       '<p class="escopo"><b>Quadras:</b> ' + nomes(Q) + '. <b>Fonte:</b> Facilita, pelo Cofre. <b>Total</b> é a quadra ' +
-        'inteira, <b>Vendido</b> é o jazigo vendido e <b>Estoque</b> é o jazigo disponível.</p>' +
+        'inteira, <b>Vendido</b> é o jazigo vendido ou reservado e <b>Estoque</b> é o jazigo disponível.</p>' +
     '</div>';
 
     // 2. VGV · 3. Ticket Médio
@@ -350,7 +350,7 @@
     var semPreco = T.total.sem_preco ? ' · <span class="sp">' + n(T.total.sem_preco) + ' sem preço</span>' : '';
     h += tile('hero', 'total', 'Total', 'VGV Total', 'A quadra inteira, antes de qualquer venda.', mi(T.total.vgv),
               '<b>' + n(T.total.n) + '</b> jazigos' + semPreco);
-    h += tile('hero', 'vend', 'Vendido', 'VGV Vendido', 'Jazigos vendidos, pelo valor de tabela.', mi(T.vendido.vgv),
+    h += tile('hero', 'vend', 'Vendido', 'VGV Vendido', 'Jazigos vendidos e reservados, pelo valor de tabela.', mi(T.vendido.vgv),
               '<b>' + n(T.vendido.n) + '</b> jazigos · <b>' + pct(T.vendido.vgv, T.total.vgv) + '</b> do VGV Total');
     h += tile('hero', 'est', 'Estoque', 'VGV Estoque', 'Jazigos disponíveis hoje.', mi(T.estoque.vgv),
               '<b>' + n(T.estoque.n) + '</b> jazigos · <b>' + pct(T.estoque.vgv, T.total.vgv) + '</b> do VGV Total');
@@ -375,7 +375,7 @@
         '<td class="num gA">' + n(x.total.n) + '</td>' +
         '<td class="num"><b>' + mi(x.total.vgv) + '</b>' + (falta ? '<br><span class="aviso">' + n(falta) + ' sem preço</span>' : '') + '</td>' +
         '<td class="num">' + rs(x.ticket.total) + '</td>' +
-        '<td class="num gA">' + n(x.vendido.n) + '</td>' +
+        '<td class="num gA">' + n(x.vendido.n) + (x.reservado.n ? '<small>' + n(x.reservado.n) + ' reserv.</small>' : '') + '</td>' +
         '<td class="num"><b>' + mi(x.vendido.vgv) + '</b></td>' +
         '<td class="num">' + rs(x.ticket.vendido) + '</td>' +
         '<td class="num gA"><b>' + n(x.estoque.n) + '</b></td>' +
@@ -384,20 +384,19 @@
         '<td><div class="barpct"><div class="mini" title="' + pct(x.estoque.vgv, x.total.vgv) + ' do VGV Total ainda em estoque"><span style="width:' +
           (x.total.vgv ? x.estoque.vgv / x.total.vgv * 100 : 0) + '%;background:' + (obra ? COR[obra] : 'var(--ink2)') + '"></span></div>' +
           '<span class="pct">' + pct(x.estoque.vgv, x.total.vgv) + '</span></div></td>' +
-        '<td class="num gA">' + n(x.reservado.n) + '</td>' +
-        '<td class="num">' + n(x.indisponivel.n) + '</td>' +
+        '<td class="num gA">' + n(x.indisponivel.n) + '</td>' +
         (temOutros ? '<td class="num" title="' + esc(x.outros.situacoes.join(', ')) + '">' + n(x.outros.n) + '</td>' : '') +
       '</tr>';
     };
     h += '<div class="sect"><h2>Por quadra</h2><div class="ln"></div><span class="tag">total · vendido · estoque</span></div>';
     h += '<div class="card s12"><div class="rolax"><table class="placar"><thead>' +
       '<tr class="grp"><th colspan="2"></th><th colspan="3" class="gA t">Total</th><th colspan="3" class="gA v">Vendido</th>' +
-      '<th colspan="4" class="gA e">Estoque</th><th colspan="' + (temOutros ? 3 : 2) + '" class="gA">Fora das contas</th></tr>' +
+      '<th colspan="4" class="gA e">Estoque</th><th colspan="' + (temOutros ? 2 : 1) + '" class="gA">Fora</th></tr>' +
       '<tr><th>Quadra</th><th>Situação</th>' +
       '<th class="num gA">Jazigos</th><th class="num">VGV Total</th><th class="num">Ticket Médio</th>' +
       '<th class="num gA">Jazigos</th><th class="num">VGV Vendido</th><th class="num">Ticket Médio</th>' +
       '<th class="num gA">Jazigos</th><th class="num">VGV Estoque</th><th class="num">Ticket Médio</th><th>Estoque / Total</th>' +
-      '<th class="num gA">Reserv.</th><th class="num">Indisp.</th>' + (temOutros ? '<th class="num">Outras</th>' : '') + '</tr></thead><tbody>';
+      '<th class="num gA">Indisp.</th>' + (temOutros ? '<th class="num">Outras</th>' : '') + '</tr></thead><tbody>';
     [['construida', qC, C], ['a_construir', qA, A]].forEach(function (g) {
       if (!g[1].length) return;
       g[1].forEach(function (x) { h += linha(x, x.quadra, '', g[0]); });
@@ -430,11 +429,13 @@
     });
     h += '<div class="notas">' +
       '<p><b>VGV Total</b> = soma do valor de tabela que cada jazigo da quadra tem no Facilita, em qualquer situação. ' +
-      '<b>VGV Vendido</b> = a mesma soma só dos jazigos com situação Vendido: é valor de tabela da época em que o jazigo saiu, ' +
+      '<b>VGV Vendido</b> = a mesma soma dos jazigos com situação Vendido ou Reservado (pela regra da casa, só se reserva com ' +
+      'proposta e a 1ª parcela ou a entrada paga; a pré-reserva conta junto): é valor de tabela da época em que o jazigo saiu, ' +
       'não o valor da venda. <b>VGV Estoque</b> = a mesma soma só dos jazigos com situação Disponível.</p>' +
       '<p><b>Ticket Médio</b> = VGV ÷ jazigos com preço, em cada uma das três colunas.</p>' +
-      '<p><b>Total não é Vendido + Estoque:</b> jazigo Reservado e Indisponível' + (temOutros ? ' (e em situação fora dessas)' : '') +
-      ' entra no Total e fica fora das outras duas contas. As últimas colunas da tabela mostram quantos são.</p>' +
+      '<p><b>Total = Vendido + Estoque + Indisponível</b>' + (temOutros ? ' + situação fora das conhecidas' : '') +
+      ': o jazigo Indisponível entra no Total e fica fora das outras duas contas. Embaixo dos jazigos vendidos, a tabela ' +
+      'mostra quantos ainda estão como reservados no Facilita.</p>' +
       '<p><b>Construída</b>: ' + nomes(qC) + '. <b>A construir</b>: ' + juntar(entregas) + '. A Reserva não entra nesta tela.</p>' +
       '<p><b>Jazigo sem preço</b>: quando o Facilita tem jazigo com valor zero ou vazio, a tela mostra quantos são ao lado do ' +
       'VGV e eles ficam fora do ticket médio. Hoje: <b>' + n(T.total.sem_preco) + '</b>.</p>' +

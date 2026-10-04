@@ -1,6 +1,8 @@
 /* Painel Comercial — Parque da Saudade + Estrela Urbanidade
    Service worker: instalação PWA + reserva offline.
-   Atualizado em: 04/10/2026 — SAI A BARRA DE ESTOQUE DA M-19 ao lado do Atualizar (pedido do Ricardo;
+   Atualizado em: 04/10/2026 (2ª) — ESTOQUE: Reservado (e pré-reserva) conta como VENDIDO, pela regra da casa
+   (decisão do Ricardo); a coluna Reserv. vira um detalhe embaixo dos jazigos vendidos.
+   Antes, 04/10/2026 — SAI A BARRA DE ESTOQUE DA M-19 ao lado do Atualizar (pedido do Ricardo;
    o estoque tem aba própria). E ESTOQUE: a tabela Por quadra cabe no cartão (barra e % na mesma
    célula; o "%" saía cortado e "34%" parecia "349") e as divisórias ficaram mais claras.
    Antes, 03/10/2026 (noite, 2ª) — ESTOQUE: plural certo na tarja de situação fora das quatro
@@ -284,7 +286,7 @@
    links dos arquivos são drive.google.com, externos, e NÃO entram no cache).
    Estratégia: rede primeiro (pega versão nova quando online), cache como
    reserva offline. A cada deploy, bumpar a versão em CACHE. */
-const CACHE = 'painel-comercial-041026-1';
+const CACHE = 'painel-comercial-041026-2';
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(['./'])).then(() => self.skipWaiting()));
