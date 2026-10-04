@@ -107,20 +107,25 @@
   .pill.a{color:var(--blue);background:var(--bluebg);border:1px dashed rgba(74,143,224,.5)} .pill.a i{background:var(--blue)}
 
   .rolax{overflow-x:auto;-webkit-overflow-scrolling:touch}
-  table.placar{width:100%;border-collapse:collapse;font-size:12.5px;min-width:1120px}
-  table.placar td,table.placar th{padding:9px 8px;text-align:left;vertical-align:middle}
+  table.placar{width:100%;border-collapse:collapse;font-size:12.5px;min-width:1040px}
+  table.placar td,table.placar th{padding:9px 6px;text-align:left;vertical-align:middle}
   table.placar th{font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;
-     font-weight:600;border-bottom:1px solid var(--grid)}
+     font-weight:600;border-bottom:1px solid rgba(255,255,255,.14)}
   table.placar tr.grp th{border-bottom:0;padding-bottom:0;font-size:9.5px;letter-spacing:.08em}
   table.placar tr.grp th.t{color:var(--ink2)} table.placar tr.grp th.v{color:var(--mag)} table.placar tr.grp th.e{color:var(--accent)}
   table.placar .num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
-  table.placar tr+tr td{border-top:1px solid rgba(255,255,255,.04)}
+  table.placar th.num{white-space:normal}   /* "Ticket médio" em duas linhas: o cabeçalho não pode alargar a coluna */
+  table.placar tr+tr td{border-top:1px solid rgba(255,255,255,.09)}
   table.placar td b{font-weight:650}
   table.placar td small{display:block;font-size:10.5px;color:var(--muted)}
   table.placar tr.sub td{color:var(--ink2);background:rgba(255,255,255,.02)}
-  table.placar tr.tot td{border-top:1px solid var(--axis);font-weight:650}
-  table.placar th.gA,table.placar td.gA{border-left:1px solid var(--grid)}
-  .mini{display:flex;height:8px;border-radius:4px;overflow:hidden;background:var(--vend);min-width:90px}
+  table.placar tr.tot td{border-top:1px solid rgba(255,255,255,.22);font-weight:650}
+  table.placar th.gA,table.placar td.gA{border-left:1px solid rgba(255,255,255,.12)}
+  .mini{display:flex;height:8px;border-radius:4px;overflow:hidden;background:var(--vend);min-width:56px;flex:1}
+  /* (04/10) barra e % na MESMA célula: em duas colunas a tabela passava da largura do cartão e o
+     "%" saía cortado pela borda ("34%" lido como "349") */
+  .barpct{display:flex;align-items:center;gap:7px;min-width:104px}
+  .barpct .pct{font-variant-numeric:tabular-nums;white-space:nowrap;min-width:32px;text-align:right}
   .mini span{display:block}
   .aviso{display:inline-block;font-size:10.5px;color:var(--warn);background:var(--warnbg);border-radius:6px;padding:1px 6px;margin-top:3px}
 
@@ -172,7 +177,7 @@
   /* A GUARDA DO [hidden] (regra da casa): toda classe que declara `display` ganha o par —
      senão o conteúdo nasce à mostra por cima do portão de token. */
   .voltar[hidden],.grid[hidden],.sect[hidden],.selo[hidden],.pill[hidden],.pill i[hidden],.mini[hidden],
-  .mini span[hidden],.aviso[hidden],.barra[hidden],.barra span[hidden],.legend[hidden],.legend i[hidden],
+  .mini span[hidden],.barpct[hidden],.aviso[hidden],.barra[hidden],.barra span[hidden],.legend[hidden],.legend i[hidden],
   .par[hidden],.selofim[hidden],.gate[hidden],.card[hidden],.tarja[hidden]{display:none}
 </style>
 <script>
@@ -376,9 +381,9 @@
         '<td class="num gA"><b>' + n(x.estoque.n) + '</b></td>' +
         '<td class="num"><b>' + mi(x.estoque.vgv) + '</b>' + (x.estoque.sem_preco ? '<br><span class="aviso">' + n(x.estoque.sem_preco) + ' sem preço</span>' : '') + '</td>' +
         '<td class="num">' + rs(x.ticket.estoque) + '</td>' +
-        '<td><div class="mini" title="' + pct(x.estoque.vgv, x.total.vgv) + ' do VGV Total ainda em estoque"><span style="width:' +
-          (x.total.vgv ? x.estoque.vgv / x.total.vgv * 100 : 0) + '%;background:' + (obra ? COR[obra] : 'var(--ink2)') + '"></span></div></td>' +
-        '<td class="num">' + pct(x.estoque.vgv, x.total.vgv) + '</td>' +
+        '<td><div class="barpct"><div class="mini" title="' + pct(x.estoque.vgv, x.total.vgv) + ' do VGV Total ainda em estoque"><span style="width:' +
+          (x.total.vgv ? x.estoque.vgv / x.total.vgv * 100 : 0) + '%;background:' + (obra ? COR[obra] : 'var(--ink2)') + '"></span></div>' +
+          '<span class="pct">' + pct(x.estoque.vgv, x.total.vgv) + '</span></div></td>' +
         '<td class="num gA">' + n(x.reservado.n) + '</td>' +
         '<td class="num">' + n(x.indisponivel.n) + '</td>' +
         (temOutros ? '<td class="num" title="' + esc(x.outros.situacoes.join(', ')) + '">' + n(x.outros.n) + '</td>' : '') +
@@ -387,11 +392,11 @@
     h += '<div class="sect"><h2>Por quadra</h2><div class="ln"></div><span class="tag">total · vendido · estoque</span></div>';
     h += '<div class="card s12"><div class="rolax"><table class="placar"><thead>' +
       '<tr class="grp"><th colspan="2"></th><th colspan="3" class="gA t">Total</th><th colspan="3" class="gA v">Vendido</th>' +
-      '<th colspan="5" class="gA e">Estoque</th><th colspan="' + (temOutros ? 3 : 2) + '" class="gA">Fora das contas</th></tr>' +
+      '<th colspan="4" class="gA e">Estoque</th><th colspan="' + (temOutros ? 3 : 2) + '" class="gA">Fora das contas</th></tr>' +
       '<tr><th>Quadra</th><th>Situação</th>' +
       '<th class="num gA">Jazigos</th><th class="num">VGV Total</th><th class="num">Ticket Médio</th>' +
       '<th class="num gA">Jazigos</th><th class="num">VGV Vendido</th><th class="num">Ticket Médio</th>' +
-      '<th class="num gA">Jazigos</th><th class="num">VGV Estoque</th><th class="num">Ticket Médio</th><th colspan="2">Estoque / Total</th>' +
+      '<th class="num gA">Jazigos</th><th class="num">VGV Estoque</th><th class="num">Ticket Médio</th><th>Estoque / Total</th>' +
       '<th class="num gA">Reserv.</th><th class="num">Indisp.</th>' + (temOutros ? '<th class="num">Outras</th>' : '') + '</tr></thead><tbody>';
     [['construida', qC, C], ['a_construir', qA, A]].forEach(function (g) {
       if (!g[1].length) return;
