@@ -359,7 +359,7 @@ align-items:center;gap:3px;cursor:pointer;min-width:0}
 <div class="emps" role="tablist">
   <button class="emp" id="empPS" type="button" role="tab" aria-selected="false">Parque da Saudade</button>
   <button class="emp" id="empEU" type="button" role="tab" aria-selected="true">Estrela Urbanidade</button>
-  <button class="btnrec" id="btRec" type="button" title="Buscar os dados de novo no Cofre">
+  <button class="btnrec" id="btRec" type="button" title="Buscar os dados de novo no Facilita">
     <svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-2.6-6.4"/><path d="M21 3v6h-6"/></svg>
     <span class="rot">Atualizar</span></button>
 </div>
@@ -584,7 +584,7 @@ align-items:center;gap:3px;cursor:pointer;min-width:0}
      Nada neste painel escreve, e nada nele lê cliente, telefone ou e-mail: a
      aba _Pessoal não tem rota. Script isolado no fim da página. -->
 <section class="panel" id="pEUHist">
-  <p class="dashsub" id="hiSub">Abra a aba para ler o histórico no Cofre.</p>
+  <p class="dashsub" id="hiSub">Abra a aba para ler o histórico.</p>
   <div class="kpis" id="hiKpis"></div>
   <div class="grid2">
     <div class="card">
@@ -662,7 +662,7 @@ align-items:center;gap:3px;cursor:pointer;min-width:0}
 
   <div class="card">
     <h3>O ano até aqui</h3>
-    <p class="note">Vendas por mês no Cofre. Clique num mês para abrir o placar dele.</p>
+    <p class="note">Vendas por mês. Clique num mês para abrir o placar dele.</p>
     <div class="hist" id="psHist"></div>
   </div>
 </section>
@@ -771,7 +771,7 @@ align-items:center;gap:3px;cursor:pointer;min-width:0}
   <iframe id="fRetro" data-src="./retrospectiva/" title="Retrospectiva do Time Comercial — Parque da Saudade" style="width:100%;border:0;display:block;min-height:70vh"></iframe>
 </section>
 <section class="panel ps" id="pPSConfig">
-  <iframe id="fConfig" data-src="./configuracoes/" title="Configurações do Cofre — Parque da Saudade" style="width:100%;border:0;display:block;min-height:70vh"></iframe>
+  <iframe id="fConfig" data-src="./configuracoes/" title="Configurações — Parque da Saudade" style="width:100%;border:0;display:block;min-height:70vh"></iframe>
 </section>
 <section class="panel ps" id="pPSPerfil">
   <iframe id="fPerfil" data-src="./perfil-cliente/" title="Quem compra no Parque da Saudade" style="width:100%;border:0;display:block;min-height:70vh"></iframe>
@@ -964,8 +964,8 @@ border-radius:5px;border:1px solid rgba(251,191,36,.45);color:var(--warn)}
       .then(function (j) {
         if (!j || !j.ok) {
           var err = esc(j && j.error || 'resposta inválida');
-          aviso(/token/i.test(err) ? 'O Cofre recusou o token (' + err + '). Recarregue a página para digitá-lo de novo.'
-                                    : 'O Cofre respondeu com erro: ' + err);
+          aviso(/token/i.test(err) ? 'O token foi recusado (' + err + '). Recarregue a página para digitá-lo de novo.'
+                                    : 'A leitura do Facilita voltou com erro: ' + err);
           return;
         }
         /* truncado ausente ou true: não se desenha prateleira pela metade */
@@ -984,7 +984,7 @@ border-radius:5px;border:1px solid rgba(251,191,36,.45);color:var(--warn)}
         desenhar();
       })
       .catch(function (e) {
-        var msg = (e && e.name === 'AbortError') ? 'o Cofre demorou mais de 30 s' : esc(e && e.message || e);
+        var msg = (e && e.name === 'AbortError') ? 'o Facilita demorou mais de 30 s' : esc(e && e.message || e);
         aviso('Não consegui ler a pasta (' + msg + '). ' + (itens.length ? 'A lista abaixo é da leitura anterior.' : 'Abra a pasta no Drive ou tente de novo.'));
         if (!itens.length) $('docsCarimbo').textContent = '';
       })
@@ -1740,7 +1740,7 @@ function renderNotas(){
   const n = DATA.notas || {};
   const p = $('#notaSin'); if (p) p.innerHTML = n.sintese || '';
   // a mesma fonte no rodapé do Executivo (18/09) — ver o comentário do #defsEU
-  const px = $('#notaSinX'); if (px) px.innerHTML = n.sintese || 'As definições chegam com os dados do Cofre.';
+  const px = $('#notaSinX'); if (px) px.innerHTML = n.sintese || 'As definições chegam com os dados do Facilita.';
   const ul = $('#premissas');
   if (ul) { ul.innerHTML=''; (n.premissas||[]).forEach(t=>{
     const li=document.createElement('li'); li.innerHTML=t; ul.appendChild(li); }); }
@@ -1994,7 +1994,7 @@ function render(){
       (corrente ? ' · faltam <b>'+Math.max(0, oficial-totJaz)+'</b> em '+du.restantes+
                   ' dias úteis (<b>'+fN(Math.max(0,(oficial-totJaz))/Math.max(1,du.restantes),1)+'</b>/dia)' : '')
     : 'Nenhuma meta cadastrada para '+(mes?mes.rotulo:'este mês')+
-      ' — crie <code>meta.oficial.'+am+'</code> na aba Config do Cofre.';
+      ' — crie <code>meta.oficial.'+am+'</code> em Configurações.';
 
   $('#psDias').innerHTML =
     '<div><b>'+(corrente?du.passados:du.total)+'</b>dias úteis contados</div>'+
@@ -2272,7 +2272,7 @@ window.__psReler = function(){
      fachada, e fachada foi o que escondeu a pane de 17/08. */
   var CARGA_DICAS = [
     setTimeout(function () { dica('A bola já vai subir'); }, 8000),
-    setTimeout(function () { dica(PASSO_TEC ? 'ainda ' + PASSO_TEC : 'ainda esperando o Cofre responder…'); }, 20000)
+    setTimeout(function () { dica(PASSO_TEC ? 'ainda ' + PASSO_TEC : 'ainda esperando o Facilita responder…'); }, 20000)
   ];
   function fecharCarga() {
     CARGA_DICAS.forEach(clearTimeout);
@@ -2369,19 +2369,19 @@ window.__psReler = function(){
     var idadeCopia = Date.now() - Number((window.__DADOS__ || {})._guardadoEm || 0);
     var falhandoHa = CARIMBO.falhaDesde ? Date.now() - CARIMBO.falhaDesde : 0;
     if (CARIMBO.copia && idadeCopia < SOLUCO_COPIA_MS && falhandoHa < SOLUCO_FALHA_MS) {
-      selo('Cofre — ' + nome + ' · atualizado em <b>' + quando + '</b>' +
-           ' · <span class="conferindo">sem resposta do Cofre agora — tento de novo em 1 min</span>');
+      selo('Facilita — ' + nome + ' · atualizado em <b>' + quando + '</b>' +
+           ' · <span class="conferindo">sem resposta do Facilita agora — tento de novo em 1 min</span>');
     } else if (CARIMBO.copia) {
       /* O motivo manda na frase (04/09). "Sem conexão" só quando é sem conexão;
          Cofre lento é outra coisa, e quem lê precisa saber qual das duas foi. */
       var m = CARIMBO.motivo || {}, tipo = m.tipo || 'offline';
       var msg = String(m.message || '').replace(/[<>&]/g, '');
       var cabeca =
-        tipo === 'prazo'    ? '<b>O Cofre demorou demais</b> (' + msg + ').' :
-        tipo === 'resposta' ? '<b>O Cofre devolveu uma resposta inválida</b> (' + msg + ').' :
-        tipo === 'erro'     ? '<b>O Cofre respondeu com erro</b> (' + msg + ').' :
-        tipo === 'rede'     ? '<b>Não consegui falar com o Cofre</b> (' + msg + ').' :
-                              '<b>Sem conexão com o Cofre.</b>';
+        tipo === 'prazo'    ? '<b>O Facilita demorou demais</b> (' + msg + ').' :
+        tipo === 'resposta' ? '<b>A leitura do Facilita voltou com resposta inválida</b> (' + msg + ').' :
+        tipo === 'erro'     ? '<b>A leitura do Facilita voltou com erro</b> (' + msg + ').' :
+        tipo === 'rede'     ? '<b>Não consegui ler os dados do Facilita</b> (' + msg + ').' :
+                              '<b>Sem conexão com o Facilita.</b>';
       selo('⚠ ' + cabeca + ' Cópia local — ' + nome +
            ' atualizado em <b>' + quando + '</b>. ' +
            (tipo === 'offline' ? 'Tento de novo quando voltar o sinal.' : 'Tento de novo sozinho a cada minuto.'), true);
@@ -2403,7 +2403,7 @@ window.__psReler = function(){
       var chipTxt = !amarelo ? '' :
         /volta completa/i.test(CARIMBO.psSaudeTexto) ? 'volta completa em andamento' :
         /não conseguiu medir/i.test(CARIMBO.psSaudeTexto) ? 'sanidade sem medida' : 'exceção vigente';
-      selo('Cofre — ' + nome + ' · atualizado em <b>' + quando + '</b>' +
+      selo('Facilita — ' + nome + ' · atualizado em <b>' + quando + '</b>' +
            (ms ? ' · resposta em ' + (ms / 1000).toFixed(1) + 's' : '') +
            // "N fora da regra" ao lado do carimbo (Diário, decisão 44): o que o
            // importador descarta precisa aparecer em algum lugar, senão vira mistério
@@ -2449,7 +2449,7 @@ window.__psReler = function(){
           'Candidatos a venda que a regra de leitura descartou — ' +
           ini + ' com data anterior ao corte de 13/04 (carga inicial) · ' +
           eta + ' com a unidade atrelada a etapa fora de 19–22. ' +
-          'Detalhe na aba Divergencias do Cofre (Tipo FORA_DA_REGRA).';
+          'Detalhe na conferência de divergências (Tipo FORA_DA_REGRA).';
         if (document.body.classList.contains('emp-ps')) atualizarSelo('ps');
       })
       .catch(function () { /* sem resposta, sem trecho — o selo segue como está */ });
@@ -2834,7 +2834,7 @@ window.__psReler = function(){
     }
 
     // resposta antiga: uma empresa
-    if (r.feito)   return { txt: '✓ <b>' + nome + '</b> importado agora — ' + escapa(r.resumo) + ' no Cofre.', bom: true };
+    if (r.feito)   return { txt: '✓ <b>' + nome + '</b> importado agora — ' + escapa(r.resumo) + '.', bom: true };
     if (r.recente) return { txt: '✓ <b>' + nome + '</b> já estava atualizado (' + escapa(r.motivo) + ').', bom: true };
     return { txt: '⚠ Não consegui importar o <b>' + nome + '</b>: ' + escapa(r.motivo) +
                   '. A tela mostra a última importação que deu certo.', bom: false };
@@ -2846,9 +2846,9 @@ window.__psReler = function(){
      aconteceu em 17/08. Aqui elas se separam. */
   function recado(j) {
     var e = (j && j.error) ? String(j.error) : '';
-    if (!e) return 'O Cofre respondeu sem dado. Recarregue; se insistir, é erro do servidor.';
+    if (!e) return 'O Facilita respondeu sem dado. Recarregue; se insistir, é erro do servidor.';
     if (/token/i.test(e)) return 'Token não aceito. Confira e tente de novo.';
-    return 'O token passou, mas o Cofre falhou ao montar o dado:\n' + e;
+    return 'O token passou, mas o servidor falhou ao montar o dado do Facilita:\n' + e;
   }
   function tokenRuim(j) {
     return !j || !j.error || /token/i.test(String(j.error));
@@ -2891,7 +2891,7 @@ window.__psReler = function(){
         }
       }).catch(function () {
         bt.disabled = false;
-        er.textContent = 'Não consegui falar com o Cofre. Verifique a conexão.';
+        er.textContent = 'Não consegui ler os dados do Facilita. Verifique a conexão.';
       });
     }
     bt.addEventListener('click', tentar);
@@ -3020,7 +3020,7 @@ window.__psReler = function(){
     var recarregar = recarregarNaAba;
     if (!interagiu) { recarregar(); return; }
     if (document.getElementById('verNovo')) return;
-    selo('Chegaram números novos do Cofre. ' +
+    selo('Chegaram números novos do Facilita. ' +
          '<a href="#" id="verNovo" style="color:inherit;font-weight:700;text-decoration:underline">Mostrar</a>');
     var a = document.getElementById('verNovo');
     if (a) a.onclick = function (ev) { ev.preventDefault(); recarregar(); };
@@ -3176,7 +3176,7 @@ window.__psReler = function(){
       else if (carga) {
         carga.style.display = '';
         carga.innerHTML = '<div style="text-align:center;max-width:420px;line-height:1.6">' +
-          'O Cofre respondeu com erro.<br><span style="color:#f87171;font-size:13px;word-break:break-word">' +
+          'A leitura do Facilita voltou com erro.<br><span style="color:#f87171;font-size:13px;word-break:break-word">' +
           String(j.error).replace(/[<>&]/g, '') + '</span><br>' +
           '<span style="color:#64748b;font-size:13px">O token está válido — isto é falha do servidor.</span></div>';
       }
@@ -3189,7 +3189,7 @@ window.__psReler = function(){
     else {
       if (carga) carga.innerHTML =
         '<div style="text-align:center;max-width:320px;line-height:1.6">' +
-        'Não consegui falar com o Cofre e não há cópia neste aparelho.<br>' +
+        'Não consegui ler os dados do Facilita e não há cópia neste aparelho.<br>' +
         '<span style="color:#64748b;font-size:13px">Verifique a conexão e recarregue.</span></div>';
     }
   });
@@ -3363,12 +3363,12 @@ window.__psReler = function(){
     try { tk = localStorage.getItem(CHAVE_TOKEN); } catch (e) {}
     if (!tk) { estado = 'erro'; sub('Sem o token de gestão neste aparelho — entre pelo portão de token do Painel.'); return; }
     estado = 'carregando';
-    sub('Lendo o histórico no Cofre…');
-    var prazo = new Promise(function (_, rej) { setTimeout(function () { rej(new Error('o Cofre não respondeu em ' + (PRAZO_MS / 1000) + ' s')); }, PRAZO_MS); });
+    sub('Lendo o histórico…');
+    var prazo = new Promise(function (_, rej) { setTimeout(function () { rej(new Error('o servidor não respondeu em ' + (PRAZO_MS / 1000) + ' s')); }, PRAZO_MS); });
     Promise.race([fetch(API + '?app=estrela&fn=historico&token=' + encodeURIComponent(tk)).then(function (r) { return r.text(); }), prazo])
       .then(function (txt) {
         var j;
-        try { j = JSON.parse(txt); } catch (e) { throw new Error('o Cofre devolveu algo que não é JSON'); }
+        try { j = JSON.parse(txt); } catch (e) { throw new Error('o servidor devolveu algo que não é JSON'); }
         if (!j || !j.ok) throw new Error((j && j.error) || 'resposta sem ok');
         var k = desenhar(j);
         estado = 'pronto';
@@ -3596,7 +3596,7 @@ window.__psReler = function(){
       'distrato não existe em lugar nenhum. Por isso a safra mostra <i>quantos da colheita de cada ano caíram</i>, e não ' +
       'quantos caíram em cada ano. O número anual de distratos continua vindo do <b>Detalhamento</b>.</li>' +
       faixa + uid +
-      '<li><b>O histórico é registro, não fonte.</b> Escrito uma vez no Cofre, sem gatilho, fora da sincronização. ' +
+      '<li><b>O histórico é registro, não fonte.</b> Gravado uma vez, sem gatilho, fora da sincronização. ' +
       'Correção nele se faz por linha nova — nunca reescrevendo a semente.</li>';
   }
 })();

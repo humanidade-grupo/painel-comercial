@@ -64,7 +64,7 @@
       const P = window.__DADOS_PS__ || {};
       return [
         'EMPRESA: Parque da Saudade (jazigos)',
-        'Cofre atualizado em: ' + (P.atualizado_em || '(sem carimbo)'),
+        'Facilita atualizado em: ' + (P.atualizado_em || '(sem carimbo)'),
         tsv('vendas', P.vendas),
         tsv('meses', P.meses),
         '## metas (objeto, chave = competência AAAA-MM)\n' + JSON.stringify(P.metas || {})
@@ -73,13 +73,13 @@
     const D = window.__DADOS__ || {};
     return [
       'EMPRESA: Estrela Urbanidade (lotes)',
-      'Cofre atualizado em: ' + (D.atualizado_em || '(sem carimbo)'),
+      'Facilita atualizado em: ' + (D.atualizado_em || '(sem carimbo)'),
       tsv('vendas', D.vendas),
       tsv('estoque', D.estoque),
       // As ressalvas de base (área estimada, % de sócio assumido, o que é
       // "informado") moram no Cofre, não neste arquivo público. Sem elas o
       // chat afirmaria com precisão de centavo um número que é estimativa.
-      '## notas do Cofre\n' + JSON.stringify(D.notas || {}),
+      '## notas dos dados\n' + JSON.stringify(D.notas || {}),
       '## rótulos/abreviações\n' + JSON.stringify(D.rotulos || {})
     ].join('\n\n');
   }

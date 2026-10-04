@@ -199,8 +199,8 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
 
 <div class="gate" id="gate">
   <div class="gatebox">
-    <h2>Configurações do Cofre</h2>
-    <p>Parque da Saudade. Esta tela muda os parâmetros do Cofre — metas, campanha, alertas — e é
+    <h2>Configurações</h2>
+    <p>Parque da Saudade. Esta tela muda os parâmetros do Painel e do Pocket — metas, campanha, alertas — e é
        só do Ricardo: pede o token de Configurações, que é outro, não o do Painel. Você digita uma
        vez: ele fica guardado neste aparelho.</p>
     <input id="tk" type="password" autocomplete="off" spellcheck="false" placeholder="token de Configurações" aria-label="Token de Configurações">
@@ -213,14 +213,14 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
   <nav class="rail" aria-label="Seções">
     <div class="rail-head">
       <h1>Configurações</h1>
-      <p>Parque da Saudade · parâmetros do Cofre</p>
+      <p>Parque da Saudade · parâmetros</p>
       <a class="rail-voltar" href="../">&larr; Painel Comercial</a>
     </div>
     <div class="rail-group" id="tabs" role="tablist" aria-orientation="vertical">
       <span class="eyebrow">Seções</span>
     </div>
     <div class="rail-pe">
-      <button class="trocar" id="btRecarregar" type="button">Reler do Cofre</button>
+      <button class="trocar" id="btRecarregar" type="button">Reler</button>
       <button class="trocar" id="btMostrarToken" type="button">Levar o token para outro aparelho</button>
     </div>
   </nav>
@@ -250,7 +250,7 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
     var uma = function () {
       return new Promise(function (resolve, reject) {
         var venceu = false;
-        var t = setTimeout(function () { venceu = true; reject(new Error('o Cofre não respondeu em 60s')); }, 60000);
+        var t = setTimeout(function () { venceu = true; reject(new Error('o servidor não respondeu em 60s')); }, 60000);
         fetch(API + '?app=config&fn=' + fn, { method: 'POST', body: body, cache: 'no-store' })
           .then(function (r) { return r.json(); })
           .then(function (j) { if (!venceu) { clearTimeout(t); resolve(j); } })
@@ -284,7 +284,7 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
   $('#tk').addEventListener('keydown', function (e) { if (e.key === 'Enter') $('#btEntrar').click(); });
   $('#btRecarregar').onclick = function () { carregar(); };
   $('#btMostrarToken').onclick = function () {
-    if (!window.confirm('Mostrar o token de Configurações na tela, para digitar em outro aparelho?\n\nQuem vir o token pode mudar os parâmetros do Cofre.')) return;
+    if (!window.confirm('Mostrar o token de Configurações na tela, para digitar em outro aparelho?\n\nQuem vir o token pode mudar os parâmetros.')) return;
     window.prompt('Token de Configurações deste aparelho (copie e digite no outro):', token());
   };
 
@@ -296,11 +296,11 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
   function carregar() {
     if (!token()) { abrirPortao(''); return; }
     fecharPortao();
-    $('#painel').innerHTML = '<p class="nota-fina">Lendo os parâmetros do Cofre…</p>';
+    $('#painel').innerHTML = '<p class="nota-fina">Lendo os parâmetros…</p>';
     chamar('parametros', {}, 3).then(function (r) {
       if (!r || r.ok !== true) {
         if (r && r.codigo === 'token') { abrirPortao('Token recusado. Esta tela aceita só o token de Configurações do Ricardo.'); return; }
-        bloqueia('O Cofre respondeu, mas sem os parâmetros.', (r && r.error) || 'resposta sem dado');
+        bloqueia('O servidor respondeu, mas sem os parâmetros.', (r && r.error) || 'resposta sem dado');
         return;
       }
       DADOS = r;
@@ -308,7 +308,7 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
       montarTrilho();
       abrir(SECAO);
     }).catch(function (e) {
-      bloqueia('Não consegui falar com o Cofre.', (e && e.message) || String(e));
+      bloqueia('Não consegui falar com o servidor.', (e && e.message) || String(e));
     });
   }
   function bloqueia(t, msg) {
@@ -331,7 +331,7 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
 
   var SUB = {
     'Metas': 'Meta oficial e desafio do mês (número de vendas) e a meta de cada vendedor. A meta de um mês novo aparece aqui quando a chave dele existir na Config.',
-    'Campanha': 'A regra da campanha comercial que o Pocket mostra ao vendedor. O Cofre confere cada campo com as mesmas regras que a campanha usa para ler.',
+    'Campanha': 'A regra da campanha comercial que o Pocket mostra ao vendedor. Cada campo é conferido com as mesmas regras que a campanha usa para ler.',
     'Painel': 'Como o Painel conta as vendas: de onde vêm, quais contam, como os nomes aparecem e quais canais são "portas".',
     'Estoque': 'As quadras que a rota pública do Pocket (sem token) mostra.',
     'Alertas': 'As mensagens automáticas no WhatsApp. Cada interruptor liga ou desliga um envio.',
@@ -347,9 +347,9 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
     if (s === HIST) { abrirHistorico(); return; }
     CAMPOS = {};
     var m = $('#painel');
-    m.innerHTML = '<div class="month-head"><span class="eyebrow">Configurações · Cofre do Parque</span>' +
+    m.innerHTML = '<div class="month-head"><span class="eyebrow">Configurações · Parque da Saudade</span>' +
       '<h2>' + esc(s) + '</h2><p class="sub">' + esc(SUB[s] || '') + '</p>' +
-      '<p class="nota-fina">Cada campo se grava sozinho, no botão dele. O Cofre confere o valor antes de gravar e registra quem mudou o quê no Histórico.</p></div>' +
+      '<p class="nota-fina">Cada campo se grava sozinho, no botão dele. O valor é conferido antes de gravar, e quem mudou o quê fica no Histórico.</p></div>' +
       '<div class="campos" id="campos"></div>';
     var box = $('#campos');
     DADOS.parametros.filter(function (p) { return p.secao === s; }).forEach(function (p) {
@@ -555,30 +555,30 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
 
   function gravar(reg, novo) {
     var c = reg.el, est = $('.estado', c), btS = $('.salvar', c);
-    btS.disabled = true; est.className = 'estado'; est.textContent = 'Gravando no Cofre…';
+    btS.disabled = true; est.className = 'estado'; est.textContent = 'Gravando…';
     chamar('salvar', { chave: reg.p.chave, valor_anterior: reg.p.valor, valor_novo: novo }).then(function (r) {
       if (r && r.ok) {
         var hora = r.quando ? r.quando.slice(11, 16) : '';
-        refazer(reg.p.chave, r.valor_gravado, r.sem_mudanca ? 'Nada a gravar: o Cofre já tinha este valor.' : 'Gravado' + (hora ? ' às ' + hora : '') + '. Está no Histórico.', 'ok');
+        refazer(reg.p.chave, r.valor_gravado, r.sem_mudanca ? 'Nada a gravar: este já era o valor.' : 'Gravado' + (hora ? ' às ' + hora : '') + '. Está no Histórico.', 'ok');
         return;
       }
       if (r && r.codigo === 'conflito') {
         var cf = $('.conflito', c);
-        cf.innerHTML = '<div><b>Mudou desde que você abriu a tela — nada foi gravado.</b> O valor que está no Cofre agora é:</div>' +
+        cf.innerHTML = '<div><b>Mudou desde que você abriu a tela — nada foi gravado.</b> O valor gravado agora é:</div>' +
           '<pre>' + esc(r.valor_atual === '' ? '(vazio)' : r.valor_atual) + '</pre>' +
           '<div><button class="btn" type="button">Usar o valor de agora</button></div>';
         cf.hidden = false;
-        cf.querySelector('button').onclick = function () { refazer(reg.p.chave, r.valor_atual, 'Mostrando o valor que está no Cofre agora. Mude de novo, se quiser.'); };
+        cf.querySelector('button').onclick = function () { refazer(reg.p.chave, r.valor_atual, 'Mostrando o valor gravado agora. Mude de novo, se quiser.'); };
         est.textContent = ''; btS.disabled = false;
         return;
       }
       if (r && r.codigo === 'token') { abrirPortao('Token recusado. Esta tela aceita só o token de Configurações do Ricardo.'); return; }
       est.className = 'estado erro';
-      est.textContent = 'Não gravou: ' + ((r && r.error) || 'o Cofre respondeu sem dizer por quê') + '.';
+      est.textContent = 'Não gravou: ' + ((r && r.error) || 'o servidor respondeu sem dizer por quê') + '.';
       btS.disabled = false;
     }).catch(function (e) {
       est.className = 'estado erro';
-      est.textContent = 'Sem resposta do Cofre (' + ((e && e.message) || e) + '). Pode ter gravado ou não: toque em "Reler do Cofre" antes de tentar de novo.';
+      est.textContent = 'Sem resposta do servidor (' + ((e && e.message) || e) + '). Pode ter gravado ou não: toque em "Reler" antes de tentar de novo.';
       btS.disabled = false;
     });
   }
@@ -586,8 +586,8 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
   /* ══════════════════════════════ histórico ══════════════════════════════ */
   function abrirHistorico() {
     var m = $('#painel');
-    m.innerHTML = '<div class="month-head"><span class="eyebrow">Configurações · Cofre do Parque</span><h2>Histórico</h2>' +
-      '<p class="sub">As últimas 50 mudanças feitas por esta tela (aba Config_Historico do Cofre). Mudança feita direto na planilha não aparece aqui.</p></div>' +
+    m.innerHTML = '<div class="month-head"><span class="eyebrow">Configurações · Parque da Saudade</span><h2>Histórico</h2>' +
+      '<p class="sub">As últimas 50 mudanças feitas por esta tela Mudança feita direto na planilha não aparece aqui.</p></div>' +
       '<p class="nota-fina" id="histMsg">Lendo…</p><div id="histTab"></div>';
     chamar('historico', {}, 3).then(function (r) {
       if (!r || !r.ok) { $('#histMsg').textContent = 'Não li o histórico: ' + ((r && r.error) || 'sem resposta'); return; }
@@ -598,7 +598,7 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
           return '<tr><td>' + esc(l.quando) + '</td><td>' + esc(l.quem) + '</td><td><code>' + esc(l.chave) + '</code></td>' +
                  '<td class="val">' + esc(l.antes) + '</td><td class="val">' + esc(l.depois) + '</td></tr>';
         }).join('') + '</tbody></table></div>';
-    }).catch(function (e) { $('#histMsg').textContent = 'Sem resposta do Cofre: ' + ((e && e.message) || e); });
+    }).catch(function (e) { $('#histMsg').textContent = 'Sem resposta do servidor: ' + ((e && e.message) || e); });
   }
 
   carregar();

@@ -191,7 +191,7 @@
 <div class="gate" id="gate" hidden>
   <div class="gatebox">
     <h2>Estoque de Jazigos</h2>
-    <p>Parque da Saudade. O VGV das quadras à venda, lido do Facilita pelo Cofre. Pede o
+    <p>Parque da Saudade. O VGV das quadras à venda, lido do Facilita. Pede o
        token do Painel Comercial — você digita uma vez e ele fica guardado neste aparelho.</p>
     <input id="tk" type="password" autocomplete="off" spellcheck="false" placeholder="token" aria-label="Token de acesso">
     <button id="btEntrar" type="button">Entrar</button>
@@ -201,7 +201,7 @@
 
 <div class="wrap">
   <a class="voltar" href="../">← Painel Comercial</a>
-  <div class="grid" id="tela"><p class="espera">Lendo o estoque no Cofre…</p></div>
+  <div class="grid" id="tela"><p class="espera">Lendo o estoque do Facilita…</p></div>
   <div class="selofim" id="selofim" hidden></div>
 </div>
 
@@ -243,7 +243,7 @@
   function pedir(corpo) {
     return new Promise(function (resolve, reject) {
       var venceu = false;
-      var t = setTimeout(function () { venceu = true; reject(new Error('o Cofre não respondeu em 60 s')); }, 60000);
+      var t = setTimeout(function () { venceu = true; reject(new Error('o Facilita não respondeu em 60 s')); }, 60000);
       fetch(API + '?app=estoque-vgv&fn=dados', { method: 'POST', body: corpo, cache: 'no-store' })
         .then(function (r) { return r.json(); })
         .then(function (j) { if (!venceu) { clearTimeout(t); resolve(j); } })
@@ -259,7 +259,7 @@
     var token = '';
     try { token = localStorage.getItem(CHAVE_TOKEN) || ''; } catch (e) {}
     if (!token) { abrirPortao(''); return; }
-    $('tela').innerHTML = '<p class="espera">Lendo o estoque no Cofre…</p>';
+    $('tela').innerHTML = '<p class="espera">Lendo o estoque do Facilita…</p>';
     var corpo = JSON.stringify({ token: token });
     /* uma nova tentativa quando a falha não é de token: a entrega do /exec soluça em dia ruim */
     pedir(corpo)
@@ -273,19 +273,19 @@
             abrirPortao('Token recusado. Confira e digite de novo.');
             return;
           }
-          bloqueia('O Cofre respondeu, mas sem dado.', '<p>' + esc(err) + '</p>');
+          bloqueia('O Facilita respondeu, mas sem dado.', '<p>' + esc(err) + '</p>');
           return;
         }
         if (!r.quadras || !r.geral || !r.grupos) {
           bloqueia('Esta página não vai desenhar: a rota respondeu em outro formato.',
-            '<p>O Cofre pode estar servindo uma implantação anterior a 03/10/2026. O conserto é publicar o Cofre ' +
+            '<p>O servidor pode estar numa versão anterior a 03/10/2026. O conserto é publicar o servidor ' +
             '(Implantar ▸ Gerenciar implantações ▸ ✏️ ▸ Nova versão).</p>');
           return;
         }
         desenhar(r);
       })
       .catch(function (e) {
-        bloqueia('Não consegui falar com o Cofre.',
+        bloqueia('Não consegui ler os dados do Facilita.',
           '<p>' + esc(e.message || e) + '</p><p>Nenhum número aparece enquanto isso: tela vazia é melhor ' +
           'que tela desatualizada com cara de atual.</p>');
       });
@@ -316,7 +316,7 @@
     var hs = horasDesde(r.atualizado_em);
     if (hs === null) {
       h += '<div class="tarja amarela"><div class="t">O estoque chegou sem data.</div><p>Não dá para saber se ' +
-           'estes números são de hoje. <em>(chave <code>facilita.estoque_atualizado</code> vazia na Config do Cofre.)</em></p></div>';
+           'estes números são de hoje. <em>(chave <code>facilita.estoque_atualizado</code> vazia na configuração.)</em></p></div>';
     } else if (hs >= 48) {
       h += '<div class="tarja amarela"><div class="t">O estoque tem mais de 48 horas.</div><p>É de <b>' + esc(dm(r.atualizado_em)) +
            '</b>, ' + Math.floor(hs / 24) + ' dias atrás: certo para aquele instante, provavelmente errado para hoje. ' +
@@ -341,7 +341,7 @@
         mi(T.vendido.vgv) + '</b> e restam <b>' + mi(T.estoque.vgv) + '</b> de VGV Estoque em <b>' + n(T.estoque.n) +
         ' jazigos</b>: <b>' + mi(C.estoque.vgv) + '</b> em quadra construída e <b>' + mi(A.estoque.vgv) +
         '</b> em quadra a construir.</p>' +
-      '<p class="escopo"><b>Quadras:</b> ' + nomes(Q) + '. <b>Fonte:</b> Facilita, pelo Cofre. <b>Total</b> é a quadra ' +
+      '<p class="escopo"><b>Quadras:</b> ' + nomes(Q) + '. <b>Fonte:</b> Facilita. <b>Total</b> é a quadra ' +
         'inteira, <b>Vendido</b> é o jazigo vendido ou reservado e <b>Estoque</b> é o jazigo disponível.</p>' +
     '</div>';
 

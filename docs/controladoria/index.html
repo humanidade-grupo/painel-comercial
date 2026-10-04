@@ -1662,7 +1662,7 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
 
     if (hV === null) {
       aviso('As vendas chegaram sem data.', '<p>Não dá para saber de quando é a cópia do Facilita ' +
-        '(<code>facilita.ultima_importacao</code> vazio na Config do Cofre).</p>', true);
+        '(<code>facilita.ultima_importacao</code> vazio na configuração).</p>', true);
     } else if (hV >= HORAS_VELHO_VENDAS) {
       aviso('A cópia das vendas tem mais de ' + plural(HORAS_VELHO_VENDAS, 'hora', 'horas') + '.',
         '<p>É de <b>' + esc(fmtCarimbo(r.carimbo_vendas)) + '</b>. Venda fechada depois disso ainda não ' +
@@ -1671,7 +1671,7 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
     }
     if (!D4OK) {
       var porque = d4.estado === 'vazia' ? 'a aba <code>Contratos_D4Sign</code> está vazia'
-        : d4.estado === 'ausente' ? 'a aba <code>Contratos_D4Sign</code> não existe no Cofre'
+        : d4.estado === 'ausente' ? 'o espelho da D4Sign (<code>Contratos_D4Sign</code>) não existe'
         : 'a aba <code>Contratos_D4Sign</code> não pôde ser lida: ' + esc(d4.erro || '?');
       aviso('Sem leitura dos contratos: ' + (d4.estado === 'vazia' ? 'o espelho da D4Sign está vazio.' : 'o espelho da D4Sign não foi lido.'),
         '<p>Motivo: ' + porque + '. A trilha de contrato e as pernas de assinatura ficam em branco — ' +
@@ -1696,7 +1696,7 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
         '<b>daquele instante</b>.</p>', true);
     }
     if (D4OK && !CORTE) {
-      aviso('Sem data de corte da D4Sign.', '<p>A Config do Cofre não tem <code>d4sign.corte</code> (AAAA-MM-DD). ' +
+      aviso('Sem data de corte da D4Sign.', '<p>A configuração não tem <code>d4sign.corte</code> (AAAA-MM-DD). ' +
         'Sem ela, venda anterior ao início do cofre da D4Sign aparece como <b>sem contrato</b>, o que não é verdade.</p>', true);
     }
     // (22/09) boletos: o corte — os avisos do carnê saem de avisosDoCarne, no fim, porque desde a
@@ -1838,7 +1838,7 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
     } else if (r.boletos && r.corte_boleto_bruto) {
       out.push({ t: 'O corte do boleto está digitado errado.', c: corteTorto(r.corte_boleto_bruto), a: true });
     } else if (r.boletos && !CORTE_BOL) {
-      out.push({ t: 'Corte do boleto não definido.', a: true, c: '<p>A Config do Cofre não tem <code>boleto.corte</code> (AAAA-MM-DD). ' +
+      out.push({ t: 'Corte do boleto não definido.', a: true, c: '<p>A configuração não tem <code>boleto.corte</code> (AAAA-MM-DD). ' +
         'Sem ela a coluna Boleto <b>não calcula atraso nenhum</b> — senão todo boleto antigo, controlado na planilha, apareceria vencido.</p>' });
     }
     return out;
@@ -2948,7 +2948,7 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
   function corteDe(r) { var c = String((r && r.corte_boleto) || ''); return /^\d{4}-\d{2}-\d{2}$/.test(c) ? c : ''; }
   /* (24/09) boleto.corte digitado mas que não é data: o Cofre manda o que está escrito, e a tela diz. */
   function corteTorto(bruto) {
-    return '<p>A Config do Cofre tem <code>boleto.corte</code> = “' + esc(bruto) + '”, que não é uma data — use ' +
+    return '<p>A configuração tem <code>boleto.corte</code> = “' + esc(bruto) + '”, que não é uma data — use ' +
       'AAAA-MM-DD (ex.: 2026-09-25). Enquanto isso a tela <b>não calcula atraso nenhum</b>. Avise o Ricardo.</p>';
   }
   function nT(it) { return it.parcela + '/' + it.total; }
@@ -3099,7 +3099,7 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
     $('#avisosB').innerHTML = '';
     sinoFonte('b', r.corte_boleto_bruto ? [{ t: 'O corte do boleto está digitado errado.', a: true, c: corteTorto(r.corte_boleto_bruto) }]
       : CORTE_BOL ? [] : [{ t: 'Corte do boleto não definido.', a: true,
-          c: '<p>A Config do Cofre não tem <code>boleto.corte</code> (AAAA-MM-DD, o dia em que a Ponte passou a registrar os envios). ' +
+          c: '<p>A configuração não tem <code>boleto.corte</code> (AAAA-MM-DD, o dia em que a Ponte passou a registrar os envios). ' +
              'Sem ela a tela <b>não calcula atraso nenhum</b> — senão todo boleto antigo, controlado na planilha, apareceria vencido.</p>' }]);
     var cf = String(r.corte_facilita || '');
     var dia = quando(cf); if (dia) dia.setDate(dia.getDate() + 1);

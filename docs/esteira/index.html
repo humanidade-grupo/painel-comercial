@@ -735,7 +735,7 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
       };
       var geral = setTimeout(function () {
         if (fim) return; acabar();
-        reject(new Error('o Cofre não respondeu em ' + (PRAZO_TOTAL / 1000) + 's (' + lancados + ' pedidos' +
+        reject(new Error('o Facilita não respondeu em ' + (PRAZO_TOTAL / 1000) + 's (' + lancados + ' pedidos' +
                          (ultimoErro ? '; o último: ' + ultimoErro : '') + ')'));
       }, PRAZO_TOTAL);
       var falhou = function (msg) {
@@ -770,7 +770,7 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
   function esperaTexto(base) {
     return function (s, n) {
       var el = $('#avisos .espera'); if (!el) return;
-      el.textContent = base + ' ' + s + ' s' + (n > 1 ? ' · ' + n + 'º pedido (o Cofre está demorando a responder)' : '');
+      el.textContent = base + ' ' + s + ' s' + (n > 1 ? ' · ' + n + 'º pedido (o Facilita está demorando a responder)' : '');
     };
   }
 
@@ -1030,14 +1030,14 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
             abrirPortao('Token recusado. Confira e digite de novo.');
             return;
           }
-          bloqueia('O Cofre respondeu, mas sem dado.', '<p>' + esc(err) + '</p>');
+          bloqueia('O Facilita respondeu, mas sem dado.', '<p>' + esc(err) + '</p>');
           return;
         }
         montar(r);
         carregarOrigem(token);   // extra e isolada: falha dela nao derruba a pagina
       })
       .catch(function (e) {
-        bloqueia('Não consegui falar com o Cofre.',
+        bloqueia('Não consegui ler os dados do Facilita.',
           '<p>' + esc(e.message || e) + '</p><p>Nenhum número aparece enquanto isso: tela vazia é ' +
           'melhor que tela desatualizada com cara de atual.</p>' +
           '<button class="denovo" type="button">Tentar de novo</button>');
@@ -1058,14 +1058,14 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
     if (typeof r.truncado === 'undefined') {
       bloqueia('Esta página não vai desenhar: a rota não diz se cortou a resposta.',
         '<p>O <code>?app=leads&amp;fn=list</code> respondeu <b>sem o campo <code>truncado</code></b>. ' +
-        'O Cofre está servindo uma implantação anterior a 30/08.</p>' +
-        '<p><b>O conserto é republicar o Cofre</b> — Implantar ▸ Gerenciar implantações ▸ ✏️ ▸ ' +
+        'O servidor está numa versão anterior a 30/08.</p>' +
+        '<p><b>O conserto é republicar o servidor</b> — Implantar ▸ Gerenciar implantações ▸ ✏️ ▸ ' +
         'Nova versão, mantendo a URL.</p>');
       return;
     }
     if (r.truncado === true) {
       bloqueia('Esta página não vai desenhar: a resposta veio cortada.',
-        '<p>O Cofre devolveu <b>' + num(r.n) + '</b> linhas de <b>' + num(r.total_aba) +
+        '<p>O Facilita devolveu <b>' + num(r.n) + '</b> linhas de <b>' + num(r.total_aba) +
         '</b> na aba. Toda conta abaixo sairia sobre um pedaço do funil, <b>com cara de completa</b>.</p>' +
         '<p>Aumente o teto em <code>Coletor.gs</code> (<code>LEADS_LIST_MAX</code>) e republique.</p>');
       return;
@@ -1092,7 +1092,7 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
       tarja('Os dados chegaram sem data.',
         '<p>A cópia foi lida, mas o sistema não registrou de quando ela é — não dá para saber se ' +
         'este funil é de hoje ou da semana passada. <em>(<code>leads.ultima_importacao</code> ' +
-        'vazio na <code>Config</code> do Cofre.)</em></p>', true);
+        'vazio na configuração.)</em></p>', true);
     } else if (horas !== null && horas >= 48) {
       tarja('Os dados do funil têm mais de 48 horas.',
         '<p>São de <b>' + esc(carimbo) + '</b>, ' + Math.floor(horas / 24) + ' dias atrás. Os números ' +

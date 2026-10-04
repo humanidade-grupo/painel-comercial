@@ -444,7 +444,7 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
   <div class="gatebox">
     <h2>Retrospectiva do Comercial</h2>
     <p>Parque da Saudade. Esta tela reúne, mês a mês, o que o time respondeu na
-       retrospectiva e os números que o Cofre fechou. Como ela mostra o que cada
+       retrospectiva e os números do Facilita. Como ela mostra o que cada
        vendedor escreveu, pede token — o mesmo do Painel Comercial. Você digita
        uma vez: ele fica guardado neste aparelho.</p>
     <input id="tk" type="password" autocomplete="off" spellcheck="false"
@@ -735,7 +735,7 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
     return new Promise(function (resolve, reject) {
       var venceu = false;
       var t = setTimeout(function () {
-        venceu = true; reject(new Error('o Cofre não respondeu em ' + (ms / 1000) + 's'));
+        venceu = true; reject(new Error('o Facilita não respondeu em ' + (ms / 1000) + 's'));
       }, ms);
       fetch(url, corpo ? { method: 'POST', body: corpo, cache: 'no-store' } : { cache: 'no-store' })
         .then(function (r) { return r.json(); })
@@ -1415,20 +1415,20 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
       a.append(Object.assign(el('p'), { innerHTML:
         'As vendas foram lidas, mas sem a data da última importação do Facilita — não dá para ' +
         'saber se são de hoje ou da semana passada. <em>(chave <code>facilita.ultima_importacao</code> ' +
-        'vazia na Config do Cofre.)</em>' }));
+        'vazia na configuração.)</em>' }));
       p.append(a);
     } else if (HORAS !== null && HORAS >= 48){
       var b = el('div','tarja amarela');
       b.append(el('div','t','Os números têm mais de 48 horas.'));
       b.append(Object.assign(el('p'), { innerHTML:
         'São de <b>' + esc(CARIMBO) + '</b>, ' + Math.floor(HORAS/24) + ' dias atrás. Estão ' +
-        '<b>certos para aquele instante</b> e provavelmente errados para hoje. O Cofre importa ' +
+        '<b>certos para aquele instante</b> e provavelmente errados para hoje. O Painel importa ' +
         'o Facilita a cada 5 minutos; parado há tanto tempo quer dizer que a importação não fecha.' }));
       p.append(b);
     }
     AVISOS.forEach(function (av) {
       var c = el('div','tarja amarela');
-      c.append(el('div','t','Recado do Cofre'));
+      c.append(el('div','t','Recado do sistema'));
       c.append(el('p', null, av));
       p.append(c);
     });
@@ -1690,10 +1690,10 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
       s.append(el('div','resumo-linha', 'Sem as vendas linha a linha — a comissão não aparece.'));
       var t = el('div','tarja amarela');
       t.append(el('div','t', ROTA_SEM_VENDAS ? 'A rota não trouxe o bloco de vendas.'
-                                              : 'O Cofre não serviu as vendas.'));
+                                              : 'As vendas do Facilita não chegaram.'));
       t.append(Object.assign(el('p'), { innerHTML: ROTA_SEM_VENDAS
         ? 'O <code>?app=retrospectiva&amp;fn=dados</code> respondeu <b>sem o bloco <code>vendas</code></b>: ' +
-          'o Cofre está servindo uma implantação anterior a 03/09. <b>O conserto é republicar</b> — ' +
+          'o servidor está numa versão anterior a 03/09. <b>O conserto é republicar</b> — ' +
           'Implantar ▸ Gerenciar implantações ▸ ✏️ ▸ Nova versão. <code>clasp push</code> sozinho não publica.'
         : esc(VENDAS_ERRO) }));
       corpo.append(t);
@@ -1703,7 +1703,7 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
     if (!linhas || !linhas.length){
       s.append(el('span','flag','comissão'));
       s.append(el('div','resumo-linha', 'Nenhuma venda do CRM em ' + nomeMes(id).toLowerCase() + '.'));
-      corpo.append(el('p','nota-fina', 'A aba Vendas_Facilita do Cofre não tem linha para este mês. ' +
+      corpo.append(el('p','nota-fina', 'O Facilita não tem venda para este mês. ' +
         'O importador do CRM roda de hora em hora; a última rodada foi em ' + (VENDAS_CARIMBO || 'data desconhecida') + '.'));
       return;
     }
@@ -1766,10 +1766,10 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
     wrapR.append(tR); corpo.append(wrapR);
 
     corpo.append(Object.assign(el('p','nota-fina'), { textContent:
-      'Prazo em itálico foi DERIVADO de Nº Parcelas (o CRM não tem Condição Pagamento; a coluna saiu do Cofre em 09/09). ' +
+      'Prazo em itálico foi DERIVADO de Nº Parcelas (o CRM não tem Condição Pagamento; a coluna saiu em 09/09). ' +
       '⚠️ na linha não muda a alíquota: diz "confira o contrato" — Nº Parcelas ≤ 2, Fluxo de ' +
       'Pagamento discordando de Nº Parcelas, ou venda acima da tabela (desconto negativo). ' +
-      'Tipo Uso não existe no Cofre e aparece como "—". Meio Pgto é o da 1ª parcela do carnê; em ' +
+      'Tipo Uso não existe no Facilita e aparece como "—". Meio Pgto é o da 1ª parcela do carnê; em ' +
       'itálico quando o importador o inferiu em vez de ler.' }));
 
     /* (b) extrato por vendedor — um bloco expansível por pessoa */
@@ -2323,7 +2323,7 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
     var token = '';
     try { token = localStorage.getItem(CHAVE_TOKEN) || ''; } catch (e) {}
     if (!token) { abrirPortao(''); return; }
-    $('#painel').innerHTML = '<p class="nota-fina">Lendo o Cofre e as respostas do time…</p>';
+    $('#painel').innerHTML = '<p class="nota-fina">Lendo o Facilita e as respostas do time…</p>';
 
     /* Token no CORPO (regra 4). E duas rotas em paralelo: a da Retrospectiva
        (respostas, leitura, linhas da comissão) e a do Executivo, de onde saem os
@@ -2347,13 +2347,13 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
             abrirPortao('Token recusado. Confira e digite de novo.');
             return;
           }
-          bloqueia('O Cofre respondeu, mas sem dado.', '<p>' + esc(err) + '</p>');
+          bloqueia('O Facilita respondeu, mas sem dado.', '<p>' + esc(err) + '</p>');
           return;
         }
         montar(r, res[1]);
       })
       .catch(function (e) {
-        bloqueia('Não consegui falar com o Cofre.',
+        bloqueia('Não consegui ler os dados do Facilita.',
           '<p>' + esc(e.message || e) + '</p><p>Nenhum número aparece enquanto isso: tela vazia é ' +
           'melhor que tela desatualizada com cara de atual.</p>');
       });
@@ -2367,8 +2367,8 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
     if (typeof r.truncado === 'undefined'){
       bloqueia('Esta página não vai desenhar: a rota não diz se cortou a resposta.',
         '<p>O <code>?app=retrospectiva&amp;fn=dados</code> respondeu <b>sem o campo ' +
-        '<code>truncado</code></b>. O Cofre está servindo uma implantação anterior a 31/08.</p>' +
-        '<p><b>O conserto é republicar o Cofre</b> — Implantar ▸ Gerenciar implantações ▸ ✏️ ▸ ' +
+        '<code>truncado</code></b>. O servidor está numa versão anterior a 31/08.</p>' +
+        '<p><b>O conserto é republicar o servidor</b> — Implantar ▸ Gerenciar implantações ▸ ✏️ ▸ ' +
         'Nova versão, mantendo a URL. <code>clasp push</code> sozinho não publica.</p>');
       return;
     }
