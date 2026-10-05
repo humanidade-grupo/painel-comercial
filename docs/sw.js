@@ -290,9 +290,13 @@
    06/09 — aba Docs lendo a pasta base-conhecimento do Drive ao vivo pela rota
    ?app=docs (script.google.com é cross-origin e já passa direto pelo SW; os
    links dos arquivos são drive.google.com, externos, e NÃO entram no cache).
+   05/10 — extratos de comissão em papel timbrado na Retrospectiva: ao emitir,
+   a página lê as fontes do Pocket (/pocket-nps/, MESMA origem — passa por
+   aqui e fica no cache) e o timbrado.css + andorinha do repo ferramentas
+   (raw.githubusercontent.com, cross-origin, passa direto).
    Estratégia: rede primeiro (pega versão nova quando online), cache como
    reserva offline. A cada deploy, bumpar a versão em CACHE. */
-const CACHE = 'painel-comercial-041026-5';
+const CACHE = 'painel-comercial-051026-1';
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(['./'])).then(() => self.skipWaiting()));

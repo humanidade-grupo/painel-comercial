@@ -71,6 +71,26 @@
       alíquota — quando Nº Parcelas ≤ 2 ou o Fluxo de Pagamento discorda dele.
     · Arredonda CADA LINHA a 2 casas; subtotal = soma das linhas arredondadas.
 
+  05/10/2026 — DEMAIS VALORES DO MÊS E OS DOIS EXTRATOS EM PAPEL TIMBRADO.
+  Layout: artefato claude.ai/artifact/XE2jcYDT4453K3QKh9ymst (v2), aprovado pelo
+  Ricardo em 05/10 — lido pela ferramenta de artefatos, com os oito "assumidos"
+  confirmados. Desde esta data ele é REGISTRO (regra 8), não referência.
+    · Contrato · Bônus Meta · Bônus Super Meta · Campanha de incentivo · Reembolso,
+      por vendedor e por mês, gravados pela rota POST ?app=comissao (aba
+      Comissao_Lancamentos do Cofre, só-acrescenta) e lidos pelo bloco
+      `lancamentos` da rota da Retrospectiva. EXCEÇÃO DECLARADA ao "o Painel nunca
+      escreve", ao lado da tela de Configurações: grava SÓ com `hub_token_config`
+      (a senha das Configurações, do Ricardo); o token de gestão é recusado. Sem
+      ela no aparelho, a lista aparece e o formulário não.
+    · Total do mês = comissão + demais valores. A régua e a conta da comissão NÃO
+      mudaram — esta tela só soma ao lado.
+    · Extrato geral e individual em PDF, pela impressão do navegador, no modelo
+      do ferramentas/timbrado/ (CSS lido de lá na hora; fontes do Pocket). Ver
+      "OS EXTRATOS EM PAPEL TIMBRADO" no script.
+    · O que a implementação faz diferente do artefato: sem as etiquetas "novo";
+      o mês em andamento diz "parcial até DD/MM" no subtítulo e na abertura; a
+      tabela "Lançamentos do mês" some do extrato geral quando não há linha.
+
   ═══ MECÂNICA (copiada da Esteira do Funil, que é o padrão da casa) ═══
   Token `hub_token_gestao` no localStorage, o mesmo do Painel — quem já usa não
   digita nada. Sem token, nenhum número aparece. O carimbo exibido é o da FOTO
@@ -293,6 +313,50 @@ td.neg{color:var(--warn)}
             font-size:13px; color:var(--text-2); font-variant-numeric:tabular-nums}
 .vend-total b{color:var(--s1b); font-size:16px}
 
+/* -- Demais valores do mês e extratos (05/10) — artefato XE2jcYDT, v2 ------
+   As seis colunas novas do resumo, o bloco de lançamentos de cada vendedor e
+   os botões de extrato. A tabela continua rolando DENTRO do .table-wrap. */
+.comissao-botoes{display:flex; gap:8px; flex-wrap:wrap; align-items:center}
+.btn-export.destaque{border-color:var(--s1); color:var(--s1b)}
+table.resumo-comissao{min-width:980px}
+th.nv{color:var(--s1b)}
+td.forte{font-weight:800}
+b.soma-linha{font-size:inherit; color:var(--text-1)}
+.lanc-faixa{display:flex; flex-wrap:wrap; align-items:center; gap:8px 12px; margin:14px 0}
+.lanc-faixa .nota-fina{margin:0}
+.lanc-bloco{border-top:1px solid var(--edge2); margin-top:14px; padding-top:12px;
+            display:flex; flex-direction:column; gap:10px; min-width:0}
+.lanc-h{font-size:13.5px; font-weight:800; color:var(--text-1)}
+table.lanc-tab{min-width:560px}
+table.lanc-tab td.obs{white-space:normal; min-width:220px; color:var(--text-2)}
+table.lanc-tab td.acoes{text-align:right; white-space:nowrap}
+.lanc-tipo{display:inline-block; border:1px solid var(--edge2); border-radius:999px; padding:2px 10px;
+           font-size:11.5px; font-weight:700; white-space:nowrap}
+.lanc-link{appearance:none; background:none; border:0; color:var(--text-3); text-decoration:underline;
+           font:12px/1.2 var(--f-body); cursor:pointer; padding:0 0 0 10px}
+.lanc-link:hover{color:var(--s1b)}
+.lanc-link:focus-visible{outline:2px solid var(--s1); outline-offset:2px}
+.lanc-form{display:grid; grid-template-columns:minmax(0,190px) minmax(0,130px) minmax(0,1fr) auto;
+           gap:10px; align-items:start; border:1px solid var(--edge2); border-radius:12px; padding:12px;
+           background:var(--card2)}
+.lanc-campo{display:flex; flex-direction:column; gap:4px; min-width:0}
+.lanc-campo label{font-size:10.5px; letter-spacing:.05em; text-transform:uppercase; color:var(--text-3); font-weight:700}
+.lanc-campo select,.lanc-campo input,.lanc-campo textarea{font:13px/1.4 var(--f-body); color:var(--text-1);
+           background:var(--surface-1); border:1px solid var(--edge2); border-radius:8px; padding:8px 10px;
+           width:100%; color-scheme:dark; resize:vertical}
+.lanc-campo select:focus-visible,.lanc-campo input:focus-visible,.lanc-campo textarea:focus-visible{outline:2px solid var(--s1); outline-offset:1px}
+.lanc-dica{font-size:11.5px; color:var(--text-3)}
+.lanc-acoes{display:flex; flex-direction:column; gap:6px; align-items:flex-start; align-self:end}
+.lanc-status{grid-column:1 / -1}
+.lanc-soma{display:flex; flex-wrap:wrap; gap:4px 14px; font-size:13px; color:var(--text-2);
+           font-variant-numeric:tabular-nums; border-top:1px solid var(--grid); padding-top:10px}
+.lanc-soma b{color:var(--s1b)}
+.lanc-aviso{margin:0 0 12px; font-size:12.5px; color:var(--warn)}
+@media (max-width: 1100px){
+  .lanc-form{grid-template-columns:1fr 1fr}
+  .lanc-campo.largo,.lanc-acoes{grid-column:1 / -1}
+}
+
 /* -- A leitura e o plano, SEM EDIÇÃO ------------------------------------
    No artefato isto era formulário. Aqui é texto: o Painel não escreve, e o
    `white-space:pre-wrap` preserva as quebras de linha de quem colou. */
@@ -387,7 +451,9 @@ td.neg{color:var(--warn)}
 .perguntas[hidden],.empty[hidden],.steps[hidden],.linha-aviso[hidden],.resumo-linha[hidden],
 .gate[hidden],.dobra[hidden],.dobra > summary[hidden],section.block[hidden],
 section.block > header[hidden],.comissao-head[hidden],.btn-export[hidden],
-.vend-total[hidden]{display:none}
+.vend-total[hidden],.comissao-botoes[hidden],.lanc-faixa[hidden],.lanc-bloco[hidden],
+.lanc-tipo[hidden],.lanc-form[hidden],.lanc-campo[hidden],.lanc-acoes[hidden],.lanc-soma[hidden],
+.lanc-link[hidden]{display:none}
 
 @media (max-width: 860px){
   /* O trilho de meses não cabe ao lado do conteúdo em tela estreita: vira
@@ -520,6 +586,18 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
      que não conseguiu — nunca fica morto em silêncio. */
   var XLSX_URL = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
 
+  /* (05/10) Os demais valores do mês. Os cinco tipos com ESTA grafia e NESTA
+     ordem (é a lista fechada do servidor, ComissaoLancamentos.gs). Nunca "Outros". */
+  var LANC_TIPOS = ['Contrato', 'Bônus Meta', 'Bônus Super Meta', 'Campanha de incentivo', 'Reembolso'];
+  var LANC_TIPO_CURTO = { 'Campanha de incentivo': 'Campanha' };   // só o cabeçalho da tabela da tela
+  var LANC_OBS_OBRIGATORIA = ['Campanha de incentivo', 'Reembolso'];
+  /* Gravar é só com a senha das Configurações (a do Ricardo) — nunca com o hub_token_gestao. */
+  var CHAVE_TOKEN_CONFIG = 'hub_token_config';
+  /* O timbrado: UM modelo só, lido de onde ele mora (ver emitirExtrato). */
+  var TIMBRADO_CSS_URL = 'https://raw.githubusercontent.com/humanidade-grupo/ferramentas/main/timbrado/timbrado.css';
+  var TIMBRADO_LOGO_URL = 'https://raw.githubusercontent.com/humanidade-grupo/ferramentas/main/timbrado/andorinha.png';
+  var POCKET_FONTES_URL = 'https://humanidade-grupo.github.io/pocket-nps/';
+
   /* As 13 travas do formulário, na ordem em que ele as oferece. Elas vêm numa
      célula só, separadas por vírgula — e vários rótulos TÊM vírgula dentro
      ("curioso, sem condição de comprar"). Por isso o casamento é por texto
@@ -558,6 +636,12 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
   var VENDAS_CARIMBO = '';   // quando o importador do CRM rodou pela última vez
   var VENDAS_ERRO = null;    // a rota devolveu o bloco, mas sem linha e com motivo
   var ROTA_SEM_VENDAS = false; // a rota nem trouxe o bloco: implantação anterior a 03/09
+  var LANC = null;           // (05/10) os demais valores do mês, todos os meses, só os vivos
+  var LANC_ERRO = null;      // a rota trouxe o bloco com motivo (aba ausente, cabeçalho errado)
+  var ROTA_SEM_LANC = false; // a rota nem trouxe o bloco: implantação anterior a 05/10
+  var TRUNCADO = false;      // a guarda do topo — a emissão confere de novo
+  var DOBRAS = {};           // dobras abertas, para o redesenho depois de um lançamento
+  var MSG_REPETIR = {};      // o que o "repetir os contratos" respondeu, por mês
 
   /* ═════════════════════════════ utilidades ═════════════════════════════ */
   var $ = function (s) { return document.querySelector(s); };
@@ -1101,7 +1185,7 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
     ['Data da Venda','Quadra','Jazigo','Vendedor','Cliente','Modalidade','Valor Face',
      'Valor Venda','Nº Parcelas','Fluxo de Pagamento','Forma Pagamento','Condição Pagamento',
      'Origem','Canal','Deal ID','Meio Pgto','Meio origem',
-     'Origem fonte','Origem detalhe','Chegou','Deal Origem'].forEach(function (nome) {
+     'Origem fonte','Origem detalhe','Chegou','Deal Origem','Vendedor curto'].forEach(function (nome) {
       c[nome] = cab.indexOf(nome);
     });
     if (c['Data da Venda'] < 0 || c['Vendedor'] < 0 || c['Valor Venda'] < 0 || c['Modalidade'] < 0) return null;
@@ -1186,6 +1270,9 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
       jazigo: ehMig ? 'migração ← ' + (String(g(l,'Deal Origem')).trim() || '?')
                     : (quadra && jaz) ? quadra + '-' + jaz : (jaz || quadra || '—'),
       vendedor: String(g(l,'Vendedor')).trim() || '—',
+      /* (05/10) o nome canônico (painel.vendedores, o mesmo do Executivo e da meta).
+         Vazio em implantação anterior: aí vale o do Facilita. */
+      vendedorCurto: String(g(l,'Vendedor curto')).trim(),
       cliente: String(g(l,'Cliente')).trim() || '—',
       modalidade: modalidade || '—',
       face: face, venda: venda, desconto: desconto,
@@ -1675,15 +1762,21 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
 
   /* ── Comissão do mês (03/09) — CONFERÊNCIA, não fechamento ─────────────
      Nasce RECOLHIDA. Resumo por vendedor em cima; cada vendedor é um bloco
-     expansível com o extrato de 11 colunas; TOTAL do time ao final. */
+     expansível com o extrato de 11 colunas; TOTAL do time ao final.
+     (05/10) + os DEMAIS VALORES DO MÊS (Contrato, Bônus Meta, Bônus Super Meta,
+     Campanha de incentivo, Reembolso), lançados aqui com a senha das
+     Configurações, e os dois extratos em papel timbrado. Layout: artefato
+     XE2jcYDT4453K3QKh9ymst (v2, aprovado pelo Ricardo em 05/10). */
   function secaoComissao(p, id){
     var d = el('details','dobra comissao');   // fechada de propósito
     var s = el('summary');
     var corpo = el('div','corpo');
     d.append(s, corpo);
+    lembrarDobra(d, 'c:' + id);
     p.append(d);
 
     var linhas = VENDAS && VENDAS[id];
+    var lancMes = (LANC || []).filter(function (l) { return l.mes === id; });
 
     if (ROTA_SEM_VENDAS || VENDAS_ERRO){
       s.append(el('span','flag crit','comissão'));
@@ -1700,7 +1793,8 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
       return;
     }
 
-    if (!linhas || !linhas.length){
+    /* Mês sem venda: só segue adiante se houver lançamento a mostrar ou quem lançar. */
+    if ((!linhas || !linhas.length) && !lancMes.length && !podeLancar()){
       s.append(el('span','flag','comissão'));
       s.append(el('div','resumo-linha', 'Nenhuma venda do CRM em ' + nomeMes(id).toLowerCase() + '.'));
       corpo.append(el('p','nota-fina', 'O Facilita não tem venda para este mês. ' +
@@ -1708,27 +1802,46 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
       return;
     }
 
-    var calc = calcularComissao(linhas);
+    var calc = calcularComissao(linhas || []);
     var tot = calc.total;
+    /* Sem o bloco `lancamentos` (implantação velha) a comissão aparece como antes
+       e nada dos demais valores é inventado. */
+    var comp = ROTA_SEM_LANC ? null : composicao(id, calc);
 
     s.append(el('span','flag ok','comissão'));
     var linha = el('div','resumo-linha');
     linha.append(el('b', null, brl2(tot.valor)), el('span', null, 'no mês'));
     linha.append(el('span', null, '· ' + tot.n + (tot.n === 1 ? ' venda' : ' vendas')));
     linha.append(el('span', null, '· base ' + brlCurto(tot.base)));
+    if (comp){
+      var lt = el('span', null, '· total com os demais valores ');
+      lt.append(el('b','soma-linha', brl2(comp.tot.total)));
+      linha.append(lt);
+    }
     if (tot.alertas) linha.append(el('span', null, '· ' + tot.alertas + (tot.alertas === 1 ? ' linha' : ' linhas') + ' para conferir ⚠️'));
     s.append(linha);
 
-    /* O botão vive no cabeçalho do bloco. Está dentro do <summary>, então o
+    /* Os botões vivem no cabeçalho do bloco. Estão dentro do <summary>, então o
        clique precisa NÃO abrir/fechar a dobra. */
+    var botoes = el('div','comissao-botoes');
     var bt = el('button','btn-export','⬇ Exportar para Excel');
     bt.type = 'button';
     var status = el('span','export-status','');
     bt.addEventListener('click', function (e) {
       e.preventDefault(); e.stopPropagation();
-      exportarComissao(id, calc, bt, status);
+      exportarComissao(id, calc, comp, bt, status);
     });
-    s.append(bt);
+    botoes.append(bt);
+    if (comp){
+      var bg = el('button','btn-export destaque','Extrato geral (PDF)');
+      bg.type = 'button';
+      bg.addEventListener('click', function (e) {
+        e.preventDefault(); e.stopPropagation();
+        emitirExtrato('geral', id, comp, null, status);
+      });
+      botoes.append(bg);
+    }
+    s.append(botoes);
 
     var head = el('div','comissao-head');
     head.append(Object.assign(el('p','nota-fina'), { textContent:
@@ -1739,29 +1852,59 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
     head.append(status);
     corpo.append(head);
 
+    if (ROTA_SEM_LANC){
+      var tl = el('div','tarja amarela');
+      tl.append(el('div','t', 'O servidor não trouxe os demais valores do mês.'));
+      tl.append(Object.assign(el('p'), { innerHTML:
+        'O <code>?app=retrospectiva&amp;fn=dados</code> respondeu <b>sem o bloco <code>lancamentos</code></b>: ' +
+        'o servidor está numa versão anterior a 05/10. A comissão abaixo está certa; contrato, bônus, campanha e ' +
+        'reembolso não aparecem e os extratos não saem. <b>O conserto é republicar</b> — ' +
+        'Implantar ▸ Gerenciar implantações ▸ ✏️ ▸ Nova versão.' }));
+      corpo.append(tl);
+    } else if (LANC_ERRO){
+      var te = el('div','tarja amarela');
+      te.append(el('div','t', 'Os demais valores do mês não chegaram.'));
+      te.append(el('p', null, LANC_ERRO));
+      corpo.append(te);
+    }
+
     /* (a) resumo por vendedor — sempre visível ao abrir o bloco */
-    var wrapR = el('div','table-wrap'), tR = el('table');
+    var lista = comp ? comp.lista.filter(function (v) { return v.n || v.lancs.length; }) : calc.porVendedor;
+    var wrapR = el('div','table-wrap'), tR = el('table', comp ? 'resumo-comissao' : null);
     var thR = el('thead'), trR = el('tr');
-    [['Vendedor'],['Vendas',1],['Base total',1],['Comissão',1]].forEach(function (c) {
-      trR.append(el('th', c[1] ? 'num' : null, c[0]));
-    });
+    var colsR = [['Vendedor'],['Vendas',1],['Base total',1],['Comissão',1]];
+    if (comp) colsR = colsR.concat(LANC_TIPOS.map(function (t) { return [LANC_TIPO_CURTO[t] || t, 1, 'nv']; }), [['Total',1,'nv']]);
+    colsR.forEach(function (c) { trR.append(el('th', (c[1] ? 'num' : '') + (c[2] ? ' ' + c[2] : ''), c[0])); });
     thR.append(trR); tR.append(thR);
     var tbR = el('tbody');
-    calc.porVendedor.forEach(function (v) {
+    lista.forEach(function (v) {
       var r = el('tr');
-      r.append(el('td', null, v.quem + (v.alertas ? ' ' : '')));
+      r.append(el('td', null, v.quem + (v.alertas || v.semDono ? ' ' : '')));
       if (v.alertas){
         var ic = el('span','aviso-icone','⚠️');
         ic.title = v.alertas + (v.alertas === 1 ? ' linha para conferir' : ' linhas para conferir');
         r.firstChild.append(ic);
       }
+      if (v.semDono){
+        var ic2 = el('span','aviso-icone','⚠️');
+        ic2.title = 'Lançamento com nome que não casa com nenhum vendedor do mês nem com a meta — confira a grafia.';
+        r.firstChild.append(ic2);
+      }
       r.append(el('td','num', String(v.n)), el('td','num', brl2(v.base)), el('td','num', brl2(v.valor)));
+      if (comp){
+        LANC_TIPOS.forEach(function (t) { r.append(el('td','num nv', brlOuTraco(v.porTipo[t]))); });
+        r.append(el('td','num nv forte', brl2(v.total)));
+      }
       tbR.append(r);
     });
     tR.append(tbR);
     var tfR = el('tfoot'), trT = el('tr','total-time');
     trT.append(el('td', null, 'TOTAL do time'), el('td','num', String(tot.n)),
                el('td','num', brl2(tot.base)), el('td','num', brl2(tot.valor)));
+    if (comp){
+      LANC_TIPOS.forEach(function (t) { trT.append(el('td','num', brlOuTraco(comp.tot.porTipo[t]))); });
+      trT.append(el('td','num', brl2(comp.tot.total)));
+    }
     tfR.append(trT); tR.append(tfR);
     wrapR.append(tR); corpo.append(wrapR);
 
@@ -1770,17 +1913,52 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
       '⚠️ na linha não muda a alíquota: diz "confira o contrato" — Nº Parcelas ≤ 2, Fluxo de ' +
       'Pagamento discordando de Nº Parcelas, ou venda acima da tabela (desconto negativo). ' +
       'Tipo Uso não existe no Facilita e aparece como "—". Meio Pgto é o da 1ª parcela do carnê; em ' +
-      'itálico quando o importador o inferiu em vez de ler.' }));
+      'itálico quando o importador o inferiu em vez de ler.' +
+      (comp ? ' Contrato, bônus, campanha e reembolso vêm dos lançamentos de cada vendedor, logo abaixo; ' +
+              'o total do mês é comissão + demais valores. Os ⚠️ ficam só na tela: não vão para o extrato.' : '') }));
+
+    /* (a2) repetir os contratos do mês anterior — só no aparelho da senha das Configurações */
+    if (comp && podeLancar() && !LANC_ERRO){
+      var faixa = el('div','lanc-faixa');
+      var br = el('button','btn-export','↻ Repetir os contratos de ' + MESES_PT[parseInt(mesAnterior(id).split('-')[1],10)-1].toLowerCase());
+      br.type = 'button';
+      var stR = el('span','export-status', MSG_REPETIR[id] || '');
+      br.addEventListener('click', function () { repetirContratos(id, br, stR); });
+      faixa.append(br, el('span','nota-fina', 'Copia o Contrato de cada vendedor do mês anterior, só para quem ainda não tem ' +
+        'Contrato neste mês — nunca sobrescreve. Depois é só ajustar quem mudou.'), stR);
+      corpo.append(faixa);
+    }
 
     /* (b) extrato por vendedor — um bloco expansível por pessoa */
-    calc.porVendedor.forEach(function (v) {
+    var blocos = comp ? comp.lista.slice() : calc.porVendedor;
+    if (comp && podeLancar()) blocos = blocos.concat(comp.soMeta);
+    blocos.forEach(function (v) {
       var dv = el('details','dobra q vend');
+      lembrarDobra(dv, 'v:' + id + ':' + normNome(v.quem));
       var sv = el('summary');
       sv.append(el('span','q-tema','👤 ' + v.quem));
-      sv.append(el('span','q-conta', v.n + (v.n === 1 ? ' venda' : ' vendas') + '  ·  ' + brl2(v.valor)));
+      sv.append(el('span','q-conta', v.n + (v.n === 1 ? ' venda' : ' vendas') + '  ·  comissão ' + brl2(v.valor) +
+                                     (comp ? '  ·  total ' + brl2(v.total) : '')));
+      var stV = el('span','export-status','');
+      if (comp && (v.n || v.lancs.length)){
+        var bi = el('button','btn-export destaque','Extrato individual (PDF)');
+        bi.type = 'button';
+        bi.addEventListener('click', function (e) {
+          e.preventDefault(); e.stopPropagation();
+          emitirExtrato('individual', id, comp, v, stV);
+        });
+        sv.append(bi);
+      }
       dv.append(sv);
       var cv = el('div','corpo');
-      cv.append(tabelaExtrato(v));
+      if (stV) cv.append(stV);
+      if (v.semDono){
+        cv.append(el('p','lanc-aviso', '⚠️ "' + v.quem + '" não casa com nenhum vendedor que vendeu neste mês nem com a meta ' +
+          'do mês. O lançamento não some: aparece aqui e no extrato geral. Confira a grafia do nome.'));
+      }
+      if (v.n) cv.append(tabelaExtrato(v));
+      else cv.append(el('p','nota-fina', 'Nenhuma venda no mês.'));
+      if (comp) cv.append(blocoDemais(id, v));
       dv.append(cv);
       corpo.append(dv);
     });
@@ -1792,7 +1970,279 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
     vt.append(el('span', null, 'Desconto ' + brl2(tot.desconto)));
     var vb = el('span'); vb.append(el('span', null, 'Comissão '), el('b', null, brl2(tot.valor)));
     vt.append(vb);
+    if (comp){
+      vt.append(el('span', null, 'Demais valores ' + brl2(comp.tot.demais)));
+      var vtt = el('span'); vtt.append(el('span', null, 'Total do mês '), el('b', null, brl2(comp.tot.total)));
+      vt.append(vtt);
+    }
     corpo.append(vt);
+  }
+
+  /* Estado aberto/fechado das dobras sobrevive ao redesenho depois de um lançamento. */
+  function lembrarDobra(d, chave){
+    if (DOBRAS[chave]) d.open = true;
+    d.addEventListener('toggle', function () { DOBRAS[chave] = d.open; });
+  }
+  function repintar(){
+    var y = window.scrollY;
+    pintar();
+    window.scrollTo(0, y);
+  }
+
+  /* ══════════ DEMAIS VALORES DO MÊS (05/10) ══════════
+     O bloco `lancamentos` da rota: {id, mes, vendedor, tipo, valor, observacao,
+     criado_em}, só os vivos. A tela soma; o servidor só guarda. */
+  function lerLancamentos(bloco){
+    if (!bloco || !bloco.colunas) return [];
+    var c = {};
+    ['id','mes','vendedor','tipo','valor','observacao','criado_em'].forEach(function (k) { c[k] = bloco.colunas.indexOf(k); });
+    return (bloco.linhas || []).map(function (l) {
+      return { id: String(l[c.id]), mes: String(l[c.mes]), vendedor: String(l[c.vendedor] || '').trim(),
+               tipo: String(l[c.tipo]), valor: round2(Number(l[c.valor]) || 0),
+               observacao: String(l[c.observacao] == null ? '' : l[c.observacao]).trim(),
+               criado_em: String(l[c.criado_em] || '') };
+    });
+  }
+
+  var normNome = function (s) {
+    return String(s == null ? '' : s).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
+  };
+  var brlOuTraco = function (n) { return n ? brl2(n) : '—'; };
+
+  function podeLancar(){
+    try { return !!localStorage.getItem(CHAVE_TOKEN_CONFIG); } catch (e) { return false; }
+  }
+
+  /* Comissão + lançamentos, por vendedor. O nome do lançamento é o mesmo nome
+     curto que a comissão já usa para agrupar (a coluna Vendedor do Facilita).
+     Quem tem lançamento e não vendeu aparece; lançamento cujo nome não casa nem
+     com quem vendeu nem com a meta do mês NUNCA some: vira linha própria, com ⚠️. */
+  function composicao(id, calc){
+    var metaNomes = Object.keys((METAS_ROTA[id] && METAS_ROTA[id].vendedor) || {});
+    var naMeta = {};
+    metaNomes.forEach(function (n) { naMeta[normNome(n)] = n; });
+    var por = {}, ordem = [];
+    var preparar = function (v, semVenda) {
+      v.porTipo = {}; v.lancs = []; v.demais = 0; v.semVenda = semVenda; v.semDono = false;
+      return v;
+    };
+    /* Agrupa pelo nome CANÔNICO (o da meta), não pelo do Facilita: "Jaime Batista
+       de Almeida Júnior" e a migração lançada como "Jaime" são a mesma pessoa e o
+       mesmo extrato. Só junta grupos — cada linha e a régua continuam as mesmas. */
+    calc.porVendedor.forEach(function (v) {
+      var canon = (v.linhas[0] && v.linhas[0].vendedorCurto) || v.quem;
+      var k = normNome(canon);
+      if (!por[k]){
+        por[k] = preparar(Object.assign({}, v, { quem: canon, linhas: v.linhas.slice() }), false);
+        ordem.push(k);
+        return;
+      }
+      var a = por[k];
+      a.n += v.n; a.base = round2(a.base + v.base); a.desconto = round2(a.desconto + v.desconto);
+      a.valor = round2(a.valor + v.valor); a.alertas += v.alertas;
+      a.linhas = a.linhas.concat(v.linhas).sort(function (x, y) { return x.data < y.data ? -1 : x.data > y.data ? 1 : 0; });
+    });
+    (LANC || []).filter(function (l) { return l.mes === id; }).forEach(function (l) {
+      var k = normNome(l.vendedor);
+      if (!por[k]){
+        por[k] = preparar({ quem: l.vendedor, n:0, base:0, desconto:0, valor:0, linhas:[], alertas:0 }, true);
+        por[k].semDono = !naMeta.hasOwnProperty(k);
+        ordem.push(k);
+      }
+      por[k].lancs.push(l);
+      por[k].porTipo[l.tipo] = round2((por[k].porTipo[l.tipo] || 0) + l.valor);
+      por[k].demais = round2(por[k].demais + l.valor);
+    });
+    var lista = ordem.map(function (k) {
+      var v = por[k];
+      v.total = round2(v.valor + v.demais);
+      v.lancs.sort(function (a, b) {
+        return LANC_TIPOS.indexOf(a.tipo) - LANC_TIPOS.indexOf(b.tipo) || (a.criado_em < b.criado_em ? -1 : 1);
+      });
+      return v;
+    });
+    /* A ordem é a de hoje (comissão decrescente); quem não vendeu vem depois. */
+    lista.sort(function (a, b) { return b.valor - a.valor || b.n - a.n; });
+
+    /* Quem está na meta e não tem nada no mês: só ganha bloco para receber lançamento. */
+    var soMeta = metaNomes.filter(function (n) { return !por[normNome(n)]; }).map(function (n) {
+      var v = preparar({ quem: n, n:0, base:0, desconto:0, valor:0, linhas:[], alertas:0 }, true);
+      v.total = 0; return v;
+    });
+
+    var t = { n: calc.total.n, base: calc.total.base, desconto: calc.total.desconto, valor: calc.total.valor,
+              alertas: calc.total.alertas, porTipo: {}, demais: 0, total: 0, lancs: [] };
+    lista.forEach(function (v) {
+      LANC_TIPOS.forEach(function (tp) { if (v.porTipo[tp]) t.porTipo[tp] = round2((t.porTipo[tp] || 0) + v.porTipo[tp]); });
+      t.demais = round2(t.demais + v.demais);
+      t.total = round2(t.total + v.total);
+      v.lancs.forEach(function (l) { t.lancs.push(l); });
+    });
+    return { lista: lista, soMeta: soMeta, tot: t };
+  }
+
+  /* Lista, formulário e a soma do vendedor. O formulário e os botões Editar e
+     Excluir só existem no aparelho com a senha das Configurações; os outros veem a lista. */
+  function blocoDemais(id, v){
+    var b = el('div','lanc-bloco');
+    b.append(el('div','lanc-h','Demais valores do mês'));
+    var pode = podeLancar() && !LANC_ERRO;
+    var form = null;
+
+    if (v.lancs.length){
+      var w = el('div','table-wrap'), t = el('table','lanc-tab');
+      var th = el('thead'), tr = el('tr');
+      tr.append(el('th', null, 'Tipo'), el('th', null, 'Observação'), el('th','num','Valor'));
+      if (pode) tr.append(el('th'));
+      th.append(tr); t.append(th);
+      var tb = el('tbody');
+      v.lancs.forEach(function (l) {
+        var r = el('tr');
+        r.append(Object.assign(el('td'), {}));
+        r.firstChild.append(el('span','lanc-tipo', l.tipo));
+        var to = el('td','obs');
+        if (l.observacao) to.textContent = l.observacao; else to.append(el('span','vazio-texto','sem observação'));
+        r.append(to, el('td','num', brl2(l.valor)));
+        if (pode){
+          var ta = el('td','acoes');
+          var be = el('button','lanc-link','Editar'); be.type = 'button';
+          be.addEventListener('click', function () { if (form) form.editar(l); });
+          var bx = el('button','lanc-link','Excluir'); bx.type = 'button';
+          bx.addEventListener('click', function () { excluirLancamento(l, bx, form && form.status); });
+          ta.append(be, bx); r.append(ta);
+        }
+        tb.append(r);
+      });
+      t.append(tb); w.append(t); b.append(w);
+    } else {
+      b.append(el('p','nota-fina', 'Nenhum lançamento neste mês.'));
+    }
+
+    if (pode){
+      form = formularioLancamento(id, v);
+      b.append(form.no);
+    }
+
+    var soma = el('div','lanc-soma');
+    soma.append(el('span', null, 'Comissão ' + brl2(v.valor)), el('span', null, '+ demais valores ' + brl2(v.demais)),
+                el('b', null, '= total do mês ' + brl2(v.total)));
+    b.append(soma);
+    return b;
+  }
+
+  function formularioLancamento(id, v){
+    var f = el('form','lanc-form');
+    f.noValidate = true;
+    var uid = 'l' + Math.random().toString(36).slice(2, 8);
+    var campo = function (rot, ctl, largo) {
+      var c = el('div','lanc-campo' + (largo ? ' largo' : ''));
+      var lb = el('label', null, rot); lb.htmlFor = ctl.id = uid + rot.replace(/\W/g, '');
+      c.append(lb, ctl); return c;
+    };
+    var sel = el('select');
+    LANC_TIPOS.forEach(function (t) { var o = el('option', null, t); o.value = t; sel.append(o); });
+    var val = el('input'); val.type = 'text'; val.inputMode = 'decimal'; val.placeholder = '0,00'; val.autocomplete = 'off';
+    var obs = el('textarea'); obs.rows = 2; obs.maxLength = 500;
+    var dica = el('span','lanc-dica', 'Aparece no extrato do vendedor; não escreva CPF nem contato.');
+    var cObs = campo('Observação', obs, true); cObs.append(dica);
+    var bt = el('button','btn-export destaque','Salvar lançamento'); bt.type = 'submit';
+    var cancela = el('button','lanc-link','cancelar edição'); cancela.type = 'button'; cancela.hidden = true;
+    var status = el('span','export-status lanc-status','');
+    var acoes = el('div','lanc-acoes'); acoes.append(bt, cancela);
+    f.append(campo('Tipo', sel), campo('Valor (R$)', val), cObs, acoes, status);
+
+    var editando = null;
+    var obsObrig = function () {
+      var o = LANC_OBS_OBRIGATORIA.indexOf(sel.value) >= 0;
+      obs.placeholder = o ? 'obrigatória: diga do que se trata' : 'opcional';
+    };
+    sel.addEventListener('change', obsObrig); obsObrig();
+    var limpar = function () {
+      editando = null; sel.value = LANC_TIPOS[0]; val.value = ''; obs.value = '';
+      bt.textContent = 'Salvar lançamento'; cancela.hidden = true; obsObrig();
+    };
+    cancela.addEventListener('click', limpar);
+
+    f.addEventListener('submit', function (e) {
+      e.preventDefault();
+      status.classList.remove('erro'); status.textContent = '';
+      var n = numero(val.value);
+      var o = obs.value.replace(/\s+/g, ' ').trim();
+      var erro = '';
+      if (n === null || !(n > 0)) erro = 'Digite um valor maior que zero.';
+      else if (n > 100000) erro = 'Valor acima de R$ 100.000,00 — confira o número.';
+      else if (Math.abs(Math.round(n * 100) - n * 100) > 1e-6) erro = 'O valor tem no máximo duas casas decimais.';
+      else if (!o && LANC_OBS_OBRIGATORIA.indexOf(sel.value) >= 0) erro = 'A observação é obrigatória em ' + sel.value + '.';
+      else if (o.length > 500) erro = 'A observação passa de 500 caracteres.';
+      if (erro){ status.classList.add('erro'); status.textContent = erro; return; }
+      var corpo = { mes: id, vendedor: v.quem, tipo: sel.value, valor: round2(n), observacao: o };
+      if (editando) corpo.id = editando.id;
+      bt.disabled = true; status.textContent = 'gravando…';
+      chamarComissao('salvar', corpo).then(function (j) {
+        if (!j || j.ok !== true) throw new Error(mensagemRecusa(j));
+        aplicarLancamentos(j);
+      }).catch(function (err) {
+        bt.disabled = false; status.classList.add('erro');
+        status.textContent = 'Nada foi gravado: ' + ((err && err.message) || err);
+      });
+    });
+
+    return {
+      no: f, status: status,
+      editar: function (l) {
+        editando = l; sel.value = l.tipo; val.value = nf(l.valor, 2); obs.value = l.observacao;
+        bt.textContent = 'Salvar alteração'; cancela.hidden = false; obsObrig();
+        status.classList.remove('erro'); status.textContent = 'Editando ' + l.tipo + ' de ' + brl2(l.valor) + '.';
+        val.focus();
+      }
+    };
+  }
+
+  function chamarComissao(fn, corpo){
+    var tk = '';
+    try { tk = localStorage.getItem(CHAVE_TOKEN_CONFIG) || ''; } catch (e) {}
+    return comPrazo(API + '?app=comissao&fn=' + fn, 60000, JSON.stringify(Object.assign({ token: tk }, corpo)));
+  }
+  function mensagemRecusa(j){
+    if (!j) return 'o servidor respondeu sem dado';
+    if (j.codigo === 'token') return 'a senha das Configurações deste aparelho foi recusada pelo servidor. ' +
+                                     'Digite-a de novo na tela de Configurações.';
+    return j.error || 'o servidor recusou';
+  }
+  /* Toda gravação devolve o bloco inteiro: a tela troca o que mostra sem reler a rota. */
+  function aplicarLancamentos(j){
+    if (j.lancamentos && !j.lancamentos.erro){ LANC = lerLancamentos(j.lancamentos); LANC_ERRO = null; }
+    repintar();
+  }
+  function excluirLancamento(l, botao, status){
+    if (!confirm('Excluir o lançamento ' + l.tipo + ' de ' + brl2(l.valor) + ' de ' + l.vendedor + '?\n\n' +
+                 'A linha fica no histórico do servidor, marcada como excluída.')) return;
+    botao.disabled = true;
+    chamarComissao('excluir', { id: l.id }).then(function (j) {
+      if (!j || j.ok !== true) throw new Error(mensagemRecusa(j));
+      aplicarLancamentos(j);
+    }).catch(function (err) {
+      botao.disabled = false;
+      var msg = 'Nada foi excluído: ' + ((err && err.message) || err);
+      if (status){ status.classList.add('erro'); status.textContent = msg; } else alert(msg);
+    });
+  }
+  function repetirContratos(id, botao, status){
+    botao.disabled = true; status.classList.remove('erro'); status.textContent = 'copiando…';
+    chamarComissao('repetir-contratos', { mes: id }).then(function (j) {
+      if (!j || j.ok !== true) throw new Error(mensagemRecusa(j));
+      var de = nomeMes(j.de || mesAnterior(id)).toLowerCase();
+      MSG_REPETIR[id] = j.copiados
+        ? 'Copiei ' + j.copiados + (j.copiados === 1 ? ' contrato' : ' contratos') + ' de ' + de + ': ' + j.vendedores.join(', ') + '.' +
+          (j.ja_tinham && j.ja_tinham.length ? ' Já tinham contrato neste mês: ' + j.ja_tinham.join(', ') + '.' : '')
+        : 'Nenhum contrato copiado: ' + (j.ja_tinham && j.ja_tinham.length
+            ? 'quem tinha contrato em ' + de + ' já tem neste mês (' + j.ja_tinham.join(', ') + ').'
+            : 'não há contrato lançado em ' + de + '.');
+      aplicarLancamentos(j);
+    }).catch(function (err) {
+      botao.disabled = false; status.classList.add('erro');
+      status.textContent = 'Nada foi copiado: ' + ((err && err.message) || err);
+    });
   }
 
   function tabelaExtrato(v){
@@ -1866,6 +2316,305 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
     return wrap;
   }
 
+  /* ══════════ OS EXTRATOS EM PAPEL TIMBRADO (05/10) ══════════
+     "Timbrado" é UM modelo só (CLAUDE.md, regra 11): o do ferramentas/timbrado/.
+     Nada de layout mora aqui além do miolo — o CSS é LIDO do repositório
+     `ferramentas` na hora de emitir (raw.githubusercontent, que responde com
+     CORS aberto), e as fontes Ingra e PF Marlet Display são lidas do index.html
+     do Pocket (mesma origem no Pages), como o gerar.py faz. Nenhuma cópia: mudar
+     o timbrado.css muda o próximo extrato. Sem uma das fontes, NÃO emite.
+
+     O PDF sai pela impressão do navegador: o botão abre a folha pronta numa
+     janela e chama a impressão; o Ricardo escolhe "Salvar como PDF". Para o
+     cabeçalho e o rodapé do navegador (URL, data) não irem para o papel, a
+     página não tem margem (@page margin 0 — o navegador fica sem onde
+     desenhá-los) e a margem do timbrado volta em TODA página por uma moldura:
+     <thead>/<tfoot> de altura fixa, que o navegador repete a cada página.
+     Provado em 05/10 no PDF real do Chrome (impressão com cabeçalho ligado). */
+  var recursosTimbrado = null;
+  function carregarTimbrado(){
+    if (recursosTimbrado) return recursosTimbrado;
+    var pegar = function (u, como) {
+      return fetch(u).then(function (r) {
+        if (!r.ok) throw new Error(u.split('/').slice(-2).join('/') + ' respondeu ' + r.status);
+        return como === 'blob' ? r.blob() : r.text();
+      });
+    };
+    var dataUrl = function (blob) {
+      return new Promise(function (ok, nao) {
+        var fr = new FileReader();
+        fr.onload = function () { ok(fr.result); };
+        fr.onerror = function () { nao(new Error('não consegui ler a andorinha')); };
+        fr.readAsDataURL(blob);
+      });
+    };
+    recursosTimbrado = Promise.all([
+      pegar(TIMBRADO_CSS_URL),
+      pegar(TIMBRADO_LOGO_URL, 'blob').then(dataUrl),
+      pegar(POCKET_FONTES_URL).then(function (html) {
+        var faces = html.match(/@font-face\{font-family:"(?:Ingra|PF Marlet Display)"[^}]*\}/g) || [];
+        if (faces.length < 2) throw new Error('as fontes Ingra e PF Marlet Display não foram achadas no Pocket');
+        return faces.join('\n');
+      })
+    ]).then(function (a) {
+      if (!/table\.tab\.ouro/.test(a[0])) throw new Error('o timbrado.css lido não tem os componentes dos extratos (05/10)');
+      return { css: a[0], logo: a[1], fontes: a[2] };
+    }).catch(function (e) { recursosTimbrado = null; throw e; });
+    return recursosTimbrado;
+  }
+
+  /* Antes de emitir: foto velha ou resposta cortada não emite; ⚠️ avisa e deixa. */
+  function bloqueioDaEmissao(){
+    if (TRUNCADO) return 'a resposta do servidor veio cortada.';
+    if (ROTA_SEM_LANC) return 'o servidor não trouxe os demais valores do mês (implantação anterior a 05/10 — republicar).';
+    if (LANC_ERRO) return 'os demais valores do mês não chegaram: ' + LANC_ERRO;
+    var dt = dataDoCarimbo(VENDAS_CARIMBO);
+    if (!dt) return 'não sei de quando é a foto das vendas do Facilita. Recarregue a página.';
+    var h = (Date.now() - dt.getTime()) / 3600000;
+    if (h > 48) return 'a foto das vendas do Facilita é de ' + carimboBR(VENDAS_CARIMBO) + ' (há ' + Math.floor(h) +
+                       ' h). O extrato sairia sobre vendas velhas: confira a importação e recarregue a página.';
+    return '';
+  }
+  function dataDoCarimbo(c){
+    var m = String(c || '').match(/^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})/);
+    return m ? new Date(+m[1], +m[2] - 1, +m[3], +m[4], +m[5]) : null;
+  }
+  function carimboBR(c){
+    var m = String(c || '').match(/^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})/);
+    return m ? m[3] + '/' + m[2] + '/' + m[1] + ' · ' + m[4] + ':' + m[5] : (c || '—');
+  }
+
+  function emitirExtrato(tipo, id, comp, v, status){
+    status.classList.remove('erro'); status.textContent = '';
+    var trava = bloqueioDaEmissao();
+    if (trava){ status.classList.add('erro'); status.textContent = 'O extrato não sai: ' + trava; return; }
+    var al = tipo === 'geral' ? comp.tot.alertas : v.alertas;
+    if (al && !confirm(al + (al === 1 ? ' linha está' : ' linhas estão') + ' com ⚠️ (confira o contrato) ' +
+        (tipo === 'geral' ? 'no mês' : 'nas vendas de ' + v.quem) + '. O aviso fica só na tela, não vai para o papel.\n\nEmitir mesmo assim?')) return;
+
+    /* A janela abre AGORA, dentro do clique — depois de um fetch o navegador a bloquearia. */
+    var w = window.open('', '_blank');
+    if (!w){ status.classList.add('erro'); status.textContent = 'O navegador bloqueou a janela do extrato: permita pop-ups para este endereço.'; return; }
+    w.document.write('<!doctype html><meta charset="utf-8"><title>Montando o extrato…</title>' +
+      '<p style="font:15px system-ui,sans-serif;padding:28px;color:#333">Montando o extrato em papel timbrado…</p>');
+    w.document.close();
+    status.textContent = 'montando o extrato…';
+
+    carregarTimbrado().then(function (rec) {
+      var doc = tipo === 'geral' ? docGeral(id, comp) : docIndividual(id, v);
+      w.document.open();
+      w.document.write(folhaTimbrada(rec, doc));
+      w.document.close();
+      var fs = w.document.fonts;
+      return Promise.all([fs.load('10px "Ingra"'), fs.load('10px "PF Marlet Display"')]).then(function (r) {
+        return fs.ready.then(function () {
+          var falta = [];
+          if (!r[0].length || !fs.check('10px "Ingra"')) falta.push('Ingra');
+          if (!r[1].length || !fs.check('10px "PF Marlet Display"')) falta.push('PF Marlet Display');
+          if (falta.length) throw new Error('a fonte ' + falta.join(' e ') + ' não carregou — com fonte de reserva o extrato não sai');
+          status.textContent = doc.arquivo + '.pdf — na janela de impressão, escolha "Salvar como PDF".';
+          w.focus(); w.print();
+        });
+      });
+    }).catch(function (e) {
+      var msg = 'O extrato não saiu: ' + ((e && e.message) || e) + '.';
+      status.classList.add('erro'); status.textContent = msg;
+      try {
+        w.document.open();
+        w.document.write('<!doctype html><meta charset="utf-8"><title>Extrato não emitido</title>' +
+          '<p style="font:15px system-ui,sans-serif;padding:28px;color:#a11">' + esc(msg) + '</p>');
+        w.document.close();
+      } catch (e2) {}
+    });
+  }
+
+  /* A página impressa: o timbrado.css inteiro, a moldura da margem e o cabeçalho .cab. */
+  function folhaTimbrada(rec, doc){
+    var moldura =
+      '@page{size:A4;margin:0}' +
+      'html,body{margin:0;padding:0}' +
+      'table.moldura{width:100%;border-collapse:collapse}' +
+      'table.moldura>thead>tr>td{height:34.5pt;padding:0}' +
+      'table.moldura>tfoot>tr>td{height:30pt;padding:0}' +
+      'table.moldura>tbody>tr>td{padding:0 34.5pt;vertical-align:top}' +
+      '@media screen{html{background:#DEDCCF}body{width:595pt;margin:24px auto;background:#fff;' +
+      'box-shadow:0 8px 28px rgba(42,26,8,.18)}}';
+    var cab = '<header class="cab"><div class="marca"><img src="' + rec.logo + '" alt="">' +
+      '<div><div class="nome">Parque da Saudade</div><div class="sub">Cemitério Parque · Juiz de Fora</div></div></div>' +
+      '<div class="doc"><div class="titulo">' + esc(doc.titulo) + '</div><div class="sub">' + esc(doc.sub) + '</div></div></header>';
+    return '<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>' + esc(doc.arquivo) + '</title>' +
+      '<style>' + rec.fontes + '\n' + rec.css + '\n' + moldura + '</style></head><body>' +
+      '<table class="moldura"><thead><tr><td></td></tr></thead><tfoot><tr><td></td></tr></tfoot>' +
+      '<tbody><tr><td>' + cab + doc.miolo + '</td></tr></tbody></table></body></html>';
+  }
+
+  /* ── as peças do miolo (classes do timbrado.css; ordem do artefato) ── */
+  var COLS_PAPEL = [7, 22, 14, 11, 10, 12, 10, 5, 9];
+  function mesAno(id){ return MESES_PT[parseInt(id.split('-')[1],10)-1] + ' ' + id.split('-')[0]; }
+  function parcialAte(id){
+    var hoje = new Date();
+    var atual = hoje.getFullYear() + '-' + String(hoje.getMonth() + 1).padStart(2, '0');
+    if (id < atual) return '';
+    var c = String(VENDAS_CARIMBO).match(/^\d{4}-(\d{2})-(\d{2})/);
+    return c ? c[2] + '/' + c[1] : String(hoje.getDate()).padStart(2,'0') + '/' + String(hoje.getMonth() + 1).padStart(2,'0');
+  }
+  function nomeArquivo(s){ return String(s).trim().replace(/[\\/:*?"<>|]+/g, '').replace(/\s+/g, '_'); }
+  function emitidoEm(){
+    var d = new Date(), p = function (n) { return String(n).padStart(2, '0'); };
+    return p(d.getDate()) + '/' + p(d.getMonth() + 1) + '/' + d.getFullYear() + ' · ' + p(d.getHours()) + ':' + p(d.getMinutes());
+  }
+  function rodapeDoc(){
+    return '<div class="rodape"><span>Emitido em ' + emitidoEm() + '</span><span>Vendas do Facilita até ' +
+           esc(carimboBR(VENDAS_CARIMBO)) + '</span></div>';
+  }
+  function pctBR(a){ return a === null || a === undefined ? '—' : pct1(a); }
+  function tdR(txt, extra){ return '<td class="r nw' + (extra ? ' ' + extra : '') + '">' + txt + '</td>'; }
+  function brlPapel(n){ return n ? esc(brl2(n)) : '—'; }
+
+  function tabelaVendasPapel(v){
+    var h = '<table class="tab densa fixa"><colgroup>' +
+      COLS_PAPEL.map(function (w) { return '<col style="width:' + w + '%">'; }).join('') + '</colgroup>' +
+      '<thead><tr><th>Data</th><th>Cliente</th><th>Jazigo</th><th>Modalidade</th><th>Prazo</th>' +
+      '<th class="r">Vlr venda</th><th class="r">Desconto</th><th class="r">%</th><th class="r">Comissão</th></tr></thead><tbody>';
+    if (!v.linhas.length){
+      h += '<tr><td colspan="9">Nenhuma venda no mês</td></tr>';
+    } else {
+      v.linhas.forEach(function (x) {
+        var dt = String(x.data).match(/^\d{4}-(\d{2})-(\d{2})/);
+        h += '<tr><td class="nw">' + (dt ? dt[2] + '/' + dt[1] : esc(x.data)) + '</td><td>' + esc(x.cliente) + '</td>' +
+             '<td class="nw">' + esc(x.jazigo) + '</td><td>' + esc(x.modalidade) + '</td><td>' + esc(x.prazoTexto) + '</td>' +
+             tdR(esc(brl2(x.venda))) + tdR(brlPapel(x.desconto)) + '<td class="r">' + pctBR(x.aliquota) + '</td>' +
+             tdR(esc(brl2(x.valor)), 'forte') + '</tr>';
+      });
+      h += '<tr class="total"><td colspan="5">Subtotal ' + esc(v.quem) + ' · ' + v.n + (v.n === 1 ? ' venda' : ' vendas') + '</td>' +
+           tdR(esc(brl2(v.base))) + tdR(brlPapel(v.desconto)) + '<td></td>' + tdR(esc(brl2(v.valor))) + '</tr>';
+    }
+    return h + '</tbody></table>';
+  }
+
+  function destaquesPapel(nVendas, notaVendas, comissao, base, total){
+    var caixa = function (k, val, n) {
+      return '<div class="caixa"><div class="k">' + k + '</div><div class="v">' + val + '</div><div class="n">' + n + '</div></div>';
+    };
+    return '<div class="destaques">' +
+      caixa('Vendas no mês', String(nVendas), esc(notaVendas)) +
+      caixa('Comissão das vendas', esc(brl2(comissao)), 'sobre ' + esc(brl2(base)) + ' de base') +
+      caixa('Total do mês', esc(brl2(total)), 'comissão + contrato + demais valores') + '</div>';
+  }
+
+  /* A régua impressa sai da MESMA constante que calcula — nunca de texto solto. */
+  function reguaPapel(){
+    var p = function (m, k) { return pct1(COMISSAO[m][k]); };
+    return '<li><strong>Régua:</strong> Perpétuo ' + p('Perpétuo','avista') + ' à vista e ' + p('Perpétuo','parcelada') +
+      ' parcelada · Reserva ' + p('Reserva','avista') + ' à vista e ' + p('Reserva','parcelada') + ' parcelada · ' +
+      'Temporário não gera comissão, mas conta como venda na meta · Migração de Temporário para Perpétuo segue a ' +
+      'régua do Perpétuo sobre o valor pago.</li>' +
+      '<li><strong>Base:</strong> o valor da venda (tabela menos desconto), nunca a tabela cheia. Cada venda é ' +
+      'arredondada em duas casas e o subtotal soma as linhas já arredondadas.</li>';
+  }
+
+  function docIndividual(id, v){
+    var parcial = parcialAte(id);
+    var com = v.linhas.filter(function (x) { return x.valor > 0; }).length, sem = v.n - com;
+    var semMods = [];
+    v.linhas.forEach(function (x) { if (!(x.valor > 0) && semMods.indexOf(x.modalidade) < 0) semMods.push(x.modalidade); });
+    var notaV = !v.n ? 'nenhuma venda no mês'
+              : !sem ? (v.n === 1 ? 'com comissão' : 'todas com comissão')
+              : com + ' com comissão · ' + sem + ' sem (' + semMods.join(', ') + ')';
+
+    var comp = '<tr><td class="forte">Comissão das vendas</td><td class="solto">' + v.n + (v.n === 1 ? ' venda' : ' vendas') +
+               ' · base ' + esc(brl2(v.base)) + '</td>' + tdR(esc(brl2(v.valor))) + '</tr>';
+    LANC_TIPOS.forEach(function (t) {
+      var ls = v.lancs.filter(function (l) { return l.tipo === t; });
+      if (!ls.length){
+        comp += '<tr><td class="forte">' + t + '</td><td class="sec">sem lançamento no mês</td><td class="r">—</td></tr>';
+      } else ls.forEach(function (l) {
+        comp += '<tr><td class="forte">' + t + '</td><td class="solto">' + (l.observacao ? esc(l.observacao) : '&nbsp;') + '</td>' +
+                tdR(esc(brl2(l.valor))) + '</tr>';
+      });
+    });
+    comp += '<tr class="total"><td colspan="2">Total do mês</td>' + tdR(esc(brl2(v.total))) + '</tr>';
+
+    var miolo =
+      '<p class="lead">Extrato de <strong>' + esc(v.quem) + '</strong> em <strong>' + nomeMes(id).toLowerCase() + '</strong>' +
+      (parcial ? ' (mês em andamento, parcial até ' + parcial + ')' : '') +
+      ': as vendas do mês, a comissão de cada uma e os demais valores que entram no pagamento. Confira linha a linha.</p>' +
+      destaquesPapel(v.n, notaV, v.valor, v.base, v.total) +
+      '<div class="rotulo"><span>Vendas do mês</span><span>' + v.n + (v.n === 1 ? ' venda' : ' vendas') + '</span></div>' +
+      tabelaVendasPapel(v) +
+      '<div class="rotulo"><span>Composição do mês</span><span>' + mesAno(id) + '</span></div>' +
+      '<table class="tab"><thead><tr><th style="width:26%">Componente</th><th>Observação</th><th class="r" style="width:18%">Valor</th></tr></thead>' +
+      '<tbody>' + comp + '</tbody></table>' +
+      '<div class="obs"><h3>Como conferir</h3><ol>' + reguaPapel() +
+      '<li><strong>Prazo:</strong> à vista ou parcelada é o que define a alíquota. Vale o que está no contrato.</li>' +
+      '<li><strong>Divergência:</strong> avise o gestor comercial antes do pagamento, informando o jazigo e o que está diferente.</li>' +
+      '</ol></div>' +
+      '<div class="assina"><div>Conferido por ' + esc(v.quem) + '</div><div>Data</div></div>' +
+      rodapeDoc();
+    return {
+      titulo: 'Extrato de Comissão',
+      sub: mesAno(id) + (parcial ? ' · parcial até ' + parcial : '') + ' · ' + v.quem,
+      arquivo: 'Extrato_Comissao_' + nomeArquivo(v.quem) + '_' + nomeArquivo(mesAno(id)),
+      miolo: miolo
+    };
+  }
+
+  function docGeral(id, comp){
+    var parcial = parcialAte(id), t = comp.tot;
+    var lista = comp.lista.filter(function (v) { return v.n || v.lancs.length; });
+    var nVend = lista.length;
+
+    var res = '';
+    lista.forEach(function (v) {
+      res += '<tr><td class="forte">' + esc(v.quem) + '</td><td class="r">' + v.n + '</td>' + tdR(esc(brl2(v.base))) +
+             tdR(esc(brl2(v.valor))) + LANC_TIPOS.map(function (tp) { return tdR(brlPapel(v.porTipo[tp])); }).join('') +
+             tdR(esc(brl2(v.total)), 'forte') + '</tr>';
+    });
+    res += '<tr class="total"><td>Total do time</td><td class="r">' + t.n + '</td>' + tdR(esc(brl2(t.base))) + tdR(esc(brl2(t.valor))) +
+           LANC_TIPOS.map(function (tp) { return tdR(brlPapel(t.porTipo[tp])); }).join('') + tdR(esc(brl2(t.total))) + '</tr>';
+
+    var porVend = '';
+    lista.filter(function (v) { return v.n; }).forEach(function (v) {
+      porVend += '<div class="rotulo"><span>' + esc(v.quem) + '</span><span>' + v.n + (v.n === 1 ? ' venda' : ' vendas') +
+                 ' · comissão ' + esc(brl2(v.valor)) + '</span></div>' + tabelaVendasPapel(v);
+    });
+
+    /* Todos os lançamentos, menos Contrato sem observação (o valor já está no resumo). */
+    var lancs = t.lancs.filter(function (l) { return !(l.tipo === 'Contrato' && !l.observacao); });
+    var tabLanc = '';
+    if (lancs.length){
+      tabLanc = '<div class="evitar"><div class="rotulo"><span>Lançamentos do mês</span><span>' + lancs.length +
+        (lancs.length === 1 ? ' lançamento' : ' lançamentos') + '</span></div><table class="tab"><thead><tr><th>Vendedor</th>' +
+        '<th>Tipo</th><th>Observação</th><th class="r">Valor</th></tr></thead><tbody>' +
+        lancs.map(function (l) {
+          return '<tr><td class="forte nw">' + esc(l.vendedor) + '</td><td class="nw">' + l.tipo + '</td><td class="solto">' +
+                 (l.observacao ? esc(l.observacao) : '&nbsp;') + '</td>' + tdR(esc(brl2(l.valor))) + '</tr>';
+        }).join('') + '</tbody></table></div>';
+    }
+
+    var miolo =
+      '<p class="lead">Comissões do time comercial em <strong>' + nomeMes(id).toLowerCase() + '</strong>' +
+      (parcial ? ' (mês em andamento, parcial até ' + parcial + ')' : '') +
+      ': o resumo geral do pagamento e, em seguida, todas as vendas do mês separadas por vendedor.</p>' +
+      destaquesPapel(t.n, nVend + (nVend === 1 ? ' vendedor' : ' vendedores'), t.valor, t.base, t.total) +
+      '<div class="evitar"><div class="rotulo"><span>Resumo geral</span><span>' + mesAno(id) + '</span></div>' +
+      '<table class="tab densa ouro"><thead><tr><th>Vendedor</th><th class="r">Vendas</th><th class="r">Base</th>' +
+      '<th class="r">Comissão</th><th class="r">Contrato</th><th class="r">Bônus<br>Meta</th><th class="r">Bônus<br>Super Meta</th>' +
+      '<th class="r">Campanha<br>incentivo</th><th class="r">Reembolso</th><th class="r">Total</th></tr></thead>' +
+      '<tbody>' + res + '</tbody></table></div>' +
+      porVend + tabLanc +
+      '<div class="obs"><h3>Observações</h3><ol>' + reguaPapel() +
+      '<li><strong>Contrato:</strong> valor fixo mensal de cada vendedor. Aparece na tabela de lançamentos só quando tem observação.</li>' +
+      '<li><strong>Documento calculado na emissão:</strong> uma venda corrigida no Facilita depois desta data muda o extrato seguinte.</li>' +
+      '</ol></div>' + rodapeDoc();
+    return {
+      titulo: 'Extrato de Comissões',
+      sub: mesAno(id) + (parcial ? ' · parcial até ' + parcial : '') + ' · Time comercial',
+      arquivo: 'Extrato_Comissoes_' + nomeArquivo(mesAno(id)),
+      miolo: miolo
+    };
+  }
+
   /* ── Exportar para Excel ────────────────────────────────────────────────
      Uma aba, as MESMAS 11 colunas e ordem do extrato, blocos por vendedor
      com subtotal, TOTAL ao final. Moeda e porcentagem como NÚMERO com formato
@@ -1890,7 +2639,7 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
     return xlsxPromise;
   }
 
-  function montarPlanilha(X, id, calc){
+  function montarPlanilha(X, id, calc, comp){
     var aoa = [EXTRATO_COLUNAS.concat(['Origem detalhe', 'Origem fonte', 'Chegou'])];
     calc.porVendedor.forEach(function (v) {
       aoa.push([v.quem + ' — ' + v.n + (v.n === 1 ? ' venda' : ' vendas')]);
@@ -1924,16 +2673,43 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
                    {wch:22},{wch:12},{wch:26}];
     var wb = X.utils.book_new();
     X.utils.book_append_sheet(wb, ws, 'Comissões');
+
+    /* (05/10) "Resumo" = as colunas do Resumo geral do extrato; "Lançamentos" = todos. */
+    if (comp){
+      var moeda = function (sh, linhas, cols) {
+        for (var r2 = 1; r2 < linhas; r2++) cols.forEach(function (col) {
+          var ref = X.utils.encode_cell({ r:r2, c:col });
+          if (sh[ref] && sh[ref].t === 'n') sh[ref].z = '"R$ "#,##0.00';
+        });
+      };
+      var res = [['Vendedor', 'Vendas', 'Base', 'Comissão'].concat(LANC_TIPOS, ['Total'])];
+      comp.lista.filter(function (v) { return v.n || v.lancs.length; }).forEach(function (v) {
+        res.push([v.quem, v.n, v.base, v.valor].concat(LANC_TIPOS.map(function (t) { return v.porTipo[t] || 0; }), [v.total]));
+      });
+      res.push(['Total do time', comp.tot.n, comp.tot.base, comp.tot.valor]
+        .concat(LANC_TIPOS.map(function (t) { return comp.tot.porTipo[t] || 0; }), [comp.tot.total]));
+      var wsR = X.utils.aoa_to_sheet(res);
+      moeda(wsR, res.length, [2,3,4,5,6,7,8,9]);
+      wsR['!cols'] = [{wch:22},{wch:8},{wch:15},{wch:13},{wch:13},{wch:13},{wch:16},{wch:20},{wch:13},{wch:14}];
+      X.utils.book_append_sheet(wb, wsR, 'Resumo');
+
+      var lan = [['Vendedor', 'Tipo', 'Observação', 'Valor']];
+      comp.tot.lancs.forEach(function (l) { lan.push([l.vendedor, l.tipo, l.observacao, l.valor]); });
+      var wsL = X.utils.aoa_to_sheet(lan);
+      moeda(wsL, lan.length, [3]);
+      wsL['!cols'] = [{wch:22},{wch:22},{wch:60},{wch:13}];
+      X.utils.book_append_sheet(wb, wsL, 'Lançamentos');
+    }
     var pp = id.split('-');
     return { wb: wb, nome: 'Comissoes_' + MESES_PT[parseInt(pp[1],10)-1] + '_' + pp[0] + '.xlsx' };
   }
 
-  function exportarComissao(id, calc, botao, status){
+  function exportarComissao(id, calc, comp, botao, status){
     botao.disabled = true;
     status.classList.remove('erro'); status.textContent = 'baixando a biblioteca de Excel…';
     carregarXLSX().then(function (X) {
       status.textContent = 'gerando…';
-      var pl = montarPlanilha(X, id, calc);
+      var pl = montarPlanilha(X, id, calc, comp);
       X.writeFile(pl.wb, pl.nome);
       status.textContent = pl.nome + ' gerado.';
     }).catch(function (e) {
@@ -2378,6 +3154,7 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
       if (r.respostas && r.respostas.truncado) det.push('respostas: ' + r.respostas.n + ' de ' + r.respostas.total_aba);
       if (r.leitura && r.leitura.truncado) det.push('leitura: ' + r.leitura.n + ' de ' + r.leitura.total_aba);
       if (r.vendas && r.vendas.truncado) det.push('vendas: ' + r.vendas.n + ' de ' + r.vendas.total_aba);
+      if (r.lancamentos && r.lancamentos.truncado) det.push('lançamentos: ' + r.lancamentos.n + ' de ' + r.lancamentos.total_aba);
       bloqueia('Esta página não vai desenhar: a resposta veio cortada.',
         '<p>' + esc(det.join(' · ') || 'a rota sinalizou corte') + '. Toda conta abaixo sairia ' +
         'sobre um pedaço, <b>com cara de completa</b>.</p>' +
@@ -2386,6 +3163,7 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
     }
 
     MS = typeof r.ms === 'number' ? r.ms : null;
+    TRUNCADO = r.truncado === true;
 
     /* Os números do mês e o carimbo deles vêm da rota do Executivo (27/09). */
     var psOk = !!(ps && ps.ok === true);
@@ -2418,6 +3196,11 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
     FEEDBACK = lerFeedback(r.respostas);
     LEITURA = lerLeitura(r.leitura);
     VENDAS = (r.vendas && !r.vendas.erro) ? lerVendas(r.vendas) : null;
+    /* (05/10) Os demais valores do mês. Ausente = implantação anterior: a comissão
+       aparece como antes, com a tarja; com erro = a aba ainda não existe, etc. */
+    ROTA_SEM_LANC = !r.lancamentos;
+    LANC_ERRO = (r.lancamentos && r.lancamentos.erro) || null;
+    LANC = r.lancamentos ? lerLancamentos(r.lancamentos) : null;
 
     pintar();
   }
