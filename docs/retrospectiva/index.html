@@ -358,6 +358,14 @@ table.lanc-tab td.acoes{text-align:right; white-space:nowrap}
 .conf-linha.rev{color:var(--warn); font-weight:700}
 .conf-mudou{color:var(--warn); font-weight:700}
 .conf-resumo{margin:0 0 14px; font-size:12.5px; color:var(--text-2)}
+.aj-marca{display:inline-block; font-size:10px; font-weight:700; letter-spacing:.05em; text-transform:uppercase;
+          border:1px solid var(--s1); color:var(--s1b); border-radius:999px; padding:1px 7px; cursor:help}
+.aj-lista{margin:0; padding-left:18px; display:flex; flex-direction:column; gap:6px; font-size:12.5px; color:var(--text-2)}
+.aj-lista b{color:var(--text-1)}
+.aj-obs{color:var(--text-3)}
+.aj-form{grid-template-columns:minmax(0,1fr) minmax(0,260px) minmax(0,1fr) auto}
+@media (max-width: 1100px){ .aj-form{grid-template-columns:1fr 1fr} }
+.aj-lista[hidden],.aj-marca[hidden]{display:none}
 @media (max-width: 1100px){
   .lanc-form{grid-template-columns:1fr 1fr}
   .lanc-campo.largo,.lanc-acoes{grid-column:1 / -1}
@@ -652,6 +660,8 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
   var DOBRAS = {};           // dobras abertas, para o redesenho depois de um lançamento
   var MSG_REPETIR = {};      // o que o "repetir os contratos" respondeu, por mês
   var EXTRATOS = [];         // (05/10) a conferência no Pocket: a versão viva de cada vendedor e mês
+  var AJUSTES = {};          // (05/10) ajustes de conferência por Deal ID: {prazo, base, conferido}
+  var VENDAS_BRUTO = null;   // o bloco `vendas` cru — recalculado quando um ajuste muda
 
   /* ═════════════════════════════ utilidades ═════════════════════════════ */
   var $ = function (s) { return document.querySelector(s); };
@@ -1299,13 +1309,33 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
     var semBase = ehMig && !(tabelaJaz > 0);
     var valor = (aliquota === null || semBase || doacao) ? 0 : round2(venda * aliquota);
 
+    /* (05/10) O AJUSTE DE CONFERÊNCIA (ComissaoAjustes.gs), feito pelo Ricardo nesta tela para
+       resolver a dúvida sem mexer no Facilita. Vale SÓ para a comissão e continua valendo se o
+       Facilita mudar depois. prazo = a alíquota do prazo decidido no contrato · base = a tabela,
+       quando a venda passou dela · conferido = o dado está certo: some o ⚠️, o cálculo não muda. */
+    var ajuste = AJUSTES[String(g(l,'Deal ID')).trim()] || null, ajustado = [];
+    if (ajuste){
+      if (ajuste.prazo){
+        avista = ajuste.prazo.valor === 'avista';
+        prazoTexto = avista ? 'À vista' : 'Parcelada'; derivado = false; alPrazo = [];
+        aliquota = regua ? (avista ? regua.avista : regua.parcelada) : aliquota;
+        ajustado.push('prazo ' + (avista ? 'à vista' : 'parcelada'));
+      }
+      if (ajuste.base && !ehMig && !doacao && face !== null && face > 0 && face < venda){
+        venda = face; desconto = 0; alDesc = [];
+        ajustado.push('base pela tabela');
+      }
+      if (ajuste.conferido){ alPrazo = []; alDesc = []; alRegua = []; ajustado.push('conferido'); }
+      valor = (aliquota === null || semBase || doacao) ? 0 : round2(venda * aliquota);
+    }
+
     return {
       data: data, quadra: quadra,
       /* a migração não tem jazigo próprio: diz de qual Temporário ela é a conversão */
       jazigo: ehMig ? 'migração ← ' + (String(g(l,'Deal Origem')).trim() || '?') +
                       ((quadra && jaz) ? ' · ' + quadra + '-' + jaz : '')
                     : (quadra && jaz) ? quadra + '-' + jaz : (jaz || quadra || '—'),
-      doacao: doacao, pago: pago,
+      doacao: doacao, pago: pago, ajuste: ajuste, ajustado: ajustado,
       vendedor: String(g(l,'Vendedor')).trim() || '—',
       /* (05/10) o nome canônico (painel.vendedores, o mesmo do Executivo e da meta).
          Vazio em implantação anterior: aí vale o do Facilita. */
@@ -2008,6 +2038,7 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
           'do mês. O lançamento não some: aparece aqui e no extrato geral. Confira a grafia do nome.'));
       }
       if (v.n) cv.append(tabelaExtrato(v));
+      if (v.n && (podeLancar() || v.linhas.some(function (x) { return x.ajustado && x.ajustado.length; }))) cv.append(blocoAjustes(id, v));
       else cv.append(el('p','nota-fina', 'Nenhuma venda no mês.'));
       if (comp) cv.append(blocoDemais(id, v));
       dv.append(cv);
@@ -2099,6 +2130,116 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
       botao.disabled = false; status.classList.add('erro');
       status.textContent = 'Não foi enviado: ' + ((err && err.message) || err);
     });
+  }
+
+  /* ══════════ AJUSTES DE CONFERÊNCIA (05/10) ══════════
+     O Ricardo resolve aqui a dúvida de uma venda (⚠️) sem mexer no Facilita. Só a comissão muda.
+     Gravar é só com a senha das Configurações (rota ?app=comissao&fn=ajustar, ComissaoAjustes.gs). */
+  var AJ_OPCOES = [
+    ['prazo','avista','Prazo: à vista (alíquota de à vista)'],
+    ['prazo','parcelada','Prazo: parcelada (alíquota de parcelada)'],
+    ['base','tabela','Base pela tabela (venda acima da tabela)'],
+    ['conferido','ok','Conferido, está certo (só some o ⚠️)']
+  ];
+  var AJ_ROTULO = { 'prazo:avista':'Prazo: à vista', 'prazo:parcelada':'Prazo: parcelada', 'base:tabela':'Base pela tabela', 'conferido:ok':'Conferido, está certo' };
+  function lerAjustes(bloco){
+    var mapa = {};
+    if (!bloco || !bloco.colunas) return mapa;
+    var c = {};
+    bloco.colunas.forEach(function (k, i) { c[k] = i; });
+    (bloco.linhas || []).forEach(function (l) {
+      var deal = String(l[c.deal]).trim();
+      (mapa[deal] = mapa[deal] || {})[String(l[c.tipo])] = { id: String(l[c.id]), valor: String(l[c.valor]),
+        observacao: String(l[c.observacao] || ''), criado_em: String(l[c.criado_em] || '') };
+    });
+    return mapa;
+  }
+  function rotuloVenda(x){
+    var dt = String(x.data).match(/^\d{4}-(\d{2})-(\d{2})/);
+    return (dt ? dt[2] + '/' + dt[1] : x.data) + ' · ' + x.jazigo + ' · ' + x.cliente;
+  }
+  function blocoAjustes(id, v){
+    var b = el('div','lanc-bloco aj-bloco');
+    b.append(el('div','lanc-h','Ajustes de conferência'));
+    b.append(el('p','nota-fina', 'Resolve a dúvida de uma venda aqui, sem mexer no Facilita. Vale só para a comissão ' +
+      '(e para o extrato, que mostra só o valor ajustado) e continua valendo se o Facilita mudar — até ser desfeito.'));
+    var pode = podeLancar() && !LANC_ERRO;
+    var com = v.linhas.filter(function (x) { return x.ajuste; });
+    if (com.length){
+      var ul = el('ul','aj-lista');
+      com.forEach(function (x) {
+        Object.keys(x.ajuste).forEach(function (tipo) {
+          var a = x.ajuste[tipo];
+          var li = el('li');
+          li.append(el('b', null, AJ_ROTULO[tipo + ':' + a.valor] || tipo), el('span', null, ' · ' + rotuloVenda(x)));
+          if (a.observacao) li.append(el('span','aj-obs', ' — ' + a.observacao));
+          if (pode){
+            var bd = el('button','lanc-link','Desfazer'); bd.type = 'button';
+            bd.addEventListener('click', function () {
+              if (!confirm('Desfazer o ajuste "' + (AJ_ROTULO[tipo + ':' + a.valor] || tipo) + '" da venda ' + rotuloVenda(x) + '?')) return;
+              bd.disabled = true;
+              chamarComissao('desfazer-ajuste', { id: a.id }).then(function (j) {
+                if (!j || j.ok !== true) throw new Error(mensagemRecusa(j));
+                aplicarLancamentos(j);
+              }).catch(function (err) { bd.disabled = false; alert('Nada foi desfeito: ' + ((err && err.message) || err)); });
+            });
+            li.append(bd);
+          }
+          ul.append(li);
+        });
+      });
+      b.append(ul);
+    }
+    if (!pode) return b;
+
+    var f = el('form','lanc-form aj-form'); f.noValidate = true;
+    var uid = 'a' + Math.random().toString(36).slice(2, 8);
+    var campo = function (rot, ctl, largo) {
+      var c = el('div','lanc-campo' + (largo ? ' largo' : ''));
+      var lb = el('label', null, rot); lb.htmlFor = ctl.id = uid + rot.replace(/\W/g, '');
+      c.append(lb, ctl); return c;
+    };
+    var selV = el('select');
+    v.linhas.slice().sort(function (a, b) {
+      var wa = (a.alPrazo.length || a.alDesc.length || a.alRegua.length) ? 0 : 1, wb = (b.alPrazo.length || b.alDesc.length || b.alRegua.length) ? 0 : 1;
+      return wa - wb || (a.data < b.data ? -1 : 1);
+    }).forEach(function (x) {
+      var al = x.alPrazo.length || x.alDesc.length || x.alRegua.length;
+      var o = el('option', null, (al ? '⚠️ ' : '') + rotuloVenda(x)); o.value = String(x.deal); selV.append(o);
+    });
+    var selA = el('select');
+    AJ_OPCOES.forEach(function (op) { var o = el('option', null, op[2]); o.value = op[0] + ':' + op[1]; selA.append(o); });
+    var obs = el('input'); obs.type = 'text'; obs.maxLength = 300; obs.placeholder = 'opcional (ex.: contrato assinado à vista)';
+    var bt = el('button','btn-export destaque','Salvar ajuste'); bt.type = 'submit';
+    var st = el('span','export-status lanc-status','');
+    var dica = el('p','nota-fina', '');
+    var mostrarDica = function () {
+      var x = v.linhas.filter(function (z) { return String(z.deal) === selV.value; })[0];
+      var t = x ? x.alPrazo.concat(x.alDesc, x.alRegua) : [];
+      dica.textContent = t.length ? '⚠️ ' + t.join(' ') : 'Esta venda não tem ⚠️.';
+    };
+    selV.addEventListener('change', mostrarDica); mostrarDica();
+    var acoes = el('div','lanc-acoes'); acoes.append(bt);
+    f.append(campo('Venda', selV, true), campo('Ajuste', selA), campo('Observação', obs), acoes, st);
+    b.append(f, dica);
+    f.addEventListener('submit', function (e) {
+      e.preventDefault();
+      var par = selA.value.split(':');
+      var x = v.linhas.filter(function (z) { return String(z.deal) === selV.value; })[0];
+      if (!x){ st.classList.add('erro'); st.textContent = 'Escolha a venda.'; return; }
+      if (par[0] === 'base' && !(x.face && x.face < x.venda) && !(x.ajuste && x.ajuste.base)){
+        st.classList.add('erro'); st.textContent = 'Esta venda não está acima da tabela: a base pela tabela não muda nada.'; return;
+      }
+      bt.disabled = true; st.classList.remove('erro'); st.textContent = 'gravando…';
+      chamarComissao('ajustar', { deal: Number(x.deal), mes: id, tipo: par[0], valor: par[1], observacao: obs.value.replace(/\s+/g, ' ').trim() })
+        .then(function (j) {
+          if (!j || j.ok !== true) throw new Error(mensagemRecusa(j));
+          aplicarLancamentos(j);
+        }).catch(function (err) {
+          bt.disabled = false; st.classList.add('erro'); st.textContent = 'Nada foi gravado: ' + ((err && err.message) || err);
+        });
+    });
+    return b;
   }
 
   /* Estado aberto/fechado das dobras sobrevive ao redesenho depois de um lançamento. */
@@ -2336,6 +2477,7 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
   function aplicarLancamentos(j){
     if (j.lancamentos && !j.lancamentos.erro){ LANC = lerLancamentos(j.lancamentos); LANC_ERRO = null; }
     if (j.extratos && !j.extratos.erro) EXTRATOS = lerExtratos(j.extratos);
+    if (j.ajustes && !j.ajustes.erro){ AJUSTES = lerAjustes(j.ajustes); if (VENDAS_BRUTO) VENDAS = lerVendas(VENDAS_BRUTO); }
     repintar();
   }
   function excluirLancamento(l, botao, status){
@@ -2383,6 +2525,11 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
       if (todos.length) r.title = todos.join('\n');
 
       r.append(el('td', null, x.cliente));
+      if (x.ajustado && x.ajustado.length){
+        var mk = el('span','aj-marca','ajustado');
+        mk.title = 'Ajuste de conferência: ' + x.ajustado.join(' · ') + ' (vale só para a comissão; o Facilita não mudou).';
+        r.lastChild.append(document.createTextNode(' '), mk);
+      }
       r.append(el('td', null, x.jazigo));
       r.append(el('td', null, x.modalidade + (x.doacao ? ' · doação' : '')));
       if (x.doacao) r.lastChild.title = 'Doação: venda de R$ 0,01 no Facilita — conta como venda, não gera comissão.';
@@ -3283,6 +3430,7 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
       if (r.respostas && r.respostas.truncado) det.push('respostas: ' + r.respostas.n + ' de ' + r.respostas.total_aba);
       if (r.leitura && r.leitura.truncado) det.push('leitura: ' + r.leitura.n + ' de ' + r.leitura.total_aba);
       if (r.vendas && r.vendas.truncado) det.push('vendas: ' + r.vendas.n + ' de ' + r.vendas.total_aba);
+      if (r.ajustes && r.ajustes.truncado) det.push('ajustes: ' + r.ajustes.n + ' de ' + r.ajustes.total_aba);
       if (r.extratos && r.extratos.truncado) det.push('extratos: ' + r.extratos.n + ' de ' + r.extratos.total_aba);
       if (r.lancamentos && r.lancamentos.truncado) det.push('lançamentos: ' + r.lancamentos.n + ' de ' + r.lancamentos.total_aba);
       bloqueia('Esta página não vai desenhar: a resposta veio cortada.',
@@ -3325,7 +3473,9 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
     NUMEROS = psOk ? lerPainel(ps) : null;
     FEEDBACK = lerFeedback(r.respostas);
     LEITURA = lerLeitura(r.leitura);
-    VENDAS = (r.vendas && !r.vendas.erro) ? lerVendas(r.vendas) : null;
+    AJUSTES = lerAjustes(r.ajustes);
+    VENDAS_BRUTO = (r.vendas && !r.vendas.erro) ? r.vendas : null;
+    VENDAS = VENDAS_BRUTO ? lerVendas(VENDAS_BRUTO) : null;
     /* (05/10) Os demais valores do mês. Ausente = implantação anterior: a comissão
        aparece como antes, com a tarja; com erro = a aba ainda não existe, etc. */
     ROTA_SEM_LANC = !r.lancamentos;
