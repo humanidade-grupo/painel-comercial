@@ -1254,7 +1254,12 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
        gera comissão, e não é desconto nem caso de "confira o contrato". */
     var doacao = !ehMig && venda > 0 && venda <= 0.01 && face !== null && face > 1;
 
-    if (!ehMig && !doacao && (nParc === null || nParc <= 2)){
+    /* (05/10, Ricardo: "limpar o ruído") 1 parcela com fluxo de pagamento único
+       ("1x Única", "1x Ato", "À vista") é à vista COERENTE — não pede conferência.
+       Em setembro eram 13 dos 15 avisos deste tipo. O caso do M-19-339
+       ("1x Entrada + 1x Mensal", 2 parcelas) continua marcado. */
+    var avistaCoerente = (nParc === 1) && /^(1\s*x\s*(única|unica|ato|à vista|a vista)|à vista|a vista)$/i.test(fluxo);
+    if (!ehMig && !doacao && !avistaCoerente && (nParc === null || nParc <= 2)){
       alPrazo.push('Nº Parcelas = ' + (nParc === null ? 'vazio' : nParc) +
                    ': confira no contrato se foi à vista ou parcelada.');
     }
@@ -1269,7 +1274,10 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
        da tabela — juros do parcelamento entrando na base — e vai marcado. A
        planilha atual traz o sinal invertido; aqui nasce certo. */
     var desconto = (face === null || doacao) ? null : round2(face - venda);
-    if (desconto !== null && desconto < 0){
+    /* (05/10, Ricardo: "limpar o ruído") Diferença de centavos é arredondamento do
+       Facilita, não juros: só marca a partir de R$ 1,00 acima da tabela. Em setembro,
+       23 dos 24 avisos deste tipo eram de −R$ 0,01 a −R$ 0,95. */
+    if (desconto !== null && desconto <= -1){
       alDesc.push('Vendida ACIMA da tabela: tabela ' + brl2(face) + ', venda ' + brl2(venda) +
                   ' — juros do parcelamento entrando na base.');
     }
@@ -2382,7 +2390,7 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
       r.append(el('td','num', brl2(x.venda)));
       if (x.pago !== null && x.pago !== undefined) r.lastChild.title = 'Migração: base = tabela cheia do jazigo. Valor pago: ' + brl2(x.pago) + '.';
 
-      var tdD = el('td','num' + (x.desconto !== null && x.desconto < 0 ? ' neg' : ''));
+      var tdD = el('td','num' + (x.alDesc.length ? ' neg' : ''));
       if (x.alDesc.length){ var i1 = el('span','aviso-icone','⚠️'); i1.title = x.alDesc.join('\n'); tdD.append(i1); }
       tdD.append(document.createTextNode(brl2(x.desconto)));
       r.append(tdD);
