@@ -571,8 +571,11 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
     'Reserva':    { avista: 0.007, parcelada: 0.005 },
     'Temporário': { avista: 0.000, parcelada: 0.000 },
     /* (26/09/2026, decisão do Ricardo) MIGRAÇÃO Temporário → Perpétuo, lançada à
-       mão no Cofre (aba Migracoes): a régua do PERPÉTUO sobre o Valor Pago. Não
-       está na planilha de julho — a migração nasceu depois dela. */
+       mão no Cofre (aba Migracoes): a régua do PERPÉTUO. Não está na planilha de
+       julho — a migração nasceu depois dela. A BASE MUDOU em 05/10/2026 (Ricardo,
+       para toda migração): é a TABELA CHEIA do jazigo do Temporário de origem
+       (coluna `Tabela do jazigo` da rota, o Valor da Estoque_Facilita), não mais o
+       Valor Pago. Ver classificarVenda. */
     'Migração':   { avista: 0.010, parcelada: 0.008 }
   };
 
@@ -1185,7 +1188,7 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
     ['Data da Venda','Quadra','Jazigo','Vendedor','Cliente','Modalidade','Valor Face',
      'Valor Venda','Nº Parcelas','Fluxo de Pagamento','Forma Pagamento','Condição Pagamento',
      'Origem','Canal','Deal ID','Meio Pgto','Meio origem',
-     'Origem fonte','Origem detalhe','Chegou','Deal Origem','Vendedor curto'].forEach(function (nome) {
+     'Origem fonte','Origem detalhe','Chegou','Deal Origem','Vendedor curto','Tabela do jazigo'].forEach(function (nome) {
       c[nome] = cab.indexOf(nome);
     });
     if (c['Data da Venda'] < 0 || c['Vendedor'] < 0 || c['Valor Venda'] < 0 || c['Modalidade'] < 0) return null;
@@ -1239,7 +1242,12 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
        vista, a régua derivada paga 0,8% — R$ 36,60 de diferença que esta marca
        existe para expor); e Fluxo × Nº Parcelas discordando é o "1x Entrada +
        23x Mensal" com 72 parcelas. */
-    if (!ehMig && (nParc === null || nParc <= 2)){
+    /* (05/10) DOAÇÃO: o Facilita registra a doação como venda de R$ 0,01 (desconto
+       de 100%) — M-19-150 em 22/09, confirmada pelo Ricardo. Conta como venda, não
+       gera comissão, e não é desconto nem caso de "confira o contrato". */
+    var doacao = !ehMig && venda > 0 && venda <= 0.01 && face !== null && face > 1;
+
+    if (!ehMig && !doacao && (nParc === null || nParc <= 2)){
       alPrazo.push('Nº Parcelas = ' + (nParc === null ? 'vazio' : nParc) +
                    ': confira no contrato se foi à vista ou parcelada.');
     }
@@ -1253,7 +1261,7 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
     /* DESCONTO = Tabela − Venda. POSITIVO é desconto. Negativo é venda ACIMA
        da tabela — juros do parcelamento entrando na base — e vai marcado. A
        planilha atual traz o sinal invertido; aqui nasce certo. */
-    var desconto = (face === null) ? null : round2(face - venda);
+    var desconto = (face === null || doacao) ? null : round2(face - venda);
     if (desconto !== null && desconto < 0){
       alDesc.push('Vendida ACIMA da tabela: tabela ' + brl2(face) + ', venda ' + brl2(venda) +
                   ' — juros do parcelamento entrando na base.');
@@ -1262,13 +1270,27 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
     var regua = COMISSAO[modalidade];
     var aliquota = regua ? (avista ? regua.avista : regua.parcelada) : null;
     if (aliquota === null) alRegua.push('Modalidade "' + (modalidade || 'vazia') + '" não está na régua: comissão não calculada.');
-    var valor = aliquota === null ? 0 : round2(venda * aliquota);
+    /* (05/10) A MIGRAÇÃO comissiona sobre a TABELA CHEIA do jazigo (decisão do
+       Ricardo). Essa tabela vira a base da linha — o "Vlr Venda" da migração é a
+       base da comissão, e o Valor Pago fica guardado em `pago`. Sem a tabela (o
+       Temporário de origem não foi achado no estoque do Facilita), ⚠️ e a
+       comissão não é calculada — mesmo tratamento da modalidade fora da régua. */
+    var pago = null, tabelaJaz = ehMig ? numero(g(l,'Tabela do jazigo')) : null;
+    if (ehMig){
+      pago = venda;
+      if (tabelaJaz && tabelaJaz > 0) venda = tabelaJaz;
+      else { alRegua.push('Migração sem a tabela cheia do jazigo (o Temporário de origem não foi achado no estoque do Facilita): comissão não calculada — confira.'); }
+    }
+    var semBase = ehMig && !(tabelaJaz > 0);
+    var valor = (aliquota === null || semBase || doacao) ? 0 : round2(venda * aliquota);
 
     return {
       data: data, quadra: quadra,
       /* a migração não tem jazigo próprio: diz de qual Temporário ela é a conversão */
-      jazigo: ehMig ? 'migração ← ' + (String(g(l,'Deal Origem')).trim() || '?')
+      jazigo: ehMig ? 'migração ← ' + (String(g(l,'Deal Origem')).trim() || '?') +
+                      ((quadra && jaz) ? ' · ' + quadra + '-' + jaz : '')
                     : (quadra && jaz) ? quadra + '-' + jaz : (jaz || quadra || '—'),
+      doacao: doacao, pago: pago,
       vendedor: String(g(l,'Vendedor')).trim() || '—',
       /* (05/10) o nome canônico (painel.vendedores, o mesmo do Executivo e da meta).
          Vazio em implantação anterior: aí vale o do Facilita. */
@@ -1847,6 +1869,8 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
     head.append(Object.assign(el('p','nota-fina'), { textContent:
       'Conferência sobre as linhas do CRM (Vendas_Facilita), importadas em ' + (VENDAS_CARIMBO || 'data desconhecida') +
       '. Régua de julho/2026: Perpétuo 1,0% à vista · 0,8% parcelada; Reserva 0,7% · 0,5%; Temporário 0%. ' +
+      'Migração: régua do Perpétuo sobre a tabela cheia do jazigo (05/10), não sobre o valor pago. ' +
+      'Doação (R$ 0,01 no Facilita) conta como venda e não comissiona. ' +
       'Base = Vlr Venda (tabela − desconto). Cada linha arredondada a 2 casas; o subtotal soma as linhas. ' +
       'O fechamento oficial continua na planilha Comissoes_<mês>_<ano>.xlsx.' }));
     head.append(status);
@@ -2260,9 +2284,11 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
 
       r.append(el('td', null, x.cliente));
       r.append(el('td', null, x.jazigo));
-      r.append(el('td', null, x.modalidade));
+      r.append(el('td', null, x.modalidade + (x.doacao ? ' · doação' : '')));
+      if (x.doacao) r.lastChild.title = 'Doação: venda de R$ 0,01 no Facilita — conta como venda, não gera comissão.';
       r.append(el('td', null, '—'));                       // Tipo Uso: não existe no Cofre
       r.append(el('td','num', brl2(x.venda)));
+      if (x.pago !== null && x.pago !== undefined) r.lastChild.title = 'Migração: base = tabela cheia do jazigo. Valor pago: ' + brl2(x.pago) + '.';
 
       var tdD = el('td','num' + (x.desconto !== null && x.desconto < 0 ? ' neg' : ''));
       if (x.alDesc.length){ var i1 = el('span','aviso-icone','⚠️'); i1.title = x.alDesc.join('\n'); tdD.append(i1); }
@@ -2482,8 +2508,8 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
       v.linhas.forEach(function (x) {
         var dt = String(x.data).match(/^\d{4}-(\d{2})-(\d{2})/);
         h += '<tr><td class="nw">' + (dt ? dt[2] + '/' + dt[1] : esc(x.data)) + '</td><td>' + esc(x.cliente) + '</td>' +
-             '<td class="nw">' + esc(x.jazigo) + '</td><td>' + esc(x.modalidade) + '</td><td>' + esc(x.prazoTexto) + '</td>' +
-             tdR(esc(brl2(x.venda))) + tdR(brlPapel(x.desconto)) + '<td class="r">' + pctBR(x.aliquota) + '</td>' +
+             '<td class="nw">' + esc(x.jazigo) + '</td><td>' + esc(x.modalidade) + (x.doacao ? ' (doação)' : '') + '</td><td>' + esc(x.prazoTexto) + '</td>' +
+             tdR(esc(brl2(x.venda))) + tdR(brlPapel(x.desconto)) + '<td class="r">' + (x.doacao ? '—' : pctBR(x.aliquota)) + '</td>' +
              tdR(esc(brl2(x.valor)), 'forte') + '</tr>';
       });
       h += '<tr class="total"><td colspan="5">Subtotal ' + esc(v.quem) + ' · ' + v.n + (v.n === 1 ? ' venda' : ' vendas') + '</td>' +
@@ -2508,7 +2534,7 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
     return '<li><strong>Régua:</strong> Perpétuo ' + p('Perpétuo','avista') + ' à vista e ' + p('Perpétuo','parcelada') +
       ' parcelada · Reserva ' + p('Reserva','avista') + ' à vista e ' + p('Reserva','parcelada') + ' parcelada · ' +
       'Temporário não gera comissão, mas conta como venda na meta · Migração de Temporário para Perpétuo segue a ' +
-      'régua do Perpétuo sobre o valor pago.</li>' +
+      'régua do Perpétuo sobre a tabela cheia do jazigo, não sobre o valor pago · Doação conta como venda e não gera comissão.</li>' +
       '<li><strong>Base:</strong> o valor da venda (tabela menos desconto), nunca a tabela cheia. Cada venda é ' +
       'arredondada em duas casas e o subtotal soma as linhas já arredondadas.</li>';
   }
@@ -2517,7 +2543,10 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
     var parcial = parcialAte(id);
     var com = v.linhas.filter(function (x) { return x.valor > 0; }).length, sem = v.n - com;
     var semMods = [];
-    v.linhas.forEach(function (x) { if (!(x.valor > 0) && semMods.indexOf(x.modalidade) < 0) semMods.push(x.modalidade); });
+    v.linhas.forEach(function (x) {
+      var m = x.doacao ? 'doação' : x.modalidade;
+      if (!(x.valor > 0) && semMods.indexOf(m) < 0) semMods.push(m);
+    });
     var notaV = !v.n ? 'nenhuma venda no mês'
               : !sem ? (v.n === 1 ? 'com comissão' : 'todas com comissão')
               : com + ' com comissão · ' + sem + ' sem (' + semMods.join(', ') + ')';
