@@ -352,6 +352,12 @@ table.lanc-tab td.acoes{text-align:right; white-space:nowrap}
            font-variant-numeric:tabular-nums; border-top:1px solid var(--grid); padding-top:10px}
 .lanc-soma b{color:var(--s1b)}
 .lanc-aviso{margin:0 0 12px; font-size:12.5px; color:var(--warn)}
+.conf-linha{margin:0 0 12px; font-size:12.5px; color:var(--text-2)}
+.conf-linha.mudo{color:var(--text-3)}
+.conf-linha.ok{color:var(--ok)}
+.conf-linha.rev{color:var(--warn); font-weight:700}
+.conf-mudou{color:var(--warn); font-weight:700}
+.conf-resumo{margin:0 0 14px; font-size:12.5px; color:var(--text-2)}
 @media (max-width: 1100px){
   .lanc-form{grid-template-columns:1fr 1fr}
   .lanc-campo.largo,.lanc-acoes{grid-column:1 / -1}
@@ -645,6 +651,7 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
   var TRUNCADO = false;      // a guarda do topo — a emissão confere de novo
   var DOBRAS = {};           // dobras abertas, para o redesenho depois de um lançamento
   var MSG_REPETIR = {};      // o que o "repetir os contratos" respondeu, por mês
+  var EXTRATOS = [];         // (05/10) a conferência no Pocket: a versão viva de cada vendedor e mês
 
   /* ═════════════════════════════ utilidades ═════════════════════════════ */
   var $ = function (s) { return document.querySelector(s); };
@@ -1875,6 +1882,7 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
       'O fechamento oficial continua na planilha Comissoes_<mês>_<ano>.xlsx.' }));
     head.append(status);
     corpo.append(head);
+    if (comp) corpo.append(resumoConferencia(id, comp));
 
     if (ROTA_SEM_LANC){
       var tl = el('div','tarja amarela');
@@ -1972,9 +1980,20 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
           emitirExtrato('individual', id, comp, v, stV);
         });
         sv.append(bi);
+        if (podeLancar()){
+          var bc = el('button','btn-export','Enviar para conferência');
+          bc.type = 'button';
+          bc.title = 'O vendedor vê esta versão do extrato no Pocket e aprova ou pede revisão.';
+          bc.addEventListener('click', function (e) {
+            e.preventDefault(); e.stopPropagation();
+            liberarExtrato(id, v, bc, stV);
+          });
+          sv.append(bc);
+        }
       }
       dv.append(sv);
       var cv = el('div','corpo');
+      if (comp && (v.n || v.lancs.length)) cv.append(linhaConferencia(id, v));
       if (stV) cv.append(stV);
       if (v.semDono){
         cv.append(el('p','lanc-aviso', '⚠️ "' + v.quem + '" não casa com nenhum vendedor que vendeu neste mês nem com a meta ' +
@@ -2000,6 +2019,78 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
       vt.append(vtt);
     }
     corpo.append(vt);
+  }
+
+  /* ══════════ A CONFERÊNCIA NO POCKET (05/10) ══════════
+     O Ricardo libera a FOTO do extrato individual (o mesmo miolo do PDF) e o vendedor,
+     pelo PIN, aprova ou pede revisão no Pocket. Aqui: o botão e o status. Liberar é só
+     com a senha das Configurações (rota ?app=comissao&fn=liberar, ComissaoExtratos.gs). */
+  function lerExtratos(bloco){
+    if (!bloco || !bloco.colunas) return [];
+    var c = {};
+    bloco.colunas.forEach(function (k, i) { c[k] = i; });
+    return (bloco.linhas || []).map(function (l) {
+      return { id: String(l[c.id]), mes: String(l[c.mes]), vendedor: String(l[c.vendedor] || ''),
+               liberado_em: String(l[c.liberado_em] || ''), total: Number(l[c.total]) || 0,
+               resposta: String(l[c.resposta] || ''), respondido_em: String(l[c.respondido_em] || ''),
+               texto: String(l[c.texto] || '') };
+    });
+  }
+  function extratoDe(id, v){
+    var k = normNome(v.quem);
+    return EXTRATOS.filter(function (x) { return x.mes === id && normNome(x.vendedor) === k; })[0] || null;
+  }
+  function linhaConferencia(id, v){
+    var x = extratoDe(id, v);
+    var p = el('p','conf-linha');
+    if (!x){ p.textContent = 'Conferência no Pocket: ainda não enviado ao vendedor.'; p.classList.add('mudo'); return p; }
+    var quando = carimboBR(x.liberado_em);
+    if (x.resposta === 'aprovado'){
+      p.classList.add('ok'); p.textContent = '✅ Aprovado pelo vendedor em ' + carimboBR(x.respondido_em) + ' (versão enviada em ' + quando + ').';
+    } else if (x.resposta === 'revisao'){
+      p.classList.add('rev'); p.textContent = '✋ Revisão pedida em ' + carimboBR(x.respondido_em) + ': “' + x.texto + '”';
+    } else {
+      p.textContent = '📨 Enviado para conferência em ' + quando + ' — aguardando o vendedor no Pocket.';
+    }
+    if (Math.abs(round2(x.total - v.total)) >= 0.01){
+      p.append(el('span','conf-mudou', ' ⚠️ O total mudou desde o envio (' + brl2(x.total) + ' → hoje ' + brl2(v.total) + '): envie de novo.'));
+    }
+    return p;
+  }
+  function resumoConferencia(id, comp){
+    var n = { ok:0, rev:0, esp:0, nao:0, mudou:0 };
+    comp.lista.filter(function (v) { return v.n || v.lancs.length; }).forEach(function (v) {
+      var x = extratoDe(id, v);
+      if (!x) n.nao++; else if (x.resposta === 'aprovado') n.ok++; else if (x.resposta === 'revisao') n.rev++; else n.esp++;
+      if (x && Math.abs(round2(x.total - v.total)) >= 0.01) n.mudou++;
+    });
+    var partes = [];
+    if (n.ok) partes.push(n.ok + (n.ok === 1 ? ' aprovado' : ' aprovados'));
+    if (n.rev) partes.push(n.rev + (n.rev === 1 ? ' pediu revisão' : ' pediram revisão'));
+    if (n.esp) partes.push(n.esp + ' aguardando');
+    if (n.nao) partes.push(n.nao + ' não ' + (n.nao === 1 ? 'enviado' : 'enviados'));
+    var p = el('p','conf-resumo', 'Conferência no Pocket: ' + (partes.join(' · ') || '—') +
+                (n.mudou ? ' · ⚠️ ' + n.mudou + ' com total diferente do enviado' : '') + '.');
+    return p;
+  }
+  function liberarExtrato(id, v, botao, status){
+    status.classList.remove('erro'); status.textContent = '';
+    var trava = bloqueioDaEmissao();
+    if (trava){ status.classList.add('erro'); status.textContent = 'Não foi enviado: ' + trava; return; }
+    var antes = extratoDe(id, v);
+    if (!confirm('Enviar o extrato de ' + nomeMes(id).toLowerCase() + ' de ' + v.quem + ' para conferência no Pocket?\n\n' +
+                 'Total do mês: ' + brl2(v.total) + '.' + (v.alertas ? ' Há ' + v.alertas + ' linha(s) com ⚠️ na tela (o aviso não vai para o vendedor).' : '') +
+                 (antes ? '\n\nA versão enviada em ' + carimboBR(antes.liberado_em) + (antes.resposta ? ' (já respondida)' : '') + ' será substituída.' : ''))) return;
+    var doc = docIndividual(id, v);
+    botao.disabled = true; status.textContent = 'enviando…';
+    chamarComissao('liberar', { mes: id, vendedor: v.quem, total: v.total,
+      documento: { titulo: doc.titulo, sub: doc.sub, arquivo: doc.arquivo, miolo: doc.miolo } }).then(function (j) {
+      if (!j || j.ok !== true) throw new Error(mensagemRecusa(j));
+      aplicarLancamentos(j);
+    }).catch(function (err) {
+      botao.disabled = false; status.classList.add('erro');
+      status.textContent = 'Não foi enviado: ' + ((err && err.message) || err);
+    });
   }
 
   /* Estado aberto/fechado das dobras sobrevive ao redesenho depois de um lançamento. */
@@ -2236,6 +2327,7 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
   /* Toda gravação devolve o bloco inteiro: a tela troca o que mostra sem reler a rota. */
   function aplicarLancamentos(j){
     if (j.lancamentos && !j.lancamentos.erro){ LANC = lerLancamentos(j.lancamentos); LANC_ERRO = null; }
+    if (j.extratos && !j.extratos.erro) EXTRATOS = lerExtratos(j.extratos);
     repintar();
   }
   function excluirLancamento(l, botao, status){
@@ -3183,6 +3275,7 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
       if (r.respostas && r.respostas.truncado) det.push('respostas: ' + r.respostas.n + ' de ' + r.respostas.total_aba);
       if (r.leitura && r.leitura.truncado) det.push('leitura: ' + r.leitura.n + ' de ' + r.leitura.total_aba);
       if (r.vendas && r.vendas.truncado) det.push('vendas: ' + r.vendas.n + ' de ' + r.vendas.total_aba);
+      if (r.extratos && r.extratos.truncado) det.push('extratos: ' + r.extratos.n + ' de ' + r.extratos.total_aba);
       if (r.lancamentos && r.lancamentos.truncado) det.push('lançamentos: ' + r.lancamentos.n + ' de ' + r.lancamentos.total_aba);
       bloqueia('Esta página não vai desenhar: a resposta veio cortada.',
         '<p>' + esc(det.join(' · ') || 'a rota sinalizou corte') + '. Toda conta abaixo sairia ' +
@@ -3230,6 +3323,7 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
     ROTA_SEM_LANC = !r.lancamentos;
     LANC_ERRO = (r.lancamentos && r.lancamentos.erro) || null;
     LANC = r.lancamentos ? lerLancamentos(r.lancamentos) : null;
+    EXTRATOS = lerExtratos(r.extratos);
 
     pintar();
   }
