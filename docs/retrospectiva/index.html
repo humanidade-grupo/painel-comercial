@@ -382,6 +382,14 @@ table.lanc-tab td.acoes{text-align:right; white-space:nowrap}
 .vchip.ok{border-color:rgba(74,222,128,.4); color:var(--ok)}
 .vchip.rev{border-color:rgba(251,191,36,.45); color:var(--warn)}
 .vchip.esp{border-color:var(--edge2); color:var(--text-2)}
+.vchip.pago{border-color:var(--s1); color:#2b2412; background:var(--s1)}
+.pag-passo{display:inline-flex; flex-wrap:wrap; align-items:center; gap:8px; margin-left:6px}
+.pag-ok{color:var(--s1b); font-weight:700}
+.pag-btn{padding:6px 12px; font-size:12px}
+.pag-senha{display:inline-flex; gap:6px; align-items:center}
+.pag-senha input{font:13px var(--f-body); color:var(--text-1); background:var(--surface-1); border:1px solid var(--edge2);
+                 border-radius:8px; padding:6px 9px; width:220px; color-scheme:dark}
+.pag-passo[hidden],.pag-senha[hidden]{display:none}
 .vnum{display:flex; flex-direction:column; align-items:flex-end; font-variant-numeric:tabular-nums}
 .vnum small{font-size:10px; letter-spacing:.06em; text-transform:uppercase; color:var(--text-3); font-weight:700}
 .vnum b{font-size:13.5px; font-weight:700}
@@ -668,6 +676,9 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
   var LANC_OBS_OBRIGATORIA = ['Campanha de incentivo', 'Reembolso'];
   /* Gravar é só com a senha das Configurações (a do Ricardo) — nunca com o hub_token_gestao. */
   var CHAVE_TOKEN_CONFIG = 'hub_token_config';
+  /* (05/10) A senha de APROVAÇÃO para pagamento (Rodrigo e Fabrícia): só aprova o extrato que o vendedor
+     já aprovou no Pocket. O Ricardo aprova com a das Configurações. ComissaoExtratos.gs. */
+  var CHAVE_TOKEN_APROVADOR = 'hub_token_aprovador';
   /* O timbrado: UM modelo só, lido de onde ele mora (ver emitirExtrato). */
   var TIMBRADO_CSS_URL = 'https://raw.githubusercontent.com/humanidade-grupo/ferramentas/main/timbrado/timbrado.css';
   var TIMBRADO_LOGO_URL = 'https://raw.githubusercontent.com/humanidade-grupo/ferramentas/main/timbrado/andorinha.png';
@@ -2085,7 +2096,8 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
       return { id: String(l[c.id]), mes: String(l[c.mes]), vendedor: String(l[c.vendedor] || ''),
                liberado_em: String(l[c.liberado_em] || ''), total: Number(l[c.total]) || 0,
                resposta: String(l[c.resposta] || ''), respondido_em: String(l[c.respondido_em] || ''),
-               texto: String(l[c.texto] || '') };
+               texto: String(l[c.texto] || ''),
+               pagamento_por: String(l[c.pagamento_por] || ''), pagamento_em: String(l[c.pagamento_em] || '') };
     });
   }
   function extratoDe(id, v){
@@ -2099,6 +2111,7 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
     var quando = carimboBR(x.liberado_em);
     if (x.resposta === 'aprovado'){
       p.classList.add('ok'); p.textContent = '✅ Aprovado pelo vendedor em ' + carimboBR(x.respondido_em) + ' (versão enviada em ' + quando + ').';
+      p.append(passoPagamento(x));
     } else if (x.resposta === 'revisao'){
       p.classList.add('rev'); p.textContent = '✋ Revisão pedida em ' + carimboBR(x.respondido_em) + ': “' + x.texto + '”';
     } else {
@@ -2109,15 +2122,79 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
     }
     return p;
   }
+  /* O passo da gestão, depois do vendedor: "Aprovar para pagamento" (senha de aprovação ou Configurações). */
+  function senhaAprovacao(){
+    try { return localStorage.getItem(CHAVE_TOKEN_APROVADOR) || localStorage.getItem(CHAVE_TOKEN_CONFIG) || ''; } catch (e) { return ''; }
+  }
+  function passoPagamento(x){
+    var w = el('span','pag-passo');
+    if (x.pagamento_por){
+      w.append(el('span','pag-ok', ' 💰 Aprovado para pagamento por ' + x.pagamento_por + ' em ' + carimboBR(x.pagamento_em) + '.'));
+      if (podeLancar()){
+        var bd = el('button','lanc-link','Desfazer'); bd.type = 'button';
+        bd.addEventListener('click', function () {
+          if (!confirm('Desfazer a aprovação para pagamento de ' + x.vendedor + '?')) return;
+          bd.disabled = true;
+          chamarComissao('desfazer-pagamento', { id: x.id }).then(function (j) {
+            if (!j || j.ok !== true) throw new Error(mensagemRecusa(j));
+            aplicarLancamentos(j);
+          }).catch(function (err) { bd.disabled = false; alert('Nada foi desfeito: ' + ((err && err.message) || err)); });
+        });
+        w.append(bd);
+      }
+      return w;
+    }
+    var st = el('span','export-status','');
+    if (senhaAprovacao()){
+      var ba = el('button','btn-export destaque pag-btn','💰 Aprovar para pagamento'); ba.type = 'button';
+      ba.addEventListener('click', function () {
+        if (!confirm('Aprovar para pagamento o extrato de ' + x.vendedor + ' (total ' + brl2(x.total) + ')?')) return;
+        ba.disabled = true; st.classList.remove('erro'); st.textContent = 'gravando…';
+        comPrazo(API + '?app=comissao&fn=aprovar-pagamento', 60000, JSON.stringify({ token: senhaAprovacao(), id: x.id }))
+          .then(function (j) {
+            if (!j || j.ok !== true){
+              if (j && j.codigo === 'token'){ try { localStorage.removeItem(CHAVE_TOKEN_APROVADOR); } catch (e) {} }
+              throw new Error(j && j.codigo === 'token' ? 'a senha de aprovação foi recusada — digite de novo' : mensagemRecusa(j));
+            }
+            aplicarLancamentos(j);
+          }).catch(function (err) {
+            ba.disabled = false; st.classList.add('erro'); st.textContent = 'Não foi aprovado: ' + ((err && err.message) || err);
+          });
+      });
+      w.append(ba, st);
+    } else {
+      var bl = el('button','lanc-link','Tenho a senha de aprovação'); bl.type = 'button';
+      bl.addEventListener('click', function () {
+        bl.hidden = true;
+        var f = el('span','pag-senha');
+        var inp = el('input'); inp.type = 'password'; inp.placeholder = 'senha de aprovação'; inp.autocomplete = 'off';
+        var bg = el('button','btn-export','Guardar neste aparelho'); bg.type = 'button';
+        bg.addEventListener('click', function () {
+          var v = inp.value.trim();
+          if (v.length < 24){ st.classList.add('erro'); st.textContent = 'A senha de aprovação tem 32 caracteres.'; return; }
+          try { localStorage.setItem(CHAVE_TOKEN_APROVADOR, v); } catch (e) {}
+          repintar();
+        });
+        f.append(inp, bg);
+        w.insertBefore(f, st);
+        inp.focus();
+      });
+      w.append(bl, st);
+    }
+    return w;
+  }
+
   function resumoConferencia(id, comp){
-    var n = { ok:0, rev:0, esp:0, nao:0, mudou:0 };
+    var n = { ok:0, rev:0, esp:0, nao:0, mudou:0, pago:0 };
     comp.lista.filter(function (v) { return v.n || v.lancs.length; }).forEach(function (v) {
       var x = extratoDe(id, v);
       if (!x) n.nao++; else if (x.resposta === 'aprovado') n.ok++; else if (x.resposta === 'revisao') n.rev++; else n.esp++;
+      if (x && x.pagamento_por) n.pago++;
       if (x && Math.abs(round2(x.total - totalIndividual(v))) >= 0.01) n.mudou++;
     });
     var partes = [];
-    if (n.ok) partes.push(n.ok + (n.ok === 1 ? ' aprovado' : ' aprovados'));
+    if (n.ok) partes.push(n.ok + (n.ok === 1 ? ' aprovado pelo vendedor' : ' aprovados pelos vendedores') +
+                          (n.pago ? ' (' + n.pago + ' já para pagamento)' : ''));
     if (n.rev) partes.push(n.rev + (n.rev === 1 ? ' pediu revisão' : ' pediram revisão'));
     if (n.esp) partes.push(n.esp + ' aguardando');
     if (n.nao) partes.push(n.nao + ' não ' + (n.nao === 1 ? 'enviado' : 'enviados'));
@@ -2267,7 +2344,8 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
     var x = extratoDe(id, v);
     if (!x) return null;
     var mudou = Math.abs(round2(x.total - totalIndividual(v))) >= 0.01;
-    var c = x.resposta === 'aprovado' ? ['ok', 'aprovado'] : x.resposta === 'revisao' ? ['rev', 'revisão pedida'] : ['esp', 'aguardando'];
+    var c = x.pagamento_por ? ['pago', 'aprovado p/ pagamento'] : x.resposta === 'aprovado' ? ['ok', 'aprovado pelo vendedor']
+          : x.resposta === 'revisao' ? ['rev', 'revisão pedida'] : ['esp', 'aguardando'];
     var ch = el('span','vchip ' + c[0], c[1] + (mudou ? ' · ⚠️ mudou' : ''));
     ch.title = 'Conferência no Pocket';
     return ch;
