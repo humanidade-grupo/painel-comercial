@@ -361,7 +361,15 @@ table.lanc-tab td.acoes{text-align:right; white-space:nowrap}
 .conf-linha.ok{color:var(--ok)}
 .conf-linha.rev{color:var(--warn); font-weight:700}
 .conf-mudou{color:var(--warn); font-weight:700}
-.conf-resumo{margin:0 0 14px; font-size:12.5px; color:var(--text-2)}
+/* as notas da conta, recolhidas (06/10) */
+.nota-dobra{margin:0 0 12px}
+.nota-dobra > summary{cursor:pointer; font-size:12px; color:var(--text-3); list-style:none; display:inline-flex; gap:6px; align-items:center}
+.nota-dobra > summary::-webkit-details-marker{display:none}
+.nota-dobra > summary::before{content:'ⓘ'; font-size:13px}
+.nota-dobra > summary::after{content:'▸'; font-size:10px; transition:transform .15s}
+.nota-dobra[open] > summary::after{transform:rotate(90deg)}
+.nota-dobra > summary:hover{color:var(--text-2)}
+.nota-dobra .nota-fina{margin-top:8px}
 /* a lista de vendedores e o modal (05/10) */
 .vend-lista{display:flex; flex-direction:column; gap:8px; margin:6px 0 16px}
 .vend-linha{appearance:none; display:grid; grid-template-columns:auto minmax(0,1fr) repeat(4, minmax(86px, auto)) auto;
@@ -384,7 +392,19 @@ table.lanc-tab td.acoes{text-align:right; white-space:nowrap}
 .vchip.esp{border-color:var(--edge2); color:var(--text-2)}
 .apr-geral{border:1px solid var(--edge2); border-radius:14px; padding:14px 16px; margin:0 0 16px; background:var(--card2);
            display:flex; flex-direction:column; gap:12px}
-.apr-tit{font-size:13.5px; font-weight:800}
+.apr-tit{font-size:14px; font-weight:800}
+.apr-parte{display:flex; flex-direction:column; gap:10px}
+.apr-parte + .apr-parte{border-top:1px solid var(--grid); padding-top:12px}
+.apr-sub{display:flex; flex-wrap:wrap; align-items:baseline; gap:4px 10px; font-size:12.5px; color:var(--text-3)}
+.apr-sub b{font-size:13px; color:var(--text-1)}
+.apr-vends{display:grid; grid-template-columns:repeat(auto-fill, minmax(190px,1fr)); gap:8px}
+.apr-vend{appearance:none; background:transparent; color:var(--text-1); font:13px/1.35 var(--f-body);
+          text-align:left; cursor:pointer; width:100%; transition:border-color .15s, background .15s}
+.apr-vend:hover{border-color:var(--s1); background:rgba(242,199,68,.05)}
+.apr-vend:focus-visible{outline:2px solid var(--s1); outline-offset:2px}
+.apr-vend.rev{border-color:rgba(251,191,36,.45)}
+.apr-vend.rev .apr-n{color:var(--warn); border-color:rgba(251,191,36,.45)}
+.apr-vend.nao .apr-txt small{font-style:italic}
 .apr-etapas{display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:10px}
 .apr-etapa{display:flex; align-items:center; gap:10px; border:1px solid var(--edge); border-radius:12px; padding:9px 12px}
 .apr-etapa.feita{border-color:rgba(74,222,128,.45)}
@@ -1984,18 +2004,29 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
     }
     s.append(botoes);
 
+    /* (06/10, Ricardo) as duas notas da conta nascem recolhidas, numa linha só. */
     var head = el('div','comissao-head');
-    head.append(Object.assign(el('p','nota-fina'), { textContent:
+    var notas = el('details','nota-dobra');
+    notas.append(el('summary', null, 'Como a conta é feita'));
+    lembrarDobra(notas, 'n:' + id);
+    notas.append(Object.assign(el('p','nota-fina'), { textContent:
       'Conferência sobre as linhas do CRM (Vendas_Facilita), importadas em ' + (VENDAS_CARIMBO || 'data desconhecida') +
       '. Régua de julho/2026: Perpétuo 1,0% à vista · 0,8% parcelada; Reserva 0,7% · 0,5%; Temporário 0%. ' +
       'Migração: régua do Perpétuo sobre a tabela cheia do jazigo (05/10), não sobre o valor pago. ' +
       'Doação (R$ 0,01 no Facilita) conta como venda e não comissiona. ' +
       'Base = Vlr Venda (tabela − desconto). Cada linha arredondada a 2 casas; o subtotal soma as linhas. ' +
       'O fechamento oficial continua na planilha Comissoes_<mês>_<ano>.xlsx.' }));
-    head.append(status);
+    notas.append(Object.assign(el('p','nota-fina'), { textContent:
+      'Prazo em itálico foi DERIVADO de Nº Parcelas (o CRM não tem Condição Pagamento; a coluna saiu em 09/09). ' +
+      '⚠️ na linha não muda a alíquota: diz "confira o contrato" — Nº Parcelas ≤ 2, Fluxo de ' +
+      'Pagamento discordando de Nº Parcelas, ou venda acima da tabela (desconto negativo). ' +
+      'Tipo Uso não existe no Facilita e aparece como "—". Meio Pgto é o da 1ª parcela do carnê; em ' +
+      'itálico quando o importador o inferiu em vez de ler.' +
+      (comp ? ' Contrato, bônus, campanha e reembolso vêm dos lançamentos de cada vendedor, logo abaixo; ' +
+              'o total do mês é comissão + demais valores. Os ⚠️ ficam só na tela: não vão para o extrato.' : '') }));
+    head.append(notas, status);
     corpo.append(head);
-    if (comp) corpo.append(resumoConferencia(id, comp));
-    if (comp && !LANC_ERRO) corpo.append(faixaAprovacaoGeral(id, comp));
+    if (comp) corpo.append(blocoAprovacoes(id, comp));
 
     if (ROTA_SEM_LANC){
       var tl = el('div','tarja amarela');
@@ -2052,15 +2083,6 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
     }
     tfR.append(trT); tR.append(tfR);
     wrapR.append(tR); corpo.append(wrapR);
-
-    corpo.append(Object.assign(el('p','nota-fina'), { textContent:
-      'Prazo em itálico foi DERIVADO de Nº Parcelas (o CRM não tem Condição Pagamento; a coluna saiu em 09/09). ' +
-      '⚠️ na linha não muda a alíquota: diz "confira o contrato" — Nº Parcelas ≤ 2, Fluxo de ' +
-      'Pagamento discordando de Nº Parcelas, ou venda acima da tabela (desconto negativo). ' +
-      'Tipo Uso não existe no Facilita e aparece como "—". Meio Pgto é o da 1ª parcela do carnê; em ' +
-      'itálico quando o importador o inferiu em vez de ler.' +
-      (comp ? ' Contrato, bônus, campanha e reembolso vêm dos lançamentos de cada vendedor, logo abaixo; ' +
-              'o total do mês é comissão + demais valores. Os ⚠️ ficam só na tela: não vão para o extrato.' : '') }));
 
     /* (a2) repetir os contratos do mês anterior — só no aparelho da senha das Configurações */
     if (comp && podeLancar() && !LANC_ERRO){
@@ -2183,11 +2205,20 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
     return { vivas: mudou ? [] : vivas, caiu: mudou, faltam: faltam, atuais: atuais,
              proxima: mudou ? 0 : vivas.length };   // índice em ORDEM_APROVACAO de quem aprova agora (3 = completo)
   }
+  /* (06/10, Ricardo) TODAS as aprovações num bloco só: os vendedores (conferência no Pocket) em cima,
+     a gestão (extrato geral, 3 etapas) embaixo — é a ordem em que acontecem. */
+  function blocoAprovacoes(id, comp){
+    var w = el('div','apr-geral');
+    w.append(el('div','apr-tit', 'Aprovações do mês'));
+    w.append(parteVendedores(id, comp));
+    if (!LANC_ERRO) w.append(faixaAprovacaoGeral(id, comp));
+    return w;
+  }
   function faixaAprovacaoGeral(id, comp){
     var e = estadoAprovacao(id, comp);
-    var w = el('div','apr-geral');
-    var topo = el('div','apr-topo');
-    topo.append(el('span','apr-tit', 'Aprovação do extrato geral'));
+    var w = el('div','apr-parte');
+    var topo = el('div','apr-sub');
+    topo.append(el('b', null, '2 · Gestão'), el('span', null, 'o extrato geral, nesta ordem: Ricardo → Fabrícia → Rodrigo'));
     w.append(topo);
     var etapas = el('div','apr-etapas');
     ORDEM_APROVACAO.forEach(function (nome, i) {
@@ -2203,7 +2234,8 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
 
     if (e.caiu) w.append(el('p','apr-aviso', '⚠️ Os números mudaram depois da aprovação (venda, lançamento, ajuste ou reenvio). ' +
       'As aprovações caíram e a sequência recomeça pelo Ricardo.'));
-    if (e.proxima === 0 && e.faltam.length) w.append(el('p','apr-falta', 'Para a 1ª aprovação, todos os vendedores precisam ter aprovado no Pocket a versão atual. Falta: ' + e.faltam.join(' · ') + '.'));
+    if (e.proxima === 0 && e.faltam.length) w.append(el('p','apr-falta', 'A 1ª aprovação abre quando todos os vendedores acima tiverem aprovado no Pocket a versão atual (' +
+      e.faltam.length + (e.faltam.length === 1 ? ' falta' : ' faltam') + ').'));
     if (e.proxima >= 3) w.append(el('p','apr-pronto', '✅ Extrato geral aprovado por Ricardo, Fabrícia e Rodrigo.'));
 
     var acoes = el('div','apr-acoes');
@@ -2272,21 +2304,37 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
     return w;
   }
 
-  function resumoConferencia(id, comp){
-    var n = { ok:0, rev:0, esp:0, nao:0, mudou:0 };
-    comp.lista.filter(function (v) { return v.n || v.lancs.length; }).forEach(function (v) {
+  /* A parte dos vendedores: um cartão por pessoa com o estado da conferência no Pocket. O clique abre o
+     modal do vendedor, onde ficam o PDF e o "Enviar para conferência". */
+  function parteVendedores(id, comp){
+    var w = el('div','apr-parte');
+    var quem = comp.lista.filter(function (v) { return v.n || v.lancs.length; });
+    var ok = 0;
+    var grade = el('div','apr-vends');
+    quem.forEach(function (v) {
       var x = extratoDe(id, v);
-      if (!x) n.nao++; else if (x.resposta === 'aprovado') n.ok++; else if (x.resposta === 'revisao') n.rev++; else n.esp++;
-      if (x && Math.abs(round2(x.total - totalIndividual(v))) >= 0.01) n.mudou++;
+      var mudou = x && Math.abs(round2(x.total - totalIndividual(v))) >= 0.01;
+      var st = !x ? ['nao', '·', 'não enviado']
+             : mudou ? ['rev', '!', 'o total mudou — envie de novo']
+             : x.resposta === 'aprovado' ? ['feita', '✓', 'aprovou em ' + carimboBR(x.respondido_em)]
+             : x.resposta === 'revisao' ? ['rev', '✋', 'pediu revisão']
+             : ['esp', '…', 'aguardando no Pocket'];
+      if (st[0] === 'feita') ok++;
+      var b = el('button','apr-etapa apr-vend ' + st[0]);
+      b.type = 'button';
+      b.title = x && x.resposta === 'revisao' ? '“' + x.texto + '”' : 'Abrir o extrato de ' + v.quem;
+      b.append(el('span','apr-n', st[1]));
+      var t = el('span','apr-txt');
+      t.append(el('b', null, v.quem), el('small', null, st[2]));
+      b.append(t);
+      b.addEventListener('click', function () { abrirVendedor('v:' + id + ':' + normNome(v.quem)); });
+      grade.append(b);
     });
-    var partes = [];
-    if (n.ok) partes.push(n.ok + (n.ok === 1 ? ' aprovado pelo vendedor' : ' aprovados pelos vendedores'));
-    if (n.rev) partes.push(n.rev + (n.rev === 1 ? ' pediu revisão' : ' pediram revisão'));
-    if (n.esp) partes.push(n.esp + ' aguardando');
-    if (n.nao) partes.push(n.nao + ' não ' + (n.nao === 1 ? 'enviado' : 'enviados'));
-    var p = el('p','conf-resumo', 'Conferência no Pocket: ' + (partes.join(' · ') || '—') +
-                (n.mudou ? ' · ⚠️ ' + n.mudou + ' com total diferente do enviado' : '') + '.');
-    return p;
+    var topo = el('div','apr-sub');
+    topo.append(el('b', null, '1 · Vendedores'),
+                el('span', null, 'cada um confere o próprio extrato no Pocket · ' + ok + ' de ' + quem.length + ' aprovado' + (quem.length === 1 ? '' : 's')));
+    w.append(topo, grade);
+    return w;
   }
   function liberarExtrato(id, v, botao, status){
     status.classList.remove('erro'); status.textContent = '';
@@ -3523,9 +3571,10 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
     if (FEEDBACK) Object.keys(FEEDBACK).forEach(function (k) { s[k] = true; });
     if (LEITURA) Object.keys(LEITURA).forEach(function (k) { s[k] = true; });
     if (VENDAS) Object.keys(VENDAS).forEach(function (k) { s[k] = true; });
+    /* (06/10, Ricardo) retrospectiva é de mês FECHADO: o mês vigente (e qualquer futuro) não aparece. */
     var hoje = new Date();
-    s[hoje.getFullYear() + '-' + String(hoje.getMonth()+1).padStart(2,'0')] = true;
-    return Object.keys(s).sort().reverse();
+    var vigente = hoje.getFullYear() + '-' + String(hoje.getMonth()+1).padStart(2,'0');
+    return Object.keys(s).filter(function (k) { return k < vigente; }).sort().reverse();
   }
 
   function renderMes(id){
@@ -3646,6 +3695,7 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
   function pintar(){
     var nav = $('#tabs');
     var meses = mesesConhecidos();
+    if (!meses.length && ABA.tipo === 'mes') ABA = { tipo:'serie' };
     if (ABA.tipo === 'mes' && (!ABA.id || meses.indexOf(ABA.id) < 0)) ABA = { tipo:'mes', id:meses[0] };
 
     nav.innerHTML = '';
