@@ -87,6 +87,8 @@
     · Extrato geral e individual em PDF, pela impressão do navegador, no modelo
       do ferramentas/timbrado/ (CSS lido de lá na hora; fontes do Pocket). Ver
       "OS EXTRATOS EM PAPEL TIMBRADO" no script.
+    · (05/10, Ricardo) O CONTRATO É PAGO À PARTE: não aparece nem soma no extrato
+      INDIVIDUAL (PDF e Pocket). No extrato geral e na tela ele continua somando.
     · O que a implementação faz diferente do artefato: sem as etiquetas "novo";
       o mês em andamento diz "parcial até DD/MM" no subtítulo e na abertura; a
       tabela "Lançamentos do mês" some do extrato geral quando não há linha.
@@ -2102,8 +2104,8 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
     } else {
       p.textContent = '📨 Enviado para conferência em ' + quando + ' — aguardando o vendedor no Pocket.';
     }
-    if (Math.abs(round2(x.total - v.total)) >= 0.01){
-      p.append(el('span','conf-mudou', ' ⚠️ O total mudou desde o envio (' + brl2(x.total) + ' → hoje ' + brl2(v.total) + '): envie de novo.'));
+    if (Math.abs(round2(x.total - totalIndividual(v))) >= 0.01){
+      p.append(el('span','conf-mudou', ' ⚠️ O total mudou desde o envio (' + brl2(x.total) + ' → hoje ' + brl2(totalIndividual(v)) + '): envie de novo.'));
     }
     return p;
   }
@@ -2112,7 +2114,7 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
     comp.lista.filter(function (v) { return v.n || v.lancs.length; }).forEach(function (v) {
       var x = extratoDe(id, v);
       if (!x) n.nao++; else if (x.resposta === 'aprovado') n.ok++; else if (x.resposta === 'revisao') n.rev++; else n.esp++;
-      if (x && Math.abs(round2(x.total - v.total)) >= 0.01) n.mudou++;
+      if (x && Math.abs(round2(x.total - totalIndividual(v))) >= 0.01) n.mudou++;
     });
     var partes = [];
     if (n.ok) partes.push(n.ok + (n.ok === 1 ? ' aprovado' : ' aprovados'));
@@ -2129,11 +2131,11 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
     if (trava){ status.classList.add('erro'); status.textContent = 'Não foi enviado: ' + trava; return; }
     var antes = extratoDe(id, v);
     if (!confirm('Enviar o extrato de ' + nomeMes(id).toLowerCase() + ' de ' + v.quem + ' para conferência no Pocket?\n\n' +
-                 'Total do mês: ' + brl2(v.total) + '.' + (v.alertas ? ' Há ' + v.alertas + ' linha(s) com ⚠️ na tela (o aviso não vai para o vendedor).' : '') +
+                 'Total no extrato do vendedor (sem o Contrato, que é pago à parte): ' + brl2(totalIndividual(v)) + '.' + (v.alertas ? ' Há ' + v.alertas + ' linha(s) com ⚠️ na tela (o aviso não vai para o vendedor).' : '') +
                  (antes ? '\n\nA versão enviada em ' + carimboBR(antes.liberado_em) + (antes.resposta ? ' (já respondida)' : '') + ' será substituída.' : ''))) return;
     var doc = docIndividual(id, v);
     botao.disabled = true; status.textContent = 'enviando…';
-    chamarComissao('liberar', { mes: id, vendedor: v.quem, total: v.total,
+    chamarComissao('liberar', { mes: id, vendedor: v.quem, total: totalIndividual(v),
       documento: { titulo: doc.titulo, sub: doc.sub, arquivo: doc.arquivo, miolo: doc.miolo } }).then(function (j) {
       if (!j || j.ok !== true) throw new Error(mensagemRecusa(j));
       aplicarLancamentos(j);
@@ -2264,7 +2266,7 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
   function chipConferencia(id, v){
     var x = extratoDe(id, v);
     if (!x) return null;
-    var mudou = Math.abs(round2(x.total - v.total)) >= 0.01;
+    var mudou = Math.abs(round2(x.total - totalIndividual(v))) >= 0.01;
     var c = x.resposta === 'aprovado' ? ['ok', 'aprovado'] : x.resposta === 'revisao' ? ['rev', 'revisão pedida'] : ['esp', 'aguardando'];
     var ch = el('span','vchip ' + c[0], c[1] + (mudou ? ' · ⚠️ mudou' : ''));
     ch.title = 'Conferência no Pocket';
@@ -2326,7 +2328,10 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
     var kpis = el('div','vm-kpis');
     var k = function (rot, val, cls) { var c = el('div','vm-k' + (cls ? ' ' + cls : '')); c.append(el('span', null, rot), el('b', null, val)); return c; };
     kpis.append(k('Comissão das vendas', brl2(v.valor)));
-    if (comp){ kpis.append(k('Demais valores', brl2(v.demais)), k('Total do mês', brl2(v.total), 'forte')); }
+    if (comp){
+      kpis.append(k('Demais valores', brl2(v.demais)), k('Total do mês', brl2(v.total), 'forte'));
+      if (v.porTipo['Contrato']) kpis.append(k('No extrato do vendedor', brl2(totalIndividual(v)) ));
+    }
     cab.append(kpis);
 
     var stV = el('span','export-status vm-status','');
@@ -2889,14 +2894,20 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
     return h + '</tbody></table>';
   }
 
-  function destaquesPapel(nVendas, notaVendas, comissao, base, total){
+  /* (05/10, Ricardo) O CONTRATO É PAGO À PARTE: no extrato INDIVIDUAL (PDF e Pocket) ele não aparece
+     e não soma — o vendedor vê comissão, bônus, campanha e reembolso. No extrato GERAL e na tela, que
+     são da gestão, o Contrato continua somando no total do mês. */
+  var TIPOS_INDIVIDUAL = LANC_TIPOS.filter(function (t) { return t !== 'Contrato'; });
+  function totalIndividual(v){ return round2(v.total - (v.porTipo['Contrato'] || 0)); }
+
+  function destaquesPapel(nVendas, notaVendas, comissao, base, total, notaTotal){
     var caixa = function (k, val, n) {
       return '<div class="caixa"><div class="k">' + k + '</div><div class="v">' + val + '</div><div class="n">' + n + '</div></div>';
     };
     return '<div class="destaques">' +
       caixa('Vendas no mês', String(nVendas), esc(notaVendas)) +
       caixa('Comissão das vendas', esc(brl2(comissao)), 'sobre ' + esc(brl2(base)) + ' de base') +
-      caixa('Total do mês', esc(brl2(total)), 'comissão + contrato + demais valores') + '</div>';
+      caixa('Total do mês', esc(brl2(total)), notaTotal || 'comissão + contrato + demais valores') + '</div>';
   }
 
   /* A régua impressa sai da MESMA constante que calcula — nunca de texto solto. */
@@ -2924,7 +2935,7 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
 
     var comp = '<tr><td class="forte">Comissão das vendas</td><td class="solto">' + v.n + (v.n === 1 ? ' venda' : ' vendas') +
                ' · base ' + esc(brl2(v.base)) + '</td>' + tdR(esc(brl2(v.valor))) + '</tr>';
-    LANC_TIPOS.forEach(function (t) {
+    TIPOS_INDIVIDUAL.forEach(function (t) {
       var ls = v.lancs.filter(function (l) { return l.tipo === t; });
       if (!ls.length){
         comp += '<tr><td class="forte">' + t + '</td><td class="sec">sem lançamento no mês</td><td class="r">—</td></tr>';
@@ -2933,13 +2944,13 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
                 tdR(esc(brl2(l.valor))) + '</tr>';
       });
     });
-    comp += '<tr class="total"><td colspan="2">Total do mês</td>' + tdR(esc(brl2(v.total))) + '</tr>';
+    comp += '<tr class="total"><td colspan="2">Total do mês</td>' + tdR(esc(brl2(totalIndividual(v)))) + '</tr>';
 
     var miolo =
       '<p class="lead">Extrato de <strong>' + esc(v.quem) + '</strong> em <strong>' + nomeMes(id).toLowerCase() + '</strong>' +
       (parcial ? ' (mês em andamento, parcial até ' + parcial + ')' : '') +
       ': as vendas do mês, a comissão de cada uma e os demais valores que entram no pagamento. Confira linha a linha.</p>' +
-      destaquesPapel(v.n, notaV, v.valor, v.base, v.total) +
+      destaquesPapel(v.n, notaV, v.valor, v.base, totalIndividual(v), 'comissão + bônus, campanha e reembolso') +
       '<div class="rotulo"><span>Vendas do mês</span><span>' + v.n + (v.n === 1 ? ' venda' : ' vendas') + '</span></div>' +
       tabelaVendasPapel(v) +
       '<div class="rotulo"><span>Composição do mês</span><span>' + mesAno(id) + '</span></div>' +
