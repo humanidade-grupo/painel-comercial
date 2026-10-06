@@ -372,13 +372,6 @@ align-items:center;gap:3px;cursor:pointer;min-width:0}
        HTML, inertes: removê-los exigiria podar o render() em produção, e
        painel inalcançável é mais barato que regressão. -->
   <button class="tab" role="tab" aria-selected="true" data-p="pPSX" type="button">Executivo</button>
-  <!-- RECEITA CONTRATADA (19/09/26) é aba própria, não bloco do Executivo:
-       ela responde outra pergunta (como o cliente paga, e quando isso vira
-       caixa) e tem meia dúzia de blocos. Mora na MESMA moldura v2, com
-       `?vista=receita` — a página de dentro desenha só essa seção. Nada foi
-       duplicado: os helpers de gráfico, as cores e o pacote do Cofre são os
-       mesmos do Executivo. -->
-  <button class="tab" role="tab" aria-selected="false" data-p="pPSObraReceita" type="button">Receita Contratada</button>
   <!-- ESTOQUE (03/10/26, pedido do Rodrigo): o VGV dos jazigos — Total, Vendido e Estoque — por
        quadra, construído × a construir. Página própria (./estoque/), embutida por moldura como a
        Retrospectiva; lê ?app=estoque-vgv do Cofre. A aba "Estoque" da Estrela é outra coisa. -->
@@ -391,20 +384,25 @@ align-items:center;gap:3px;cursor:pointer;min-width:0}
        ./perfil-cliente/ — cópia da foto de 28/08; o artefato 2aa935f2 fica
        como o lugar onde o Perfil é REFEITO, não mais como a referência de
        leitura (regra 8). Só o Pocket abre fora: é outro app, outro PWA. -->
-  <button class="tab" role="tab" aria-selected="false" data-p="pPSPerfil" type="button">Perfil Cliente</button>
   <button class="tab" role="tab" aria-selected="false" data-p="pPSRetro" type="button">Retrospectiva</button>
-  <!-- ESTEIRA e PONTEAPP EM OBRAS (19/09/26, decisão do Ricardo): as telas
-       continuam existindo e no ar pelos endereços próprios (./esteira/ e
-       ./controladoria/) — o que saiu foi a porta por aqui. A aba abre um
-       aviso em vez da tela, de propósito: aba que some deixa quem usava sem
-       entender, e aba que abre tela em revisão espalha número que vai mudar.
-       Para religar: trocar o data-p de volta para pPSEsteira (a moldura
-       continua no HTML, com o data-src intacto) e, na PonteApp, voltar a
-       aba-link para ./controladoria/. -->
-  <button class="tab" role="tab" aria-selected="false" data-p="pPSObraEsteira" type="button">Esteira</button>
-  <button class="tab" role="tab" aria-selected="false" data-p="pPSDocs" type="button">Docs</button>
+  <!-- RECEITA CONTRATADA (19/09/26) é aba própria, não bloco do Executivo:
+       ela responde outra pergunta (como o cliente paga, e quando isso vira
+       caixa) e tem meia dúzia de blocos. Mora na MESMA moldura v2, com
+       `?vista=receita` — a página de dentro desenha só essa seção. Nada foi
+       duplicado: os helpers de gráfico, as cores e o pacote do Cofre são os
+       mesmos do Executivo.
+       Fora de obra desde 05/10/26 (Ricardo): a aba aponta de novo para a
+       moldura pPSReceita; o aviso pPSObraReceita fica no HTML, inerte. -->
+  <button class="tab" role="tab" aria-selected="false" data-p="pPSReceita" type="button">Receita Contratada</button>
+  <button class="tab" role="tab" aria-selected="false" data-p="pPSPerfil" type="button">Perfil Cliente</button>
+  <!-- MENU REORDENADO em 05/10/26 (Ricardo): Executivo · Estoque · Retrospectiva · Receita ·
+       Perfil · Pocket↗ · PonteApp↗ · Docs · Configurações. A ESTEIRA saiu do menu (estava em obra
+       desde 19/09); a tela segue no ar em ./esteira/ e a moldura pPSEsteira continua no HTML —
+       religar é devolver o botão. A PONTEAPP virou link para ./controladoria/, que abre fora,
+       como o Pocket: é outra tela, com token próprio (o da controladoria). -->
   <a class="tab" href="https://humanidade-grupo.github.io/pocket-nps/#home" target="_blank" rel="noopener">Pocket<span class="ext">↗</span></a>
-  <button class="tab" role="tab" aria-selected="false" data-p="pPSObraPonte" type="button">PonteApp</button>
+  <a class="tab" href="./controladoria/" target="_blank" rel="noopener">PonteApp<span class="ext">↗</span></a>
+  <button class="tab" role="tab" aria-selected="false" data-p="pPSDocs" type="button">Docs</button>
   <!-- CONFIGURAÇÕES (29/09/26): só do Ricardo. A aba nasce ESCONDIDA e só aparece no aparelho que
        tem o token PRÓPRIO dela (hub_token_config) — quem entra com o token de gestão, que é de três
        pessoas, nem vê a aba; e a rota ?app=config recusa esse token de qualquer jeito. -->
@@ -1002,30 +1000,27 @@ border-radius:5px;border:1px solid rgba(251,191,36,.45);color:var(--warn)}
   <button type="button" data-p="pPSX" aria-selected="true">
     <svg viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/></svg>
     <span>Executivo</span></button>
-  <button type="button" data-p="pPSObraReceita" aria-selected="false">
-    <svg viewBox="0 0 24 24"><path d="M3 21h18"/><path d="M6 21V9"/><path d="M12 21V4"/><path d="M18 21v-7"/></svg>
-    <span>Receita</span></button>
   <button type="button" data-p="pPSEstoque" aria-selected="false">
     <svg viewBox="0 0 24 24"><path d="M3 21h18"/><path d="M5 21V10l7-5 7 5v11"/><path d="M10 21v-5h4v5"/></svg>
     <span>Estoque</span></button>
-  <button type="button" data-p="pPSPerfil" aria-selected="false">
-    <svg viewBox="0 0 24 24"><path d="M16 20v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2"/><circle cx="9.5" cy="7" r="3.5"/></svg>
-    <span>Perfil</span></button>
   <button type="button" data-p="pPSRetro" aria-selected="false">
     <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18"/><path d="M8 2v4"/><path d="M16 2v4"/></svg>
     <span>Retrospectiva</span></button>
-  <button type="button" data-p="pPSObraEsteira" aria-selected="false">
-    <svg viewBox="0 0 24 24"><path d="M3 4h18l-7 8v6l-4 2v-8L3 4z"/></svg>
-    <span>Esteira</span></button>
-  <button type="button" data-p="pPSDocs" aria-selected="false">
-    <svg viewBox="0 0 24 24"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9l-6-6z"/><path d="M14 3v6h6"/></svg>
-    <span>Docs</span></button>
+  <button type="button" data-p="pPSReceita" aria-selected="false">
+    <svg viewBox="0 0 24 24"><path d="M3 21h18"/><path d="M6 21V9"/><path d="M12 21V4"/><path d="M18 21v-7"/></svg>
+    <span>Receita</span></button>
+  <button type="button" data-p="pPSPerfil" aria-selected="false">
+    <svg viewBox="0 0 24 24"><path d="M16 20v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2"/><circle cx="9.5" cy="7" r="3.5"/></svg>
+    <span>Perfil</span></button>
   <a href="https://humanidade-grupo.github.io/pocket-nps/#home" target="_blank" rel="noopener">
     <svg viewBox="0 0 24 24"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/></svg>
     <span>Pocket</span></a>
-  <button type="button" data-p="pPSObraPonte" aria-selected="false">
+  <a href="./controladoria/" target="_blank" rel="noopener">
     <svg viewBox="0 0 24 24"><path d="M3 15h18"/><path d="M5 15V9"/><path d="M19 15V9"/><path d="M9 15a3 3 0 0 1 6 0"/></svg>
-    <span>PonteApp</span></button>
+    <span>PonteApp</span></a>
+  <button type="button" data-p="pPSDocs" aria-selected="false">
+    <svg viewBox="0 0 24 24"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9l-6-6z"/><path d="M14 3v6h6"/></svg>
+    <span>Docs</span></button>
   <button type="button" data-p="pPSConfig" aria-selected="false" id="bnavConfig" style="display:none">
     <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
     <span>Config.</span></button>
@@ -1844,7 +1839,7 @@ function irParaPS(pid){
   if (alvo) ligarMoldura(alvo.querySelector('iframe[data-src]'));
   /* enquanto a aba aponta para o aviso, a moldura não monta — e é isso que
      mantém a tela fora do ar sem tirá-la do código. Religar: trocar o data-p
-     da aba (e do rodapé) de pPSObraReceita para pPSReceita. */
+     da aba (e do rodapé) de pPSObraReceita para pPSReceita — religado em 05/10/26. */
   if (pid === 'pPSReceita' && window.__v2MontarReceita) window.__v2MontarReceita();
   if (pid === 'pPSDocs' && window.__docsAbrir) window.__docsAbrir();   // a prateleira relê a pasta
   window.scrollTo({top:0});
