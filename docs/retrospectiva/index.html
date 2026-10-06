@@ -174,13 +174,13 @@ a{color:var(--s1b)}
 .tab:focus-visible{outline:2px solid var(--s1); outline-offset:-2px}
 .main{flex:1 1 auto; min-width:0; padding:22px 28px 70px; max-width:1180px}
 
-.fonte{display:flex; align-items:center; gap:10px; flex-wrap:wrap; padding:9px 14px;
-       margin-bottom:18px; border:1px solid var(--edge); border-radius:16px;
-       background:var(--card); backdrop-filter:blur(8px); font-size:12.5px; color:var(--text-2)}
-.fonte.alerta{border-color:rgba(251,191,36,.3); background:var(--warn-bg)}
-.fonte.alerta, .fonte.alerta strong{color:var(--warn)}
-.fonte .fim{margin-left:auto; white-space:nowrap; font-size:12px}
-.trocar{background:none; border:none; color:var(--text-3); font:inherit; font-size:12px;
+.fonte{display:flex; align-items:center; gap:7px; flex-wrap:wrap; margin:0 0 14px;
+       font-size:12px; color:var(--text-3)}
+.fonte-ponto{width:7px; height:7px; border-radius:50%; background:var(--ok); flex:0 0 7px;
+             box-shadow:0 0 0 3px rgba(74,222,128,.15)}
+.fonte.alerta{color:var(--warn)}
+.fonte.alerta .fonte-ponto{background:var(--warn); box-shadow:0 0 0 3px rgba(251,191,36,.15)}
+.trocar{background:none; border:none; color:inherit; font:inherit; font-size:12px;
         cursor:pointer; text-decoration:underline; padding:0}
 .trocar:hover{color:var(--text-1)}
 
@@ -286,11 +286,11 @@ td.num, th.num{text-align:right}
    O extrato tem 11 colunas e rola DENTRO do .table-wrap; o body nunca rola
    na horizontal. Mesmo corte de 640px do Painel, mais abaixo. */
 .comissao-head{display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin:0 0 14px}
-.btn-export{appearance:none; border:1px solid var(--edge2); background:var(--chip-bg);
-            color:var(--text-1); font:700 12.5px/1.2 var(--f-body); padding:8px 14px;
-            border-radius:999px; cursor:pointer; display:inline-flex; align-items:center;
-            gap:7px; white-space:nowrap}
-.btn-export:hover{border-color:var(--s1); color:var(--s1b)}
+.btn-export{appearance:none; border:1px solid var(--edge2); background:rgba(255,255,255,.05);
+            color:var(--text-1); font:700 12.5px/1.2 var(--f-body); padding:9px 15px;
+            border-radius:10px; cursor:pointer; display:inline-flex; align-items:center;
+            gap:7px; white-space:nowrap; transition:background .15s, border-color .15s, color .15s}
+.btn-export:hover{border-color:var(--s1); color:var(--s1b); background:rgba(242,199,68,.08)}
 .btn-export[disabled]{opacity:.55; cursor:progress}
 .btn-export:focus-visible{outline:2px solid var(--s1); outline-offset:2px}
 .export-status{font-size:12px; color:var(--text-3)}
@@ -317,7 +317,8 @@ td.neg{color:var(--warn)}
    As seis colunas novas do resumo, o bloco de lançamentos de cada vendedor e
    os botões de extrato. A tabela continua rolando DENTRO do .table-wrap. */
 .comissao-botoes{display:flex; gap:8px; flex-wrap:wrap; align-items:center}
-.btn-export.destaque{border-color:var(--s1); color:var(--s1b)}
+.btn-export.destaque{background:var(--s1); border-color:var(--s1); color:#2b2412}
+.btn-export.destaque:hover{background:var(--s1b); border-color:var(--s1b); color:#2b2412}
 table.resumo-comissao{min-width:980px}
 th.nv{color:var(--s1b)}
 td.forte{font-weight:800}
@@ -332,9 +333,10 @@ table.lanc-tab td.obs{white-space:normal; min-width:220px; color:var(--text-2)}
 table.lanc-tab td.acoes{text-align:right; white-space:nowrap}
 .lanc-tipo{display:inline-block; border:1px solid var(--edge2); border-radius:999px; padding:2px 10px;
            font-size:11.5px; font-weight:700; white-space:nowrap}
-.lanc-link{appearance:none; background:none; border:0; color:var(--text-3); text-decoration:underline;
-           font:12px/1.2 var(--f-body); cursor:pointer; padding:0 0 0 10px}
-.lanc-link:hover{color:var(--s1b)}
+.lanc-link{appearance:none; background:none; border:1px solid var(--edge2); color:var(--text-2); border-radius:8px;
+           font:600 11.5px/1.2 var(--f-body); cursor:pointer; padding:4px 10px; margin-left:6px}
+.lanc-link:hover{color:var(--s1b); border-color:var(--s1)}
+.lanc-link + .lanc-link:hover{color:var(--crit); border-color:var(--crit)}
 .lanc-link:focus-visible{outline:2px solid var(--s1); outline-offset:2px}
 .lanc-form{display:grid; grid-template-columns:minmax(0,190px) minmax(0,130px) minmax(0,1fr) auto;
            gap:10px; align-items:start; border:1px solid var(--edge2); border-radius:12px; padding:12px;
@@ -358,6 +360,60 @@ table.lanc-tab td.acoes{text-align:right; white-space:nowrap}
 .conf-linha.rev{color:var(--warn); font-weight:700}
 .conf-mudou{color:var(--warn); font-weight:700}
 .conf-resumo{margin:0 0 14px; font-size:12.5px; color:var(--text-2)}
+/* a lista de vendedores e o modal (05/10) */
+.vend-lista{display:flex; flex-direction:column; gap:8px; margin:6px 0 16px}
+.vend-linha{appearance:none; display:grid; grid-template-columns:auto minmax(0,1fr) repeat(4, minmax(86px, auto)) auto;
+            align-items:center; gap:14px; width:100%; text-align:left; cursor:pointer; color:var(--text-1);
+            font:13px/1.35 var(--f-body); padding:11px 14px; border:1px solid var(--edge); border-radius:14px;
+            background:var(--card2); transition:border-color .15s, background .15s}
+.vend-linha:hover{border-color:var(--s1); background:rgba(242,199,68,.05)}
+.vend-linha:focus-visible{outline:2px solid var(--s1); outline-offset:2px}
+.vav{width:34px; height:34px; border-radius:50%; display:grid; place-items:center; font-weight:800; font-size:12.5px;
+     background:rgba(242,199,68,.14); color:var(--s1b); border:1px solid rgba(242,199,68,.35)}
+.vav.grande{width:44px; height:44px; font-size:15px}
+.vnome{display:flex; flex-direction:column; gap:4px; min-width:0}
+.vnome b{font-size:14px}
+.vtags{display:flex; flex-wrap:wrap; gap:5px}
+.vchip{font-size:10.5px; font-weight:700; letter-spacing:.03em; border-radius:999px; padding:2px 8px;
+       border:1px solid var(--edge2); color:var(--text-2)}
+.vchip.warn{border-color:rgba(251,191,36,.45); color:var(--warn)}
+.vchip.ok{border-color:rgba(74,222,128,.4); color:var(--ok)}
+.vchip.rev{border-color:rgba(251,191,36,.45); color:var(--warn)}
+.vchip.esp{border-color:var(--edge2); color:var(--text-2)}
+.vnum{display:flex; flex-direction:column; align-items:flex-end; font-variant-numeric:tabular-nums}
+.vnum small{font-size:10px; letter-spacing:.06em; text-transform:uppercase; color:var(--text-3); font-weight:700}
+.vnum b{font-size:13.5px; font-weight:700}
+.vnum.forte b{color:var(--s1b); font-size:14.5px}
+.vseta{font-size:22px; color:var(--text-3); line-height:1}
+.vmodal{width:min(1120px, calc(100vw - 32px)); max-height:calc(100vh - 32px); padding:0; border:1px solid var(--edge2);
+        border-radius:18px; background:#0f1828; color:var(--text-1); overflow:hidden; box-shadow:0 30px 80px rgba(0,0,0,.6)}
+.vmodal[open]{display:flex; flex-direction:column}
+.vmodal::backdrop{background:rgba(4,8,16,.72); backdrop-filter:blur(3px)}
+.vm-cab{display:grid; grid-template-columns:1fr auto; gap:14px 18px; padding:18px 20px 16px; border-bottom:1px solid var(--edge);
+        background:var(--surface-1)}
+.vm-tit{display:flex; align-items:center; gap:12px}
+.vm-tit h3{font-size:19px; margin:0}
+.vm-tit p{margin:2px 0 0; font-size:12.5px; color:var(--text-3)}
+.vm-fechar{appearance:none; border:1px solid var(--edge2); background:none; color:var(--text-2); width:36px; height:36px;
+           border-radius:10px; font-size:22px; line-height:1; cursor:pointer; align-self:start}
+.vm-fechar:hover{color:var(--text-1); border-color:var(--s1)}
+.vm-kpis{grid-column:1 / -1; display:grid; grid-template-columns:repeat(auto-fit, minmax(160px, 1fr)); gap:10px}
+.vm-k{border:1px solid var(--edge); border-radius:12px; padding:10px 14px; display:flex; flex-direction:column; gap:3px; background:var(--card2)}
+.vm-k span{font-size:10.5px; letter-spacing:.06em; text-transform:uppercase; color:var(--text-3); font-weight:700}
+.vm-k b{font-size:18px; font-variant-numeric:tabular-nums}
+.vm-k.forte{border-color:rgba(242,199,68,.4)} .vm-k.forte b{color:var(--s1b)}
+.vm-acoes{grid-column:1 / -1; display:flex; flex-wrap:wrap; align-items:center; gap:8px}
+.vm-corpo{padding:16px 20px 22px; overflow:auto}
+.vm-sec{font-size:10.5px; letter-spacing:.07em; text-transform:uppercase; color:var(--text-3); font-weight:700; margin:4px 0 8px}
+@media (max-width: 860px){
+  .vend-linha{grid-template-columns:auto minmax(0,1fr) auto auto; gap:10px}
+  .vend-linha .vnum{display:none}
+  .vend-linha .vnum.forte{display:flex}
+  .vm-cab{padding:14px}
+  .vm-corpo{padding:12px 14px 18px}
+}
+.vend-lista[hidden],.vend-linha[hidden],.vav[hidden],.vnome[hidden],.vtags[hidden],.vnum[hidden],.vmodal[hidden],
+.vm-cab[hidden],.vm-tit[hidden],.vm-kpis[hidden],.vm-k[hidden],.vm-acoes[hidden],.fonte-ponto[hidden]{display:none}
 .aj-marca{display:inline-block; font-size:10px; font-weight:700; letter-spacing:.05em; text-transform:uppercase;
           border:1px solid var(--s1); color:var(--s1b); border-radius:999px; padding:1px 7px; cursor:help}
 .aj-lista{margin:0; padding-left:18px; display:flex; flex-direction:column; gap:6px; font-size:12.5px; color:var(--text-2)}
@@ -1522,35 +1578,24 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
      o Executivo mostra —, nunca a hora do fetch. Página que busca ao vivo e mostra a hora do fetch parece
      viva servindo dado de três dias atrás. */
   function faixaFonte(){
+    /* (05/10, pedido do Ricardo) Uma linha só, discreta. Continua dizendo de QUANDO é o dado (a
+       importação do Facilita, nunca a hora do fetch) e fica âmbar quando passa de 48 h. */
     var f = el('div','fonte');
     var velho = HORAS !== null && HORAS >= 48;
     if (velho) f.classList.add('alerta');
-
-    f.append(el('span', 'flag' + (velho ? '' : ' ok'), velho ? 'dado antigo' : 'ao vivo'));
-
-    var t = el('div');
-    var forte = el('strong', null, 'Números de ' + (CARIMBO || 'data desconhecida'));
-    t.append(forte);
-    if (HORAS !== null){
-      var idade = HORAS < 1 ? 'há menos de 1 hora'
-                : HORAS < 48 ? 'há ' + HORAS + 'h'
-                : 'há ' + Math.floor(HORAS / 24) + ' dias';
-      t.append(el('span', null, ' · ' + idade));
-    }
-    t.append(el('span', null, ' — é a última importação do Facilita (a mesma do Executivo), ' +
-      'não a hora em que esta página abriu.'));
-    f.append(t);
-
-    var fim = el('span','fim');
-    if (MS !== null) fim.append(el('span', null, 'resposta em ' + MS + ' ms · '));
+    f.append(el('i','fonte-ponto'));
+    var idade = HORAS === null ? '' : HORAS < 1 ? ' (há menos de 1 h)' : HORAS < 48 ? ' (há ' + HORAS + ' h)' : ' (há ' + Math.floor(HORAS / 24) + ' dias)';
+    var m = String(CARIMBO || '').match(/^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})/);
+    var quando = m ? m[3] + '/' + m[2] + ' ' + m[4] + ':' + m[5] : (CARIMBO || 'data desconhecida');
+    f.append(el('span', null, (velho ? 'Dado antigo · ' : '') + 'Facilita · importação de ' + quando + idade +
+                              (MS !== null ? ' · resposta em ' + nf(MS / 1000, 1) + ' s' : '') + ' · '));
     var bt = el('button','trocar','trocar token');
     bt.type = 'button';
     bt.addEventListener('click', function () {
       try { localStorage.removeItem(CHAVE_TOKEN); } catch (e) {}
       abrirPortao('');
     });
-    fim.append(bt);
-    f.append(fim);
+    f.append(bt);
     return f;
   }
 
@@ -1596,7 +1641,7 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
     var n = NUMEROS && NUMEROS[id];
 
     if (!n){
-      var d0 = el('details','dobra'); d0.open = true;
+      var d0 = el('details','dobra');
       var s0 = el('summary');
       s0.append(el('span','flag crit','sem número'));
       s0.append(el('span','resumo-linha', NUMEROS
@@ -1626,7 +1671,7 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
     var cmp = { rotuloAtual: nomeCurto(id), rotuloRef: nomeCurto(idAnt),
                 rotuloRef2: rot3, mesesRef2: tres.length };
 
-    var d = el('details','dobra'); d.open = true;
+    var d = el('details','dobra');
     var s = el('summary');
     var pct = n.meta ? Math.round((n.vendas / n.meta) * 100) : null;
     s.append(el('span', 'flag' + (pct !== null && pct < 100 ? '' : ' ok'),
@@ -1692,7 +1737,7 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
        a comparação individual. Desde 01/09/2026 nasce ABERTO, como tudo aqui —
        decisão do Ricardo: numa tela de reunião, o recolhido não é lido. */
     if (n.porVendedor.length){
-      var b1 = el('details','dobra q solta'); b1.open = true;
+      var b1 = el('details','dobra q solta');
       var sm1 = el('summary');
       sm1.append(el('span','q-tema','Placar por vendedor'));
       sm1.append(el('span','q-conta', n.porVendedor.length +
@@ -1999,51 +2044,17 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
       corpo.append(faixa);
     }
 
-    /* (b) extrato por vendedor — um bloco expansível por pessoa */
+    /* (b) os vendedores (05/10, pedido do Ricardo): uma linha por pessoa; o clique abre o MODAL com
+       o extrato, os ajustes e os demais valores — em vez de expandir a página para baixo. */
     var blocos = comp ? comp.lista.slice() : calc.porVendedor;
     if (comp && podeLancar()) blocos = blocos.concat(comp.soMeta);
+    var lv = el('div','vend-lista');
     blocos.forEach(function (v) {
-      var dv = el('details','dobra q vend');
-      lembrarDobra(dv, 'v:' + id + ':' + normNome(v.quem));
-      var sv = el('summary');
-      sv.append(el('span','q-tema','👤 ' + v.quem));
-      sv.append(el('span','q-conta', v.n + (v.n === 1 ? ' venda' : ' vendas') + '  ·  comissão ' + brl2(v.valor) +
-                                     (comp ? '  ·  total ' + brl2(v.total) : '')));
-      var stV = el('span','export-status','');
-      if (comp && (v.n || v.lancs.length)){
-        var bi = el('button','btn-export destaque','Extrato individual (PDF)');
-        bi.type = 'button';
-        bi.addEventListener('click', function (e) {
-          e.preventDefault(); e.stopPropagation();
-          emitirExtrato('individual', id, comp, v, stV);
-        });
-        sv.append(bi);
-        if (podeLancar()){
-          var bc = el('button','btn-export','Enviar para conferência');
-          bc.type = 'button';
-          bc.title = 'O vendedor vê esta versão do extrato no Pocket e aprova ou pede revisão.';
-          bc.addEventListener('click', function (e) {
-            e.preventDefault(); e.stopPropagation();
-            liberarExtrato(id, v, bc, stV);
-          });
-          sv.append(bc);
-        }
-      }
-      dv.append(sv);
-      var cv = el('div','corpo');
-      if (comp && (v.n || v.lancs.length)) cv.append(linhaConferencia(id, v));
-      if (stV) cv.append(stV);
-      if (v.semDono){
-        cv.append(el('p','lanc-aviso', '⚠️ "' + v.quem + '" não casa com nenhum vendedor que vendeu neste mês nem com a meta ' +
-          'do mês. O lançamento não some: aparece aqui e no extrato geral. Confira a grafia do nome.'));
-      }
-      if (v.n) cv.append(tabelaExtrato(v));
-      if (v.n && (podeLancar() || v.linhas.some(function (x) { return x.ajustado && x.ajustado.length; }))) cv.append(blocoAjustes(id, v));
-      else cv.append(el('p','nota-fina', 'Nenhuma venda no mês.'));
-      if (comp) cv.append(blocoDemais(id, v));
-      dv.append(cv);
-      corpo.append(dv);
+      var chave = 'v:' + id + ':' + normNome(v.quem);
+      VEND_MODAL[chave] = { id: id, v: v, comp: comp };
+      lv.append(linhaVendedor(id, v, comp, chave));
     });
+    corpo.append(lv);
 
     var vt = el('div','vend-total');
     vt.append(el('span', null, 'TOTAL do time'));
@@ -2242,6 +2253,118 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
     return b;
   }
 
+  /* ══════════ O MODAL DO VENDEDOR (05/10) ══════════
+     A lista mostra o essencial; o modal tem tudo de uma pessoa. Ele é redesenhado depois de cada
+     gravação (repintar), com o vendedor recalculado — e continua aberto. */
+  var VEND_MODAL = {};       // chave → {id, v, comp} da pintura mais recente
+  var MODAL_CHAVE = null;    // o vendedor aberto no modal
+  function iniciais(nome){
+    return String(nome || '?').trim().split(/\s+/).slice(0, 2).map(function (p) { return p.charAt(0).toUpperCase(); }).join('');
+  }
+  function chipConferencia(id, v){
+    var x = extratoDe(id, v);
+    if (!x) return null;
+    var mudou = Math.abs(round2(x.total - v.total)) >= 0.01;
+    var c = x.resposta === 'aprovado' ? ['ok', 'aprovado'] : x.resposta === 'revisao' ? ['rev', 'revisão pedida'] : ['esp', 'aguardando'];
+    var ch = el('span','vchip ' + c[0], c[1] + (mudou ? ' · ⚠️ mudou' : ''));
+    ch.title = 'Conferência no Pocket';
+    return ch;
+  }
+  function linhaVendedor(id, v, comp, chave){
+    var b = el('button','vend-linha');
+    b.type = 'button';
+    b.append(el('span','vav', iniciais(v.quem)));
+    var nome = el('span','vnome');
+    nome.append(el('b', null, v.quem));
+    var tags = el('span','vtags');
+    if (v.alertas) tags.append(el('span','vchip warn', '⚠️ ' + v.alertas));
+    if (v.semDono) tags.append(el('span','vchip warn', 'nome não casa'));
+    if (comp && (v.n || v.lancs.length)){ var cc = chipConferencia(id, v); if (cc) tags.append(cc); }
+    if (tags.childNodes.length) nome.append(tags);
+    b.append(nome);
+    var num = function (k, val, cls) { var s2 = el('span','vnum' + (cls ? ' ' + cls : '')); s2.append(el('small', null, k), el('b', null, val)); return s2; };
+    b.append(num('vendas', String(v.n)), num('comissão', brl2(v.valor)));
+    if (comp) b.append(num('demais', v.demais ? brl2(v.demais) : '—'), num('total do mês', brl2(v.total), 'forte'));
+    b.append(el('span','vseta', '›'));
+    b.addEventListener('click', function () { abrirVendedor(chave); });
+    return b;
+  }
+  function modalEl(){
+    var d = document.getElementById('vendModal');
+    if (d) return d;
+    d = document.createElement('dialog');
+    d.id = 'vendModal'; d.className = 'vmodal';
+    d.addEventListener('close', function () { MODAL_CHAVE = null; });
+    d.addEventListener('click', function (e) { if (e.target === d) d.close(); });   // clique no fundo fecha
+    document.body.append(d);
+    return d;
+  }
+  function abrirVendedor(chave){
+    MODAL_CHAVE = chave;
+    var d = modalEl();
+    pintarModal();
+    if (!d.open) d.showModal();
+    d.scrollTop = 0;
+  }
+  function pintarModal(){
+    var d = modalEl(), o = VEND_MODAL[MODAL_CHAVE];
+    if (!o){ if (d.open) d.close(); return; }
+    var id = o.id, v = o.v, comp = o.comp;
+    var rolagem = d.querySelector('.vm-corpo') ? d.querySelector('.vm-corpo').scrollTop : 0;
+    d.innerHTML = '';
+
+    var cab = el('header','vm-cab');
+    var tit = el('div','vm-tit');
+    tit.append(el('span','vav grande', iniciais(v.quem)));
+    var tt = el('div');
+    tt.append(el('h3', null, v.quem), el('p', null, nomeMes(id) + ' · ' + v.n + (v.n === 1 ? ' venda' : ' vendas')));
+    tit.append(tt);
+    var fechar = el('button','vm-fechar','×'); fechar.type = 'button'; fechar.setAttribute('aria-label', 'Fechar');
+    fechar.addEventListener('click', function () { d.close(); });
+    cab.append(tit, fechar);
+
+    var kpis = el('div','vm-kpis');
+    var k = function (rot, val, cls) { var c = el('div','vm-k' + (cls ? ' ' + cls : '')); c.append(el('span', null, rot), el('b', null, val)); return c; };
+    kpis.append(k('Comissão das vendas', brl2(v.valor)));
+    if (comp){ kpis.append(k('Demais valores', brl2(v.demais)), k('Total do mês', brl2(v.total), 'forte')); }
+    cab.append(kpis);
+
+    var stV = el('span','export-status vm-status','');
+    if (comp && (v.n || v.lancs.length)){
+      var acoes = el('div','vm-acoes');
+      var bi = el('button','btn-export destaque','⎙ Extrato individual (PDF)');
+      bi.type = 'button';
+      bi.addEventListener('click', function () { emitirExtrato('individual', id, comp, v, stV); });
+      acoes.append(bi);
+      if (podeLancar()){
+        var bc = el('button','btn-export','↗ Enviar para conferência');
+        bc.type = 'button';
+        bc.title = 'O vendedor vê esta versão do extrato no Pocket e aprova ou pede revisão.';
+        bc.addEventListener('click', function () { liberarExtrato(id, v, bc, stV); });
+        acoes.append(bc);
+      }
+      acoes.append(stV);
+      cab.append(acoes);
+    }
+    d.append(cab);
+
+    var cv = el('div','vm-corpo');
+    if (comp && (v.n || v.lancs.length)) cv.append(linhaConferencia(id, v));
+    if (v.semDono){
+      cv.append(el('p','lanc-aviso', '⚠️ "' + v.quem + '" não casa com nenhum vendedor que vendeu neste mês nem com a meta ' +
+        'do mês. O lançamento não some: aparece aqui e no extrato geral. Confira a grafia do nome.'));
+    }
+    if (v.n){
+      cv.append(el('div','vm-sec', 'Vendas do mês'), tabelaExtrato(v));
+      if (podeLancar() || v.linhas.some(function (x) { return x.ajustado && x.ajustado.length; })) cv.append(blocoAjustes(id, v));
+    } else {
+      cv.append(el('p','nota-fina', 'Nenhuma venda no mês.'));
+    }
+    if (comp) cv.append(blocoDemais(id, v));
+    d.append(cv);
+    cv.scrollTop = rolagem;
+  }
+
   /* Estado aberto/fechado das dobras sobrevive ao redesenho depois de um lançamento. */
   function lembrarDobra(d, chave){
     if (DOBRAS[chave]) d.open = true;
@@ -2251,6 +2374,7 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
     var y = window.scrollY;
     pintar();
     window.scrollTo(0, y);
+    if (MODAL_CHAVE) pintarModal();   // o modal do vendedor continua aberto, com os números novos
   }
 
   /* ══════════ DEMAIS VALORES DO MÊS (05/10) ══════════
@@ -3024,7 +3148,7 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
         f.perguntas.length + (f.perguntas.length === 1 ? ' pergunta' : ' perguntas'));
       var lista = el('div','perguntas');
       f.perguntas.forEach(function (q) {
-        var d = el('details','dobra q'); d.open = true;
+        var d = el('details','dobra q');
         var sm = el('summary');
         sm.append(el('span','q-tema', q.tema));
         var respondidas = q.respostas.filter(function (r) { return !r.vazia; }).length;
@@ -3257,7 +3381,7 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
 
     var ids = NUMEROS ? Object.keys(NUMEROS).sort() : [];
     if (ids.length){
-      var d = el('details','dobra'); d.open = true;
+      var d = el('details','dobra');
       var s = el('summary');
       s.append(el('span','flag ok','vendas'));
       s.append(el('div','resumo-linha', ids.length + ' meses com venda no Facilita'));
