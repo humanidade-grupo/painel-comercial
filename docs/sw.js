@@ -297,7 +297,7 @@
    (raw.githubusercontent.com, cross-origin, passa direto).
    Estratégia: rede primeiro (pega versão nova quando online), cache como
    reserva offline. A cada deploy, bumpar a versão em CACHE. */
-const CACHE = 'painel-comercial-061026-1';
+const CACHE = 'painel-comercial-061026-2';
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(['./'])).then(() => self.skipWaiting()));

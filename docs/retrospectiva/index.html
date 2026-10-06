@@ -405,6 +405,8 @@ table.lanc-tab td.acoes{text-align:right; white-space:nowrap}
 .apr-vend.rev{border-color:rgba(251,191,36,.45)}
 .apr-vend.rev .apr-n{color:var(--warn); border-color:rgba(251,191,36,.45)}
 .apr-vend.nao .apr-txt small{font-style:italic}
+table.resumo-comissao tbody tr.clicavel{cursor:pointer}
+table.resumo-comissao tbody tr.clicavel:hover td{background:rgba(242,199,68,.06)}
 .apr-etapas{display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:10px}
 .apr-etapa{display:flex; align-items:center; gap:10px; border:1px solid var(--edge); border-radius:12px; padding:9px 12px}
 .apr-etapa.feita{border-color:rgba(74,222,128,.45)}
@@ -2068,6 +2070,8 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
       }
       r.append(el('td','num', String(v.n)), el('td','num', brl2(v.base)), el('td','num', brl2(v.valor)));
       if (comp){
+        r.className = 'clicavel'; r.title = 'Abrir o extrato de ' + v.quem;
+        r.addEventListener('click', function () { abrirVendedor('v:' + id + ':' + normNome(v.quem)); });
         LANC_TIPOS.forEach(function (t) { r.append(el('td','num nv', brlOuTraco(v.porTipo[t]))); });
         r.append(el('td','num nv forte', brl2(v.total)));
       }
@@ -2106,6 +2110,10 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
       VEND_MODAL[chave] = { id: id, v: v, comp: comp };
       lv.append(linhaVendedor(id, v, comp, chave));
     });
+    /* (06/10, Ricardo) com o bloco "Aprovações do mês", a lista de baixo duplicava os vendedores: sai, e
+       o modal abre pelo cartão das aprovações ou pela linha da tabela. Fica só sem os demais valores
+       (implantação velha), quando não há bloco de aprovações. */
+    if (comp) return;
     corpo.append(lv);
 
     var vt = el('div','vend-total');
@@ -2326,6 +2334,17 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
       b.append(el('span','apr-n', st[1]));
       var t = el('span','apr-txt');
       t.append(el('b', null, v.quem), el('small', null, st[2]));
+      b.append(t);
+      b.addEventListener('click', function () { abrirVendedor('v:' + id + ':' + normNome(v.quem)); });
+      grade.append(b);
+    });
+    /* quem está na meta e não vendeu: só no aparelho que lança, para abrir o modal e lançar um valor */
+    if (podeLancar()) comp.soMeta.forEach(function (v) {
+      var b = el('button','apr-etapa apr-vend nao');
+      b.type = 'button'; b.title = 'Lançar um valor para ' + v.quem;
+      b.append(el('span','apr-n', '+'));
+      var t = el('span','apr-txt');
+      t.append(el('b', null, v.quem), el('small', null, 'sem venda · lançar valor'));
       b.append(t);
       b.addEventListener('click', function () { abrirVendedor('v:' + id + ':' + normNome(v.quem)); });
       grade.append(b);
