@@ -382,14 +382,29 @@ table.lanc-tab td.acoes{text-align:right; white-space:nowrap}
 .vchip.ok{border-color:rgba(74,222,128,.4); color:var(--ok)}
 .vchip.rev{border-color:rgba(251,191,36,.45); color:var(--warn)}
 .vchip.esp{border-color:var(--edge2); color:var(--text-2)}
-.vchip.pago{border-color:var(--s1); color:#2b2412; background:var(--s1)}
-.pag-passo{display:inline-flex; flex-wrap:wrap; align-items:center; gap:8px; margin-left:6px}
-.pag-ok{color:var(--s1b); font-weight:700}
-.pag-btn{padding:6px 12px; font-size:12px}
+.apr-geral{border:1px solid var(--edge2); border-radius:14px; padding:14px 16px; margin:0 0 16px; background:var(--card2);
+           display:flex; flex-direction:column; gap:12px}
+.apr-tit{font-size:13.5px; font-weight:800}
+.apr-etapas{display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:10px}
+.apr-etapa{display:flex; align-items:center; gap:10px; border:1px solid var(--edge); border-radius:12px; padding:9px 12px}
+.apr-etapa.feita{border-color:rgba(74,222,128,.45)}
+.apr-etapa.vez{border-color:var(--s1)}
+.apr-n{width:26px; height:26px; border-radius:50%; display:grid; place-items:center; font-weight:800; font-size:12.5px;
+       border:1px solid var(--edge2); color:var(--text-2); flex:0 0 26px}
+.apr-etapa.feita .apr-n{background:rgba(74,222,128,.15); border-color:rgba(74,222,128,.45); color:var(--ok)}
+.apr-etapa.vez .apr-n{background:var(--s1); border-color:var(--s1); color:#2b2412}
+.apr-txt{display:flex; flex-direction:column; min-width:0}
+.apr-txt small{font-size:11.5px; color:var(--text-3)}
+.apr-aviso{margin:0; font-size:12.5px; color:var(--warn); font-weight:700}
+.apr-falta{margin:0; font-size:12.5px; color:var(--text-2)}
+.apr-pronto{margin:0; font-size:13px; color:var(--ok); font-weight:700}
+.apr-acoes{display:flex; flex-wrap:wrap; align-items:center; gap:8px}
+@media (max-width: 720px){ .apr-etapas{grid-template-columns:1fr} }
+.apr-geral[hidden],.apr-etapas[hidden],.apr-etapa[hidden],.apr-acoes[hidden],.apr-txt[hidden]{display:none}
 .pag-senha{display:inline-flex; gap:6px; align-items:center}
 .pag-senha input{font:13px var(--f-body); color:var(--text-1); background:var(--surface-1); border:1px solid var(--edge2);
                  border-radius:8px; padding:6px 9px; width:220px; color-scheme:dark}
-.pag-passo[hidden],.pag-senha[hidden]{display:none}
+.pag-senha[hidden]{display:none}
 .vnum{display:flex; flex-direction:column; align-items:flex-end; font-variant-numeric:tabular-nums}
 .vnum small{font-size:10px; letter-spacing:.06em; text-transform:uppercase; color:var(--text-3); font-weight:700}
 .vnum b{font-size:13.5px; font-weight:700}
@@ -730,6 +745,7 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
   var MSG_REPETIR = {};      // o que o "repetir os contratos" respondeu, por mês
   var EXTRATOS = [];         // (05/10) a conferência no Pocket: a versão viva de cada vendedor e mês
   var AJUSTES = {};          // (05/10) ajustes de conferência por Deal ID: {prazo, base, conferido}
+  var APROVACOES = [];       // (05/10) a aprovação do extrato geral: as etapas vivas, por mês
   var VENDAS_BRUTO = null;   // o bloco `vendas` cru — recalculado quando um ajuste muda
 
   /* ═════════════════════════════ utilidades ═════════════════════════════ */
@@ -1979,6 +1995,7 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
     head.append(status);
     corpo.append(head);
     if (comp) corpo.append(resumoConferencia(id, comp));
+    if (comp && !LANC_ERRO) corpo.append(faixaAprovacaoGeral(id, comp));
 
     if (ROTA_SEM_LANC){
       var tl = el('div','tarja amarela');
@@ -2096,8 +2113,7 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
       return { id: String(l[c.id]), mes: String(l[c.mes]), vendedor: String(l[c.vendedor] || ''),
                liberado_em: String(l[c.liberado_em] || ''), total: Number(l[c.total]) || 0,
                resposta: String(l[c.resposta] || ''), respondido_em: String(l[c.respondido_em] || ''),
-               texto: String(l[c.texto] || ''),
-               pagamento_por: String(l[c.pagamento_por] || ''), pagamento_em: String(l[c.pagamento_em] || '') };
+               texto: String(l[c.texto] || '') };
     });
   }
   function extratoDe(id, v){
@@ -2111,7 +2127,7 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
     var quando = carimboBR(x.liberado_em);
     if (x.resposta === 'aprovado'){
       p.classList.add('ok'); p.textContent = '✅ Aprovado pelo vendedor em ' + carimboBR(x.respondido_em) + ' (versão enviada em ' + quando + ').';
-      p.append(passoPagamento(x));
+
     } else if (x.resposta === 'revisao'){
       p.classList.add('rev'); p.textContent = '✋ Revisão pedida em ' + carimboBR(x.respondido_em) + ': “' + x.texto + '”';
     } else {
@@ -2122,47 +2138,105 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
     }
     return p;
   }
-  /* O passo da gestão, depois do vendedor: "Aprovar para pagamento" (senha de aprovação ou Configurações). */
-  function senhaAprovacao(){
-    try { return localStorage.getItem(CHAVE_TOKEN_APROVADOR) || localStorage.getItem(CHAVE_TOKEN_CONFIG) || ''; } catch (e) { return ''; }
+  /* ══════════ A APROVAÇÃO DO EXTRATO GERAL (05/10) ══════════
+     Decisão do Ricardo: a gestão aprova o EXTRATO GERAL do mês, uma vez, em 3 etapas nesta ordem —
+     Ricardo (senha das Configurações) → Fabrícia → Rodrigo (cada um com a sua senha de aprovação).
+     A 1ª etapa só com todos os vendedores tendo aprovado no Pocket a versão atual. Números mudaram
+     depois = as aprovações caem e a sequência recomeça pelo Ricardo. ComissaoExtratos.gs. */
+  var ORDEM_APROVACAO = ['Ricardo', 'Fabrícia', 'Rodrigo'];
+  function lerAprovacoes(bloco){
+    if (!bloco || !bloco.colunas) return [];
+    var c = {};
+    bloco.colunas.forEach(function (k, i) { c[k] = i; });
+    return (bloco.linhas || []).map(function (l) {
+      var tot = {};
+      try { tot = JSON.parse(String(l[c.totais] || '{}')); } catch (e) {}
+      return { id: String(l[c.id]), mes: String(l[c.mes]), etapa: Number(l[c.etapa]), quem: String(l[c.quem]),
+               em: String(l[c.em] || ''), total_time: Number(l[c.total_time]) || 0, totais: tot };
+    });
   }
-  function passoPagamento(x){
-    var w = el('span','pag-passo');
-    if (x.pagamento_por){
-      w.append(el('span','pag-ok', ' 💰 Aprovado para pagamento por ' + x.pagamento_por + ' em ' + carimboBR(x.pagamento_em) + '.'));
-      if (podeLancar()){
-        var bd = el('button','lanc-link','Desfazer'); bd.type = 'button';
-        bd.addEventListener('click', function () {
-          if (!confirm('Desfazer a aprovação para pagamento de ' + x.vendedor + '?')) return;
-          bd.disabled = true;
-          chamarComissao('desfazer-pagamento', { id: x.id }).then(function (j) {
-            if (!j || j.ok !== true) throw new Error(mensagemRecusa(j));
-            aplicarLancamentos(j);
-          }).catch(function (err) { bd.disabled = false; alert('Nada foi desfeito: ' + ((err && err.message) || err)); });
-        });
-        w.append(bd);
-      }
-      return w;
-    }
+  function totaisDoMes(comp){
+    var t = {};
+    comp.lista.filter(function (v) { return v.n || v.lancs.length; }).forEach(function (v) {
+      t[v.quem] = { total: v.total, individual: totalIndividual(v) };
+    });
+    return t;
+  }
+  function totaisIguais(a, b){
+    var n = function (o) { var r = {}; Object.keys(o || {}).forEach(function (k) {
+      r[normNome(k)] = Math.round(Number(o[k].total) * 100) + '/' + Math.round(Number(o[k].individual) * 100); }); return r; };
+    var x = n(a), y = n(b), kx = Object.keys(x).sort(), ky = Object.keys(y).sort();
+    return kx.join('|') === ky.join('|') && kx.every(function (k) { return x[k] === y[k]; });
+  }
+  /* O estado da aprovação do mês: as etapas vivas, se caíram (números mudaram) e o que falta para a 1ª. */
+  function estadoAprovacao(id, comp){
+    var vivas = APROVACOES.filter(function (a) { return a.mes === id; }).sort(function (a, b) { return a.etapa - b.etapa; });
+    var atuais = totaisDoMes(comp);
+    var mudou = vivas.length > 0 && !totaisIguais(atuais, vivas[0].totais);
+    var faltam = [];
+    comp.lista.filter(function (v) { return v.n || v.lancs.length; }).forEach(function (v) {
+      var x = extratoDe(id, v);
+      if (!x) faltam.push(v.quem + ' (não enviado)');
+      else if (x.resposta !== 'aprovado') faltam.push(v.quem + (x.resposta === 'revisao' ? ' (pediu revisão)' : ' (aguardando no Pocket)'));
+      else if (Math.abs(round2(x.total - totalIndividual(v))) >= 0.01) faltam.push(v.quem + ' (o total mudou desde o envio)');
+    });
+    return { vivas: mudou ? [] : vivas, caiu: mudou, faltam: faltam, atuais: atuais,
+             proxima: mudou ? 0 : vivas.length };   // índice em ORDEM_APROVACAO de quem aprova agora (3 = completo)
+  }
+  function faixaAprovacaoGeral(id, comp){
+    var e = estadoAprovacao(id, comp);
+    var w = el('div','apr-geral');
+    var topo = el('div','apr-topo');
+    topo.append(el('span','apr-tit', 'Aprovação do extrato geral'));
+    w.append(topo);
+    var etapas = el('div','apr-etapas');
+    ORDEM_APROVACAO.forEach(function (nome, i) {
+      var a = e.vivas[i];
+      var c = el('div','apr-etapa' + (a ? ' feita' : i === e.proxima ? ' vez' : ''));
+      c.append(el('span','apr-n', a ? '✓' : String(i + 1)));
+      var t = el('span','apr-txt');
+      t.append(el('b', null, nome), el('small', null, a ? 'aprovou em ' + carimboBR(a.em) : i === e.proxima ? 'é a vez' : 'aguardando'));
+      c.append(t);
+      etapas.append(c);
+    });
+    w.append(etapas);
+
+    if (e.caiu) w.append(el('p','apr-aviso', '⚠️ Os números mudaram depois da aprovação (venda, lançamento, ajuste ou reenvio). ' +
+      'As aprovações caíram e a sequência recomeça pelo Ricardo.'));
+    if (e.proxima === 0 && e.faltam.length) w.append(el('p','apr-falta', 'Para a 1ª aprovação, todos os vendedores precisam ter aprovado no Pocket a versão atual. Falta: ' + e.faltam.join(' · ') + '.'));
+    if (e.proxima >= 3) w.append(el('p','apr-pronto', '✅ Extrato geral aprovado por Ricardo, Fabrícia e Rodrigo.'));
+
+    var acoes = el('div','apr-acoes');
     var st = el('span','export-status','');
-    if (senhaAprovacao()){
-      var ba = el('button','btn-export destaque pag-btn','💰 Aprovar para pagamento'); ba.type = 'button';
-      ba.addEventListener('click', function () {
-        if (!confirm('Aprovar para pagamento o extrato de ' + x.vendedor + ' (total ' + brl2(x.total) + ')?')) return;
-        ba.disabled = true; st.classList.remove('erro'); st.textContent = 'gravando…';
-        comPrazo(API + '?app=comissao&fn=aprovar-pagamento', 60000, JSON.stringify({ token: senhaAprovacao(), id: x.id }))
+    var tenhoConfig = podeLancar();
+    var tenhoAprovador = false, meuNome = '';
+    try { tenhoAprovador = !!localStorage.getItem(CHAVE_TOKEN_APROVADOR); meuNome = localStorage.getItem('hub_aprovador_nome') || ''; } catch (err) {}
+    /* O aparelho só sabe de quem é a senha depois da 1ª aprovação (o servidor devolve o nome): até lá o
+       botão aparece e o servidor confere; depois, só na vez dessa pessoa. */
+    var minhaVez = !meuNome || meuNome === ORDEM_APROVACAO[e.proxima];
+    var podeBotao = (e.proxima === 0 && tenhoConfig && !e.faltam.length) || (e.proxima > 0 && e.proxima < 3 && tenhoAprovador && minhaVez);
+    if (podeBotao){
+      var nomeVez = ORDEM_APROVACAO[e.proxima];
+      var b = el('button','btn-export destaque','✓ Aprovar o extrato geral (' + (e.proxima + 1) + 'ª etapa — ' + nomeVez + ')');
+      b.type = 'button';
+      b.addEventListener('click', function () {
+        if (!confirm('Aprovar o extrato geral de ' + nomeMes(id).toLowerCase() + ' como ' + nomeVez + '?\n\nTotal do time: ' + brl2(comp.tot.total) + '.')) return;
+        b.disabled = true; st.classList.remove('erro'); st.textContent = 'gravando…';
+        var token = '';
+        try { token = e.proxima === 0 ? localStorage.getItem(CHAVE_TOKEN_CONFIG) : localStorage.getItem(CHAVE_TOKEN_APROVADOR); } catch (err) {}
+        comPrazo(API + '?app=comissao&fn=aprovar-geral', 60000,
+                 JSON.stringify({ token: token || '', mes: id, totais: e.atuais, total_time: comp.tot.total }))
           .then(function (j) {
             if (!j || j.ok !== true){
-              if (j && j.codigo === 'token'){ try { localStorage.removeItem(CHAVE_TOKEN_APROVADOR); } catch (e) {} }
-              throw new Error(j && j.codigo === 'token' ? 'a senha de aprovação foi recusada — digite de novo' : mensagemRecusa(j));
+              if (j && j.codigo === 'token' && e.proxima > 0){ try { localStorage.removeItem(CHAVE_TOKEN_APROVADOR); localStorage.removeItem('hub_aprovador_nome'); } catch (err) {} }
+              throw new Error(j && j.codigo === 'token' ? 'a senha foi recusada — digite de novo' : mensagemRecusa(j));
             }
+            if (e.proxima > 0 && j.quem){ try { localStorage.setItem('hub_aprovador_nome', j.quem); } catch (err) {} }
             aplicarLancamentos(j);
-          }).catch(function (err) {
-            ba.disabled = false; st.classList.add('erro'); st.textContent = 'Não foi aprovado: ' + ((err && err.message) || err);
-          });
+          }).catch(function (err) { b.disabled = false; st.classList.add('erro'); st.textContent = 'Não foi aprovado: ' + ((err && err.message) || err); });
       });
-      w.append(ba, st);
-    } else {
+      acoes.append(b);
+    } else if (e.proxima > 0 && e.proxima < 3 && !tenhoAprovador){
       var bl = el('button','lanc-link','Tenho a senha de aprovação'); bl.type = 'button';
       bl.addEventListener('click', function () {
         bl.hidden = true;
@@ -2172,29 +2246,41 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
         bg.addEventListener('click', function () {
           var v = inp.value.trim();
           if (v.length < 24){ st.classList.add('erro'); st.textContent = 'A senha de aprovação tem 32 caracteres.'; return; }
-          try { localStorage.setItem(CHAVE_TOKEN_APROVADOR, v); } catch (e) {}
+          try { localStorage.setItem(CHAVE_TOKEN_APROVADOR, v); localStorage.removeItem('hub_aprovador_nome'); } catch (err) {}
           repintar();
         });
         f.append(inp, bg);
-        w.insertBefore(f, st);
+        acoes.insertBefore(f, st);
         inp.focus();
       });
-      w.append(bl, st);
+      acoes.append(bl);
     }
+    if (tenhoConfig && (e.vivas.length || e.caiu)){
+      var bd = el('button','lanc-link','Desfazer a aprovação'); bd.type = 'button';
+      bd.addEventListener('click', function () {
+        if (!confirm('Desfazer a aprovação do extrato geral de ' + nomeMes(id).toLowerCase() + '? A sequência volta para o Ricardo.')) return;
+        bd.disabled = true;
+        chamarComissao('desfazer-geral', { mes: id }).then(function (j) {
+          if (!j || j.ok !== true) throw new Error(mensagemRecusa(j));
+          aplicarLancamentos(j);
+        }).catch(function (err) { bd.disabled = false; alert('Nada foi desfeito: ' + ((err && err.message) || err)); });
+      });
+      acoes.append(bd);
+    }
+    acoes.append(st);
+    w.append(acoes);
     return w;
   }
 
   function resumoConferencia(id, comp){
-    var n = { ok:0, rev:0, esp:0, nao:0, mudou:0, pago:0 };
+    var n = { ok:0, rev:0, esp:0, nao:0, mudou:0 };
     comp.lista.filter(function (v) { return v.n || v.lancs.length; }).forEach(function (v) {
       var x = extratoDe(id, v);
       if (!x) n.nao++; else if (x.resposta === 'aprovado') n.ok++; else if (x.resposta === 'revisao') n.rev++; else n.esp++;
-      if (x && x.pagamento_por) n.pago++;
       if (x && Math.abs(round2(x.total - totalIndividual(v))) >= 0.01) n.mudou++;
     });
     var partes = [];
-    if (n.ok) partes.push(n.ok + (n.ok === 1 ? ' aprovado pelo vendedor' : ' aprovados pelos vendedores') +
-                          (n.pago ? ' (' + n.pago + ' já para pagamento)' : ''));
+    if (n.ok) partes.push(n.ok + (n.ok === 1 ? ' aprovado pelo vendedor' : ' aprovados pelos vendedores'));
     if (n.rev) partes.push(n.rev + (n.rev === 1 ? ' pediu revisão' : ' pediram revisão'));
     if (n.esp) partes.push(n.esp + ' aguardando');
     if (n.nao) partes.push(n.nao + ' não ' + (n.nao === 1 ? 'enviado' : 'enviados'));
@@ -2344,7 +2430,7 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
     var x = extratoDe(id, v);
     if (!x) return null;
     var mudou = Math.abs(round2(x.total - totalIndividual(v))) >= 0.01;
-    var c = x.pagamento_por ? ['pago', 'aprovado p/ pagamento'] : x.resposta === 'aprovado' ? ['ok', 'aprovado pelo vendedor']
+    var c = x.resposta === 'aprovado' ? ['ok', 'aprovado pelo vendedor']
           : x.resposta === 'revisao' ? ['rev', 'revisão pedida'] : ['esp', 'aguardando'];
     var ch = el('span','vchip ' + c[0], c[1] + (mudou ? ' · ⚠️ mudou' : ''));
     ch.title = 'Conferência no Pocket';
@@ -2684,6 +2770,7 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
   function aplicarLancamentos(j){
     if (j.lancamentos && !j.lancamentos.erro){ LANC = lerLancamentos(j.lancamentos); LANC_ERRO = null; }
     if (j.extratos && !j.extratos.erro) EXTRATOS = lerExtratos(j.extratos);
+    if (j.aprovacoes && !j.aprovacoes.erro) APROVACOES = lerAprovacoes(j.aprovacoes);
     if (j.ajustes && !j.ajustes.erro){ AJUSTES = lerAjustes(j.ajustes); if (VENDAS_BRUTO) VENDAS = lerVendas(VENDAS_BRUTO); }
     repintar();
   }
@@ -3048,6 +3135,14 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
     };
   }
 
+  function assinaturasGeral(id, comp){
+    var e = estadoAprovacao(id, comp);
+    return '<div class="assina">' + ORDEM_APROVACAO.map(function (nome, i) {
+      var a = e.vivas[i];
+      return '<div>' + esc(nome) + ' · ' + (a ? 'aprovado em ' + esc(carimboBR(a.em)) : 'aguardando aprovação') + '</div>';
+    }).join('') + '</div>';
+  }
+
   function docGeral(id, comp){
     var parcial = parcialAte(id), t = comp.tot;
     var lista = comp.lista.filter(function (v) { return v.n || v.lancs.length; });
@@ -3095,7 +3190,7 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
       '<div class="obs"><h3>Observações</h3><ol>' + reguaPapel() +
       '<li><strong>Contrato:</strong> valor fixo mensal de cada vendedor. Aparece na tabela de lançamentos só quando tem observação.</li>' +
       '<li><strong>Documento calculado na emissão:</strong> uma venda corrigida no Facilita depois desta data muda o extrato seguinte.</li>' +
-      '</ol></div>' + rodapeDoc();
+      '</ol></div>' + assinaturasGeral(id, comp) + rodapeDoc();
     return {
       titulo: 'Extrato de Comissões',
       sub: mesAno(id) + (parcial ? ' · parcial até ' + parcial : '') + ' · Time comercial',
@@ -3643,6 +3738,7 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
       if (r.respostas && r.respostas.truncado) det.push('respostas: ' + r.respostas.n + ' de ' + r.respostas.total_aba);
       if (r.leitura && r.leitura.truncado) det.push('leitura: ' + r.leitura.n + ' de ' + r.leitura.total_aba);
       if (r.vendas && r.vendas.truncado) det.push('vendas: ' + r.vendas.n + ' de ' + r.vendas.total_aba);
+      if (r.aprovacoes && r.aprovacoes.truncado) det.push('aprovações: ' + r.aprovacoes.n + ' de ' + r.aprovacoes.total_aba);
       if (r.ajustes && r.ajustes.truncado) det.push('ajustes: ' + r.ajustes.n + ' de ' + r.ajustes.total_aba);
       if (r.extratos && r.extratos.truncado) det.push('extratos: ' + r.extratos.n + ' de ' + r.extratos.total_aba);
       if (r.lancamentos && r.lancamentos.truncado) det.push('lançamentos: ' + r.lancamentos.n + ' de ' + r.lancamentos.total_aba);
@@ -3695,6 +3791,7 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
     LANC_ERRO = (r.lancamentos && r.lancamentos.erro) || null;
     LANC = r.lancamentos ? lerLancamentos(r.lancamentos) : null;
     EXTRATOS = lerExtratos(r.extratos);
+    APROVACOES = lerAprovacoes(r.aprovacoes);
 
     pintar();
   }
