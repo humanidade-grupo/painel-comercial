@@ -3210,6 +3210,48 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
     }).join('') + '</div>';
   }
 
+  /* ══ O quadro do RH / Financeiro (07/10, Ricardo) ══
+     O vendedor recebe o mês em DUAS datas, no mês seguinte: dia 05 o fixo (Contrato) e dia 25 o resto
+     (comissão das vendas, bônus, campanha, reembolso). O quadro diz quanto pagar a cada um em cada data.
+     O valor do dia 25 é o mesmo do extrato individual que o vendedor aprovou no Pocket (totalIndividual). */
+  var DIA_PAGA_FIXO = 5, DIA_PAGA_VARIAVEL = 25;
+  var TIPOS_DIA25 = ['Bônus Meta', 'Bônus Super Meta', 'Campanha de incentivo', 'Reembolso'];
+  function quadroFinanceiro(id, comp, lista){
+    var seg = proximoMes(id).split('-');
+    var d05 = String(DIA_PAGA_FIXO).padStart(2, '0') + '/' + seg[1], d25 = DIA_PAGA_VARIAVEL + '/' + seg[1];
+    var fixo = function (v) { return v.porTipo['Contrato'] || 0; };
+    var s05 = 0, s25 = 0, nFixo = 0, porTipo = {}, sCom = 0;
+    var linhas = lista.map(function (v) {
+      var f = fixo(v), r = totalIndividual(v);
+      s05 = round2(s05 + f); s25 = round2(s25 + r); sCom = round2(sCom + v.valor);
+      if (f) nFixo++;
+      TIPOS_DIA25.forEach(function (tp) { porTipo[tp] = round2((porTipo[tp] || 0) + (v.porTipo[tp] || 0)); });
+      return '<tr><td class="forte nw">' + esc(v.quem) + '</td>' + tdR(brlPapel(f), 'forte') + tdR(brlPapel(v.valor)) +
+             TIPOS_DIA25.map(function (tp) { return tdR(brlPapel(v.porTipo[tp])); }).join('') + tdR(brlPapel(r), 'forte') + '</tr>';
+    }).join('');
+    linhas += '<tr class="total"><td>Total</td>' + tdR(brlPapel(s05)) + tdR(brlPapel(sCom)) +
+              TIPOS_DIA25.map(function (tp) { return tdR(brlPapel(porTipo[tp])); }).join('') + tdR(brlPapel(s25)) + '</tr>';
+
+    var e = estadoAprovacao(id, comp);
+    var aprovado = e.proxima >= 3;
+    var caixa = function (k, val, n) {
+      return '<div class="caixa"><div class="k">' + k + '</div><div class="v">' + val + '</div><div class="n">' + n + '</div></div>';
+    };
+    return '<div class="quadro"><div class="faixa"><b>Para o RH / Financeiro</b><span>Pagamentos de ' + esc(mesAno(id).toLowerCase()) + '</span></div>' +
+      '<div class="dentro"><div class="destaques">' +
+      caixa('Dia ' + d05 + ' · fixo', esc(brl2(s05)), 'Contrato de ' + nFixo + (nFixo === 1 ? ' vendedor' : ' vendedores')) +
+      caixa('Dia ' + d25 + ' · variável', esc(brl2(s25)), 'comissão + bônus + campanha + reembolso') +
+      caixa('Total do mês', esc(brl2(round2(s05 + s25))), 'as duas datas somadas') + '</div>' +
+      '<table class="tab densa"><thead><tr><th>Vendedor</th><th class="r">Dia ' + d05 + '<br>Contrato</th><th class="r">Comissão</th>' +
+      '<th class="r">Bônus<br>Meta</th><th class="r">Bônus<br>Super Meta</th><th class="r">Campanha<br>incentivo</th><th class="r">Reembolso</th>' +
+      '<th class="r">Dia ' + d25 + '<br>a pagar</th></tr></thead><tbody>' + linhas + '</tbody></table>' +
+      '<p class="nota"><strong>Dia ' + d05 + ':</strong> o fixo (Contrato) de cada vendedor. <strong>Dia ' + d25 + ':</strong> a soma das colunas ' +
+      'Comissão a Reembolso — é o mesmo valor do extrato individual que o vendedor aprovou no Pocket. O motivo de cada campanha e ' +
+      'reembolso está na tabela de lançamentos. <strong>' + (aprovado ? 'Extrato aprovado por Ricardo, Fabrícia e Rodrigo.'
+        : 'Atenção: este extrato ainda não tem as três aprovações (Ricardo, Fabrícia e Rodrigo) — veja o fim do documento.') +
+      '</strong></p></div></div>';
+  }
+
   function docGeral(id, comp){
     var parcial = parcialAte(id), t = comp.tot;
     var lista = comp.lista.filter(function (v) { return v.n || v.lancs.length; });
@@ -3246,13 +3288,15 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
     var miolo =
       '<p class="lead">Comissões do time comercial em <strong>' + nomeMes(id).toLowerCase() + '</strong>' +
       (parcial ? ' (mês em andamento, parcial até ' + parcial + ')' : '') +
-      ': o resumo geral do pagamento e, em seguida, todas as vendas do mês separadas por vendedor.</p>' +
+      ': o resumo geral do pagamento, o quadro do RH / Financeiro com o que pagar em cada data e, em seguida, ' +
+      'todas as vendas do mês separadas por vendedor.</p>' +
       destaquesPapel(t.n, nVend + (nVend === 1 ? ' vendedor' : ' vendedores'), t.valor, t.base, t.total) +
       '<div class="evitar"><div class="rotulo"><span>Resumo geral</span><span>' + mesAno(id) + '</span></div>' +
       '<table class="tab densa ouro"><thead><tr><th>Vendedor</th><th class="r">Vendas</th><th class="r">Base</th>' +
       '<th class="r">Comissão</th><th class="r">Contrato</th><th class="r">Bônus<br>Meta</th><th class="r">Bônus<br>Super Meta</th>' +
       '<th class="r">Campanha<br>incentivo</th><th class="r">Reembolso</th><th class="r">Total</th></tr></thead>' +
       '<tbody>' + res + '</tbody></table></div>' +
+      quadroFinanceiro(id, comp, lista) +
       porVend + tabLanc +
       '<div class="obs"><h3>Observações</h3><ol>' + reguaPapel() +
       '<li><strong>Contrato:</strong> valor fixo mensal de cada vendedor. Aparece na tabela de lançamentos só quando tem observação.</li>' +
