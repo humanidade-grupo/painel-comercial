@@ -37,6 +37,15 @@
 
   VOCABULÁRIO (Ricardo, 03/10): VGV Total / VGV Vendido / VGV Estoque e Ticket Médio
   Total / Vendido / Estoque. Nunca "cheio", "VGV Tabela" ou "estoque atual".
+
+  DOAÇÕES E PERMUTAS (08/10/2026, pedido do Rodrigo, desenho do Ricardo): a área no FIM
+  da página. SEGUNDA chamada, independente: POST ?app=doacoes&fn=dados, token de gestão
+  no corpo (DoacoesPermutas.gs no Cofre). Ela traz o nome do beneficiário — por isso não
+  vem na estoque-vgv, que é só agregado. Se uma das duas falhar, a outra continua de pé:
+  cada uma desenha no seu grid (#tela e #doacoes). Detecção = venda de até R$ 100 no
+  Facilita (a DOACAO_ATE do Executivo); Tipo e Cedente vêm da aba manual do Ricardo;
+  valor = só o de tabela do jazigo. A área não muda nenhum número de cima: esses jazigos
+  já estão no VGV Vendido. VGV + qualificador (Doado, Permutado, Cedido, a Classificar).
 -->
 <style>
   :root{
@@ -141,6 +150,15 @@
   .bloco .n{font-size:22px;font-weight:650;margin:3px 0 1px;font-variant-numeric:tabular-nums}
   .bloco .st{font-size:11px;color:var(--ink2)}
 
+  /* (08/10) Doações e Permutas — os mesmos componentes, só com as cores dos dois tipos */
+  .grid + .grid{margin-top:14px}
+  .selo.doa{color:var(--blue);background:var(--bluebg)}
+  .selo.perm{color:var(--mag);background:var(--magbg)}
+  .selo.acl{color:var(--warn);background:var(--warnbg)}
+  table.placar.dp{min-width:720px}
+  table.placar.dp tr.acl td{background:var(--warnbg)}
+  table.placar.dp td .selo{margin:0}
+
   .notas{grid-column:span 12;background:var(--card2);border:1px solid var(--edge);
     border-radius:12px;padding:13px 15px;font-size:12px;color:var(--ink2);line-height:1.55}
   .notas b{color:var(--ink)}
@@ -202,6 +220,7 @@
 <div class="wrap">
   <a class="voltar" href="../">← Painel Comercial</a>
   <div class="grid" id="tela"><p class="espera">Lendo o estoque do Facilita…</p></div>
+  <div class="grid" id="doacoes"></div>
   <div class="selofim" id="selofim" hidden></div>
 </div>
 
@@ -228,6 +247,7 @@
     $('gate').hidden = false;
     $('gateErro').textContent = msg || '';
     $('tela').innerHTML = '';
+    $('doacoes').innerHTML = '';
     $('selofim').hidden = true;
     setTimeout(function () { $('tk').focus(); }, 60);
   }
@@ -240,11 +260,11 @@
   $('tk').addEventListener('keydown', function (e) { if (e.key === 'Enter') $('btEntrar').click(); });
 
   /* POST com o token no corpo (regra 4), texto puro: pedido "simples", sem consulta prévia de CORS. */
-  function pedir(corpo) {
+  function pedir(corpo, rota) {
     return new Promise(function (resolve, reject) {
       var venceu = false;
       var t = setTimeout(function () { venceu = true; reject(new Error('o Facilita não respondeu em 60 s')); }, 60000);
-      fetch(API + '?app=estoque-vgv&fn=dados', { method: 'POST', body: corpo, cache: 'no-store' })
+      fetch(API + '?app=' + (rota || 'estoque-vgv') + '&fn=dados', { method: 'POST', body: corpo, cache: 'no-store' })
         .then(function (r) { return r.json(); })
         .then(function (j) { if (!venceu) { clearTimeout(t); resolve(j); } })
         .catch(function (e) { if (!venceu) { clearTimeout(t); reject(e); } });
@@ -261,6 +281,7 @@
     if (!token) { abrirPortao(''); return; }
     $('tela').innerHTML = '<p class="espera">Lendo o estoque do Facilita…</p>';
     var corpo = JSON.stringify({ token: token });
+    carregarDoacoes(corpo);   // (08/10) independente: não espera esta nem depende dela
     /* uma nova tentativa quando a falha não é de token: a entrega do /exec soluça em dia ruim */
     pedir(corpo)
       .then(function (j) { return (j && j.ok) || /token/i.test((j && j.error) || '') ? j : pedir(corpo); },
@@ -468,6 +489,109 @@
     bt.onclick = function () { try { localStorage.removeItem(CHAVE_TOKEN); } catch (e) {} abrirPortao(''); };
     sf.appendChild(bt);
     sf.hidden = false;
+  }
+
+  /* ══════════ Doações e Permutas (08/10) ══════════
+     Chamada própria: falhar aqui não derruba o estoque, e vice-versa. Token recusado é
+     assunto da chamada de cima (é ela que abre o portão) — aqui a área só some. */
+  function carregarDoacoes(corpo) {
+    var D = $('doacoes');
+    D.innerHTML = '<div class="sect"><h2>Doações e Permutas</h2><div class="ln"></div></div>' +
+                  '<p class="espera">Lendo as doações e permutas do Facilita…</p>';
+    var avisa = function (titulo, msg) {
+      D.innerHTML = '<div class="sect"><h2>Doações e Permutas</h2><div class="ln"></div></div>' +
+        '<div class="tarja amarela"><div class="t">' + esc(titulo) + '</div><p>' + msg + '</p></div>';
+    };
+    pedir(corpo, 'doacoes')
+      .then(function (j) { return (j && j.ok) || /token/i.test((j && j.error) || '') ? j : pedir(corpo, 'doacoes'); },
+            function () { return pedir(corpo, 'doacoes'); })
+      .then(function (r) {
+        if (!r || r.ok !== true) {
+          var err = (r && r.error) || 'resposta sem dado';
+          if (/token/i.test(err)) { D.innerHTML = ''; return; }
+          if (/rota desconhecida/i.test(err)) {
+            avisa('A área Doações e Permutas ainda não está no servidor.', 'O resto da página não depende dela. ' +
+              'O conserto é publicar o servidor (Implantar ▸ Gerenciar implantações ▸ ✏️ ▸ Nova versão).');
+            return;
+          }
+          avisa('As doações e permutas não carregaram.', esc(err) + ' — o resto da página não depende delas.');
+          return;
+        }
+        if (!r.itens || !r.totais) { avisa('As doações e permutas chegaram em outro formato.', 'O resto da página não depende delas.'); return; }
+        desenharDoacoes(r);
+      })
+      .catch(function (e) {
+        avisa('Não consegui ler as doações e permutas.', esc(e.message || e) + ' — o resto da página não depende delas.');
+      });
+  }
+
+  var dataBR = function (d) { var m = String(d || '').match(/^(\d{4})-(\d{2})-(\d{2})/); return m ? m[3] + '/' + m[2] + '/' + m[1] : '—'; };
+  var SELO_TIPO = { 'Doação': 'doa', 'Permuta': 'perm' };
+
+  function desenharDoacoes(r) {
+    var T = r.totais, I = r.itens;
+    var pt = function (t) { return T.por_tipo[t] || { n: 0, vgv: 0, sem_preco: 0 }; };
+    var semPreco = function (b) { return b.sem_preco ? ' · <span class="sp">' + n(b.sem_preco) + ' sem preço</span>' : ''; };
+    var jz = function (k) { return k === 1 ? ' jazigo' : ' jazigos'; };
+    var h = '<div class="sect"><h2>Doações e Permutas</h2><div class="ln"></div>' +
+            '<span class="tag">jazigos cedidos · venda de até R$ ' + n(r.limite) + ' no Facilita</span></div>';
+
+    if (T.a_classificar.n) {
+      h += '<div class="tarja amarela"><div class="t">' + n(T.a_classificar.n) + (T.a_classificar.n === 1 ? ' doação ou permuta' : ' doações ou permutas') +
+           ' ainda a classificar.</div><p>O Facilita registra a venda de R$ 0,01, mas não diz se foi doação ou permuta, nem quem cedeu. ' +
+           'Até o Ricardo lançar o tipo e o cedente, ' + (T.a_classificar.n === 1 ? 'ela fica' : 'elas ficam') + ' no topo da tabela, com selo.</p></div>';
+    }
+    if (r.problemas && r.problemas.length) {
+      h += '<div class="tarja amarela"><div class="t">' + n(r.problemas.length) + (r.problemas.length === 1 ? ' linha' : ' linhas') +
+           ' da classificação com problema.</div><p>' + (r.problemas.length === 1 ? 'Ela não classifica' : 'Elas não classificam') +
+           ' nada até ser' + (r.problemas.length === 1 ? '' : 'em') + ' corrigida' + (r.problemas.length === 1 ? '' : 's') + ': ' +
+           esc(r.problemas.map(function (p) { return (p.deal ? 'deal ' + p.deal : p.linha) + ' (' + p.tipo + ')'; }).join(', ')) + '.</p></div>';
+    }
+
+    var tile = function (selo, rot, tit, why, b, vgvRot) {
+      return '<div class="card tile tile-fila s4"><span class="selo ' + selo + '">' + rot + '</span><h3>' + tit + '</h3>' +
+        '<div class="why">' + why + '</div><div class="val">' + n(b.n) + '<span style="font-size:14px;color:var(--ink2);font-weight:500">' + jz(b.n) + '</span></div>' +
+        '<div class="st">' + vgvRot + ' <b>' + rs(b.vgv) + '</b>' + semPreco(b) + '</div></div>';
+    };
+    h += tile('doa', 'Doação', 'Doações', 'Jazigo cedido sem contrapartida.', pt('Doação'), 'VGV Doado');
+    h += tile('perm', 'Permuta', 'Permutas', 'Jazigo cedido em troca de algo.', pt('Permuta'), 'VGV Permutado');
+    h += tile('acl', 'A classificar', 'A classificar', 'Venda de até R$ ' + n(r.limite) + ' ainda sem tipo nem cedente.', T.a_classificar, 'VGV a Classificar');
+
+    // a linha por cedente
+    var ced = (r.cedentes || Object.keys(T.por_cedente)).map(function (c) {
+      var b = T.por_cedente[c] || { n: 0, vgv: 0 };
+      return '<div class="bloco"><div class="per">Cedido por ' + esc(c) + '</div><div class="n">' + n(b.n) + jz(b.n) + '</div>' +
+             '<div class="st">VGV Cedido <b>' + rs(b.vgv) + '</b></div></div>';
+    }).join('');
+    h += '<div class="card s12"><h3>Por cedente</h3><div class="why">Só o que já está classificado; o que falta classificar não tem cedente.</div>' +
+         '<div class="par" style="margin-top:0">' + ced + '</div></div>';
+
+    // a tabela
+    var linhas = I.map(function (x) {
+      var acl = x.status === 'a_classificar';
+      var tipo = acl ? '<span class="selo acl">A classificar</span>' : '<span class="selo ' + (SELO_TIPO[x.tipo] || 'total') + '">' + esc(x.tipo) + '</span>';
+      return '<tr' + (acl ? ' class="acl"' : '') + '><td>' + dataBR(x.data) + '</td><td>' + esc(x.deal) + '</td>' +
+        '<td>' + (x.quadra || x.jazigo ? esc(x.quadra) + (x.jazigo ? ' · ' + esc(x.jazigo) : '') : '—') + '</td>' +
+        '<td>' + (esc(x.cliente) || '—') + '</td><td>' + tipo + '</td><td>' + (esc(x.cedente) || '—') + '</td>' +
+        '<td class="num">' + (x.valor_tabela ? rs(x.valor_tabela) : '<span class="aviso">sem preço</span>') + '</td></tr>';
+    }).join('');
+    h += '<div class="card s12"><div class="rolax"><table class="placar dp"><thead><tr>' +
+         '<th>Data</th><th>Deal</th><th>Jazigo</th><th>Beneficiário</th><th>Tipo</th><th>Cedente</th><th class="num">Valor de tabela</th>' +
+         '</tr></thead><tbody>' + (linhas || '<tr><td colspan="7">Nenhuma venda de até R$ ' + n(r.limite) + ' no Facilita.</td></tr>') +
+         '</tbody></table></div></div>';
+
+    h += '<div class="notas">' +
+      '<p><b>Quem entra</b>: toda venda do Facilita de até R$ ' + n(r.limite) + ' — é assim que a doação e a permuta são registradas ' +
+      '(R$ 0,01). É a mesma regra que já as tira do ticket médio e da comissão no Executivo.</p>' +
+      '<p><b>Tipo e cedente</b> não existem no Facilita: são lançados à parte pelo Ricardo. Sem esse lançamento, a venda aparece ' +
+      '<b>a classificar</b>.</p>' +
+      '<p><b>Valor</b> = só o valor de tabela do jazigo no Facilita, hoje — sem a contrapartida da permuta. Estes jazigos já estão ' +
+      'no VGV Vendido lá em cima, pela mesma tabela: esta área <b>não muda nenhum número</b> da página.</p>' +
+      '<p>Vendas lidas do Facilita em <b>' + esc(dm(r.atualizado_em)) + '</b> · tabela de ' + esc(dm(r.estoque_em)) +
+        (typeof r.ms === 'number' ? ' · resposta em ' + r.ms + ' ms' : '') + '.</p>' +
+    '</div>';
+
+    $('doacoes').innerHTML = h;
   }
 
   carregar();
