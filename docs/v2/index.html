@@ -682,6 +682,10 @@ window.__renderPS = function (dados, ymSel) {
      de desconto com tabela Perpétuo). Concessão grande é exatamente o que
      este KPI existe para mostrar; tirá-la seria esconder o que se quer medir.
      ================================================================== */
+  /* (08/10/2026, decisão do Ricardo) doação e permuta NÃO SÃO VENDA: a rota já não as manda
+     (Parque.gs tira tudo de 0 < valor ≤ R$ 100 da lista, `doacoes_fora`) — setembro 95 → 94.
+     Elas moram na área Doações e Permutas da aba Estoque. O filtro abaixo fica como guarda do
+     ticket para a venda de valor vazio/zero, que é defeito de dado e continua na contagem. */
   var DOACAO_ATE = 100;   // R$ — abaixo disso não é venda, é doação/permuta
   var ehDoacao = function (v) { return Number(v.venda || 0) <= DOACAO_ATE; };
   var ehTemp = function (v) { return v.modalidade === 'Temporário'; };

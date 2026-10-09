@@ -46,6 +46,8 @@
   Facilita (a DOACAO_ATE do Executivo); Tipo e Cedente vêm da aba manual do Ricardo;
   valor = só o de tabela do jazigo. A área não muda nenhum número de cima: esses jazigos
   já estão no VGV Vendido. VGV + qualificador (Doado, Permutado, Cedido, a Classificar).
+  (08/10, noite) E desde então elas NÃO SÃO VENDA no relatório: saem da contagem do
+  Executivo, da Retrospectiva, do Pocket e da Parcial (Parque.gs) — moram só aqui.
 -->
 <style>
   :root{
@@ -582,7 +584,8 @@
 
     h += '<div class="notas">' +
       '<p><b>Quem entra</b>: toda venda do Facilita de até R$ ' + n(r.limite) + ' — é assim que a doação e a permuta são registradas ' +
-      '(R$ 0,01). É a mesma regra que já as tira do ticket médio e da comissão no Executivo.</p>' +
+      '(R$ 0,01). <b>Elas não contam como venda</b>: ficam fora da contagem, da meta, do ticket e da comissão no Executivo, ' +
+      'na Retrospectiva e no Pocket — é aqui que elas aparecem.</p>' +
       '<p><b>Tipo e cedente</b> não existem no Facilita: são lançados à parte pelo Ricardo. Sem esse lançamento, a venda aparece ' +
       '<b>a classificar</b>.</p>' +
       '<p><b>Valor</b> = só o valor de tabela do jazigo no Facilita, hoje — sem a contrapartida da permuta. Estes jazigos já estão ' +

@@ -992,6 +992,9 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
      (docs/v2/index.html, "A BASE DO TICKET MÉDIO E DO DESCONTO"):
        · CONTAGEM, VGV, placar, quinzenas, modalidade, forma e origem: TODA venda,
          a migração inclusive — ela conta na meta.
+       · (08/10/2026, decisão do Ricardo) DOAÇÃO E PERMUTA NÃO SÃO VENDA: a rota já não as
+         manda, nem na lista do mês (Parque.gs) nem no bloco da comissão (Retrospectiva.gs).
+         Setembro: 95 → 94. Elas moram na área Doações e Permutas da aba Estoque.
        · TICKET: só o PERPÉTUO, sem doação (≤ R$ 100) — fora o Temporário, a
          Reserva e a migração — e é a MEDIANA do valor contratado, Face × (1 −
          Desconto %), não a média (Ricardo, 27/09: a mesma conta do Executivo e
@@ -2015,7 +2018,7 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
       'Conferência sobre as linhas do CRM (Vendas_Facilita), importadas em ' + (VENDAS_CARIMBO || 'data desconhecida') +
       '. Régua de julho/2026: Perpétuo 1,0% à vista · 0,8% parcelada; Reserva 0,7% · 0,5%; Temporário 0%. ' +
       'Migração: régua do Perpétuo sobre a tabela cheia do jazigo (05/10), não sobre o valor pago. ' +
-      'Doação (R$ 0,01 no Facilita) conta como venda e não comissiona. ' +
+      'Doação e permuta (R$ 0,01 no Facilita) não são venda: ficam fora da contagem, da meta e da comissão (08/10). ' +
       'Base = Vlr Venda (tabela − desconto). Cada linha arredondada a 2 casas; o subtotal soma as linhas. ' +
       'O fechamento oficial continua na planilha Comissoes_<mês>_<ano>.xlsx.' }));
     notas.append(Object.assign(el('p','nota-fina'), { textContent:
@@ -2893,7 +2896,7 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
       }
       r.append(el('td', null, x.jazigo));
       r.append(el('td', null, x.modalidade + (x.doacao ? ' · doação' : '')));
-      if (x.doacao) r.lastChild.title = 'Doação: venda de R$ 0,01 no Facilita — conta como venda, não gera comissão.';
+      if (x.doacao) r.lastChild.title = 'Doação: venda de R$ 0,01 no Facilita — não é venda nem gera comissão (desde 08/10 nem chega aqui).';
       r.append(el('td', null, '—'));                       // Tipo Uso: não existe no Cofre
       r.append(el('td','num', brl2(x.venda)));
       if (x.pago !== null && x.pago !== undefined) r.lastChild.title = 'Migração: base = tabela cheia do jazigo. Valor pago: ' + brl2(x.pago) + '.';
@@ -3148,7 +3151,7 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
     return '<li><strong>Régua:</strong> Perpétuo ' + p('Perpétuo','avista') + ' à vista e ' + p('Perpétuo','parcelada') +
       ' parcelada · Reserva ' + p('Reserva','avista') + ' à vista e ' + p('Reserva','parcelada') + ' parcelada · ' +
       'Temporário não gera comissão, mas conta como venda na meta · Migração de Temporário para Perpétuo segue a ' +
-      'régua do Perpétuo sobre a tabela cheia do jazigo, não sobre o valor pago · Doação conta como venda e não gera comissão.</li>' +
+      'régua do Perpétuo sobre a tabela cheia do jazigo, não sobre o valor pago · Doação e permuta não são venda nem geram comissão.</li>' +
       '<li><strong>Base:</strong> o valor da venda (tabela menos desconto), nunca a tabela cheia. Cada venda é ' +
       'arredondada em duas casas e o subtotal soma as linhas já arredondadas.</li>';
   }
