@@ -1,6 +1,9 @@
 /* Painel Comercial — Parque da Saudade + Estrela Urbanidade
    Service worker: instalação PWA + reserva offline.
-   Atualizado em: 04/10/2026 (5ª) — SEM "COFRE" NA TELA (pedido do Ricardo: Cofre é backend). Todo texto visível
+   Atualizado em: 10/10/2026 — PONTEAPP: a D4Sign atualiza de hora em hora pela API, no servidor (Cofre @160).
+   Saem da tarja o "PC do Ricardo", o "8h, 14h e 20h" e a "janela do Edge"; o espelho é velho a partir de 4 h
+   (era 48); a falha que pede gente é a chave da API recusada.
+   Antes, 04/10/2026 (5ª) — SEM "COFRE" NA TELA (pedido do Ricardo: Cofre é backend). Todo texto visível
    das telas passa a dizer Facilita (dado, leitura, carimbo, erro de leitura) ou servidor/Configurações
    (manutenção). Os comentários do código continuam dizendo Cofre.
    Antes, 04/10/2026 (4ª) — ESTOQUE: bloco "Jazigo Reserva" só com o vendido (a Reserva não tem estoque).
@@ -299,7 +302,7 @@
    ?app=doacoes (script.google.com, cross-origin — passa direto pelo SW).
    Estratégia: rede primeiro (pega versão nova quando online), cache como
    reserva offline. A cada deploy, bumpar a versão em CACHE. */
-const CACHE = 'painel-comercial-081026-2';
+const CACHE = 'painel-comercial-101026-1';
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(['./'])).then(() => self.skipWaiting()));

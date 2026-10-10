@@ -934,7 +934,7 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
      mais de 1 hora sem carimbo é importação parada. Com 6 h, a tela passava meio dia dizendo
      "fila zerada" sem as vendas novas e sem aviso nenhum. */
   var HORAS_VELHO_VENDAS = 1;
-  var HORAS_VELHO_D4 = 48;      // a passada da D4Sign é diária, e depende do PC do Ricardo
+  var HORAS_VELHO_D4 = 4;       // (10/10) a passada é do Cofre, pela API, de hora em hora: 4 h = três falhadas
   var MESES = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
 
   /* ⚠️ ESTA LISTA É ORDEM, NÃO FILTRO. Fase que a D4Sign criar depois aparece com o rótulo
@@ -1679,21 +1679,23 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
     } else if (d4.ultimo_erro) {
       /* A PASSADA QUE NÃO ACONTECEU TAMBÉM É NOTÍCIA (21/09): o status.py manda o motivo do
          aborto para o Cofre, e a tarja diz POR QUE o espelho parou — em 20/09 ela só sabia
-         dizer "mais de 48 horas", e a causa (sessão da D4Sign caída) ficava no PC do Ricardo. */
-      var caiu = /sess|login/i.test(String(d4.ultimo_erro));
-      aviso(caiu ? 'A sessão da D4Sign caiu: os contratos pararam de atualizar.'
-                 : 'A última tentativa de atualizar os contratos falhou.',
+         dizer "mais de 48 horas", e a causa (sessão da D4Sign caída) ficava no PC do Ricardo.
+         (10/10) A passada saiu do PC: roda no servidor pela API da D4Sign, de hora em hora. Não há
+         mais sessão nem Edge; a falha que pede gente é a chave da API recusada. */
+      var chave = /chave da API/i.test(String(d4.ultimo_erro));
+      aviso(chave ? 'A D4Sign recusou a chave da API: os contratos pararam de atualizar.'
+                  : 'A última tentativa de atualizar os contratos falhou.',
         '<p>Última tentativa' + (d4.ultima_falha ? ' em <b>' + esc(fmtCarimbo(d4.ultima_falha)) + '</b>' : '') +
         ': <b>' + esc(d4.ultimo_erro) + '</b>.</p>' +
         '<p>Os estados de contrato abaixo são da passada de <b>' + esc(fmtCarimbo(d4.carimbo)) + '</b>' +
         (idadeTxt(hD) ? ' (' + esc(idadeTxt(hD)) + ')' : '') + ' — e seguem parados até a próxima passada dar certo.</p>' +
-        (caiu ? '<p><b>O conserto é do Ricardo:</b> entrar na D4Sign na janela do Edge que a passada abre ' +
-                '(ela roda às 8h, 14h e 20h).</p>' : ''), true);
+        (chave ? '<p><b>O conserto é do Ricardo:</b> conferir a chave da API da D4Sign nas Propriedades ' +
+                 'do script do servidor.</p>' : '<p>A passada roda de hora em hora e tenta de novo sozinha.</p>'), true);
     } else if (hD === null || hD >= HORAS_VELHO_D4) {
       aviso('O espelho da D4Sign tem mais de ' + HORAS_VELHO_D4 + ' horas.',
-        '<p>Última passada: <b>' + esc(fmtCarimbo(d4.carimbo)) + '</b>. A passada roda às 8h, 14h e 20h no PC ' +
-        'do Ricardo, e só com ele ligado e a sessão da D4Sign aberta. Os estados de contrato abaixo são ' +
-        '<b>daquele instante</b>.</p>', true);
+        '<p>Última passada: <b>' + esc(fmtCarimbo(d4.carimbo)) + '</b>. A passada roda de hora em hora no ' +
+        'servidor, pela API da D4Sign. Os estados de contrato abaixo são <b>daquele instante</b>. ' +
+        '<b>Avise o Ricardo.</b></p>', true);
     }
     if (D4OK && !CORTE) {
       aviso('Sem data de corte da D4Sign.', '<p>A configuração não tem <code>d4sign.corte</code> (AAAA-MM-DD). ' +
