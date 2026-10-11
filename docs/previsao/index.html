@@ -1,0 +1,672 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>Previsão de Vendas</title>
+<link rel="icon" href="../favicon-32.png">
+<!--
+  PREVISÃO DE VENDAS (projeto FAROL) — 10/10/2026.
+
+  LAYOUT APROVADO: o artefato claude.ai K2WxX6dHrHg8eSppdTeCGb (protótipo v3, Ricardo, 10/10). Esta
+  página o reproduz bloco a bloco — mesma ordem, mesmos controles, mesma notação: realizado sólido,
+  previsto hachurado, meta em linha, cinza tracejado onde não há dado ou o dado tem mais de 8 dias.
+  Desde a publicação, o artefato é REGISTRO, não referência (CLAUDE.md, regra 8).
+
+  O QUE ELA LÊ: só a rota POST ?app=previsao&fn=dados do Cofre (Previsao.gs), com o token de gestão
+  no corpo. Nenhuma API de terceiro, nenhuma planilha fora do Cofre. Todo número vem calculado de lá.
+  EXCEÇÃO REGISTRADA (Ricardo, 10/10): o SIMULADOR calcula aqui, a partir das taxas do Cofre — é
+  cenário, não medição, e nada dele é gravado.
+
+  REGRA DE OURO DA CAMADA 2: nunca um número único de previsão. Sempre o intervalo.
+
+  DIFERENÇAS em relação ao protótipo (para ninguém "corrigir" a página de volta):
+   · tema escuro só — o Painel não tem modo claro; as cores são as do modo escuro do protótipo;
+   · o funil da previsão por categoria é a foto do dia (aba Leads), não a de 01/10;
+   · a conversão de cada etapa é no HORIZONTE do que falta do mês (não em 30 dias), para a previsão
+     ser do mês; a mediana de dias até a venda aparece embaixo da conversão;
+   · a tabela ganha as linhas "SQL recentes", "captação própria do vendedor no que falta do mês" e
+     "realizado", e o total é o previsto do bullet — a soma fica à vista;
+   · o CAC do custo por canal é gasto ÷ vendas dos leads do canal (pelo nº do negócio), não o
+     diagnóstico de 02/10 pela origem declarada no Pocket;
+   · a "Estrela" não mostra a nota sobre a divergência do Alta Business na tela da SATI (era
+     comentário do dia, não dado).
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600;700&family=Source+Sans+3:wght@400;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+:root{
+  --bg:#0f151b; --panel:#17202a; --ink:#e6ebf0; --muted:#9aa7b4; --line:#2a3642; --grid:#222d38;
+  --act:#d5dde5; --act-soft:#5c6874; --plan:#e6ebf0;
+  --hl:#f2a72e; --hl-soft:#2e2412;
+  --bad:#ef7b72; --bad-soft:#3a1d1b; --ok:#6cc58f; --ok-soft:#173326; --off:#7d8894; --off-soft:#212b35;
+  --f-head:"Barlow Semi Condensed","Arial Narrow",system-ui,sans-serif;
+  --f-body:"Source Sans 3",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-num:"JetBrains Mono",ui-monospace,Consolas,monospace;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:14px;line-height:1.4;margin:0}
+html.embutido body{background:transparent}
+.wrap{max-width:1280px;margin:0 auto;padding-inline:16px;padding-block:14px 28px;display:grid;gap:14px}
+h1,h2,h3{font-family:var(--f-head);margin:0;text-wrap:balance}
+h1{font-size:24px;font-weight:700}
+h2{font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:.06em}
+.num{font-family:var(--f-num);font-variant-numeric:tabular-nums}
+.stamp{font-family:var(--f-num);font-size:11px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:12px}
+.voltar{color:var(--muted);text-decoration:none;font-size:13px}
+html.embutido .voltar{display:none}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:14px;display:grid;gap:10px;align-content:start;min-width:0}
+.head{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap}
+.aviso{display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-size:12px;color:var(--muted);border:1px dashed var(--hl);border-radius:6px;padding:8px 12px;background:var(--hl-soft)}
+.aviso b{color:var(--ink)}
+.bar{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.tabs{display:flex;gap:4px;background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:3px}
+.tabs button{font:600 14px var(--f-head);letter-spacing:.03em;border:0;background:transparent;color:var(--muted);padding:6px 14px;border-radius:4px;cursor:pointer}
+.tabs button[aria-selected="true"]{background:var(--ink);color:var(--panel)}
+.tabs button:focus-visible{outline:2px solid var(--hl);outline-offset:2px}
+.notation{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--muted);align-items:center}
+.notation span{display:inline-flex;gap:6px;align-items:center}
+.k-act{width:14px;height:10px;background:var(--act);display:inline-block}
+.k-fc{width:14px;height:10px;display:inline-block;border:1px solid var(--act);background:repeating-linear-gradient(135deg,var(--act) 0 1.5px,transparent 1.5px 4px)}
+.k-plan{width:14px;height:0;border-top:2px solid var(--plan);display:inline-block}
+.k-off{width:14px;height:10px;display:inline-block;border:1px dashed var(--off);background:var(--off-soft)}
+
+.layer{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;border-bottom:2px solid var(--ink);padding-bottom:4px;margin-top:6px}
+.layer h2{font-size:16px}
+.layer .desc{font-size:12px;color:var(--muted)}
+.seal{font:600 11px var(--f-body);padding:2px 8px;border-radius:999px;background:var(--hl-soft);color:var(--hl);border:1px solid var(--hl)}
+.seal.ok{background:var(--ok-soft);color:var(--ok);border-color:var(--ok)}
+
+.g2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px}
+.g57{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,7fr);gap:14px}
+.g75{display:grid;grid-template-columns:minmax(0,7fr) minmax(0,5fr);gap:14px}
+
+.fresh{display:flex;gap:8px;align-items:center;font-size:12px;padding:6px 8px;border-radius:4px}
+.fresh.ok{background:var(--ok-soft);color:var(--ok)}
+.fresh.old{background:var(--off-soft);color:var(--muted);border:1px dashed var(--off)}
+.fresh.old b{color:var(--ink)}
+.dot{width:8px;height:8px;border-radius:50%;flex:none}
+.ok .dot{background:var(--ok)} .old .dot{background:var(--off)}
+.panel.stale{background:var(--off-soft);border-style:dashed}
+.panel.stale .c i{background:var(--act-soft)}
+.panel.stale .c.part i{background:repeating-linear-gradient(135deg,var(--act-soft) 0 2px,transparent 2px 5px);border-color:var(--act-soft)}
+.panel.stale .hb i{background:var(--act-soft)}
+.panel.stale svg polyline{stroke:var(--act-soft)} .panel.stale svg circle{fill:var(--act-soft)}
+
+.health{display:grid;grid-template-columns:auto 1fr auto;gap:6px 10px;align-items:center;font-size:13px}
+.health .st{font:600 11px var(--f-body);padding:1px 8px;border-radius:999px;white-space:nowrap}
+.st.ok{background:var(--ok-soft);color:var(--ok)}
+.st.old{background:var(--off-soft);color:var(--muted);border:1px dashed var(--off)}
+.st.bad{background:var(--bad-soft);color:var(--bad)}
+
+.bullet{display:grid;gap:6px}
+.bg{position:relative;height:30px;background:var(--off-soft);border-radius:2px}
+.bg .act{position:absolute;left:0;top:8px;bottom:8px;background:var(--act)}
+.bg .fc{position:absolute;top:8px;bottom:8px;border:1px dashed var(--off)}
+.bg .fcr{position:absolute;top:8px;bottom:8px;border:1px solid var(--act);background:repeating-linear-gradient(135deg,var(--act) 0 1.5px,transparent 1.5px 5px)}
+.bg .tgt{position:absolute;top:2px;bottom:2px;width:3px;background:var(--plan)}
+.scale{position:relative;height:14px;font-family:var(--f-num);font-size:11px;color:var(--muted)}
+.scale span{position:absolute;transform:translateX(-50%)}
+.figs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.fig{display:grid}
+.fig .l{font-size:12px;color:var(--muted)}
+.fig .v{font-family:var(--f-num);font-size:22px;font-weight:600}
+.fig .s{font-size:11px;color:var(--muted)}
+.fig.off .v{color:var(--off)}
+.delta-bad{color:var(--bad);font-weight:600}
+.delta-ok{color:var(--ok);font-weight:600}
+
+.cols{display:grid;grid-template-columns:30px 1fr;gap:6px}
+.ya{position:relative;height:180px;font-family:var(--f-num);font-size:11px;color:var(--muted)}
+.ya span{position:absolute;right:0;transform:translateY(50%)}
+.plot{position:relative;height:180px;display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:10px;align-items:end;border-bottom:1px solid var(--act)}
+.gl{position:absolute;left:0;right:0;border-top:1px solid var(--grid)}
+.ref{position:absolute;left:0;right:0;border-top:2px solid var(--plan);z-index:2}
+.ref b{position:absolute;right:0;top:-18px;font:600 11px var(--f-num);background:var(--panel);padding:0 4px}
+.panel.stale .ref b{background:var(--off-soft)}
+.c{position:relative;height:100%;z-index:1}
+.c i{position:absolute;left:0;right:0;bottom:0;background:var(--act);border-radius:3px 3px 0 0}
+.c.part i{background:repeating-linear-gradient(135deg,var(--act) 0 2px,transparent 2px 5px);border:1.5px solid var(--act);border-bottom:0}
+.c.empty{background:var(--panel);border:1px dashed var(--off);border-bottom:0;border-radius:3px 3px 0 0}
+.c em{position:absolute;left:0;right:0;text-align:center;font:600 12px var(--f-num);font-style:normal}
+.xa{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:10px;margin-left:36px;font-family:var(--f-num);font-size:11px;color:var(--muted);text-align:center}
+
+.ch{display:grid;grid-template-columns:minmax(120px,1.3fr) minmax(0,2fr) 92px 56px 52px;gap:6px 10px;align-items:center}
+.ch .hd{font-family:var(--f-head);font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+.ch .hb{position:relative;height:14px}
+.ch .hb i{position:absolute;left:0;top:0;bottom:0;background:var(--act);border-radius:0 3px 3px 0}
+.ch .hb b{position:absolute;top:-1px;font:600 12px var(--f-num)}
+.ch .r{text-align:right;font-family:var(--f-num);font-variant-numeric:tabular-nums}
+.ch svg{display:block;width:92px;height:22px;overflow:visible}
+.ch.ads{grid-template-columns:minmax(120px,1.4fr) minmax(0,2fr) 48px}
+
+.rev{display:grid}
+.step{display:grid;grid-template-columns:22px 1fr auto;gap:10px;align-items:center;padding:6px 0;border-bottom:1px solid var(--line)}
+.step:last-child{border-bottom:0}
+.op{font-family:var(--f-num);font-size:15px;color:var(--muted);text-align:center}
+.step .what{display:grid}.step .what span{font-size:12px;color:var(--muted)}
+.step .v{font-family:var(--f-num);font-size:17px;font-weight:600;text-align:right}
+.step .v small{display:block;font-size:11px;font-weight:400;color:var(--muted)}
+.step.key{background:var(--hl-soft);margin:0 -14px;padding:8px 14px}
+.step.key .v{font-size:21px}
+
+.range{position:relative;height:18px;margin:4px 0}
+.range .ln{position:absolute;top:8px;height:2px;background:var(--act)}
+.range .cap{position:absolute;top:3px;width:2px;height:12px;background:var(--act)}
+.range .pt{position:absolute;top:4px;width:10px;height:10px;border-radius:50%;background:var(--hl);transform:translateX(-50%);border:2px solid var(--panel)}
+.ticks{display:flex;justify-content:space-between;font-family:var(--f-num);font-size:11px;color:var(--muted)}
+
+.sim{display:grid;grid-template-columns:minmax(0,4fr) minmax(0,8fr);gap:18px}
+.sim-in{display:grid;gap:6px;align-content:start}
+.sim-in label{font-size:12px;color:var(--muted)}
+.sim-in input[type=number]{font:600 18px var(--f-num);color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:4px;padding:6px 8px;width:100%}
+.sim-in input:focus-visible{outline:2px solid var(--hl);outline-offset:1px}
+.sim-in input[type=range]{width:100%;accent-color:var(--act)}
+
+table{border-collapse:collapse;width:100%}
+th,td{text-align:left;padding:5px 6px;border-bottom:1px solid var(--line);vertical-align:top;white-space:nowrap}
+th{font-family:var(--f-head);font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:600}
+td.r,th.r{text-align:right}
+td.dash{color:var(--off);text-align:right}
+td .rg{display:block;font-size:11px;color:var(--muted);font-weight:400}
+tr.tot td{font-weight:600;border-top:2px solid var(--act)}
+tr.sub td{color:var(--muted)}
+.scroll{overflow-x:auto}
+.offbox{border:1px dashed var(--off);border-radius:4px;padding:10px;color:var(--muted);font-size:13px;background:var(--off-soft)}
+.offbox strong{color:var(--ink)}
+.chip{display:inline-block;font-size:11px;font-weight:600;padding:1px 7px;border-radius:999px;white-space:nowrap;background:var(--hl-soft);color:var(--hl)}
+.cat td.grey{color:var(--off);text-align:right;font-family:var(--f-num)}
+.gloss{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px 18px;font-size:12px;color:var(--muted)}
+.gloss b{color:var(--ink);font-weight:600}
+.tip{position:fixed;pointer-events:none;background:var(--ink);color:var(--panel);font-size:12px;padding:6px 8px;border-radius:4px;z-index:10;max-width:260px}
+.espera{color:var(--muted);padding:30px 0;text-align:center}
+
+/* portão de token (o mesmo do Painel: hub_token_gestao) */
+.gate{position:fixed;inset:0;z-index:50;background:rgba(10,14,18,.92);display:flex;align-items:center;justify-content:center;padding:16px}
+.gatebox{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:20px;max-width:380px;width:100%;display:grid;gap:10px}
+.gatebox p{margin:0;color:var(--muted);font-size:13px}
+.gatebox input{font:600 15px var(--f-num);color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:4px;padding:8px}
+.gatebox button{font:600 14px var(--f-head);border:0;border-radius:4px;padding:8px;background:var(--ink);color:var(--panel);cursor:pointer}
+.gatebox .erro{color:var(--bad);font-size:12.5px;min-height:16px}
+
+/* A GUARDA DO [hidden] (regra da casa): toda classe que declara `display` ganha o par. */
+.gate[hidden],.panel[hidden],.aviso[hidden],.fresh[hidden],.layer[hidden],.g2[hidden],.g57[hidden],.g75[hidden],
+.tabs[hidden],.offbox[hidden],.tip[hidden],section[hidden]{display:none!important}
+
+@media (max-width:1000px){.g2,.g57,.g75,.sim{grid-template-columns:minmax(0,1fr)}.gloss{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:560px){.figs{grid-template-columns:repeat(2,minmax(0,1fr))}.ch{grid-template-columns:minmax(96px,1fr) minmax(0,1.4fr) 56px}.ch .hide-s{display:none}.ch.ads{grid-template-columns:minmax(96px,1fr) minmax(0,1.4fr) 40px}.plot,.xa{gap:5px}}
+</style>
+<script>
+  /* embutido como aba do Painel: o cabeçalho de lá já é o "voltar" */
+  try { if (window.top !== window.self) document.documentElement.classList.add('embutido'); }
+  catch (e) { document.documentElement.classList.add('embutido'); }
+</script>
+</head>
+<body>
+
+<div class="gate" id="gate" hidden>
+  <div class="gatebox">
+    <h2>Previsão de Vendas</h2>
+    <p>Captação, custo e previsão do mês. Pede o token do Painel Comercial — você
+       digita uma vez e ele fica guardado neste aparelho.</p>
+    <input id="tk" type="password" autocomplete="off" spellcheck="false" placeholder="token" aria-label="Token de acesso">
+    <button id="btEntrar" type="button">Entrar</button>
+    <div class="erro" id="gateErro"></div>
+  </div>
+</div>
+
+<div class="wrap">
+  <a class="voltar" href="../">← Painel Comercial</a>
+
+  <div class="bar">
+    <div>
+      <h1>Previsão de Vendas</h1>
+      <div class="notation">
+        <span><i class="k-act"></i>Realizado</span>
+        <span><i class="k-fc"></i>Previsto / semana incompleta</span>
+        <span><i class="k-plan"></i>Meta ou necessário</span>
+        <span><i class="k-off"></i>Sem dado ou dado atrasado</span>
+      </div>
+    </div>
+    <div class="tabs" role="tablist">
+      <button role="tab" id="tab-ps" aria-selected="true" aria-controls="view-ps" type="button">Parque da Saudade</button>
+      <button role="tab" id="tab-eu" aria-selected="false" aria-controls="view-eu" type="button">Estrela Urbanidade</button>
+    </div>
+  </div>
+
+  <div id="estado"><p class="espera">Lendo o Facilita e a mídia…</p></div>
+  <section id="view-ps" role="tabpanel" aria-labelledby="tab-ps" style="display:grid;gap:14px" hidden></section>
+  <section id="view-eu" role="tabpanel" aria-labelledby="tab-eu" style="display:grid;gap:14px" hidden></section>
+
+  <div class="panel" id="termos">
+    <div class="head"><h2>Termos</h2><span class="stamp">Demand Waterfall (Forrester) · Receita Previsível (Aaron Ross) · IBCS · Stephen Few</span></div>
+    <div class="gloss">
+      <div><b>Lead</b> · toda conversa nova. Não é lead (X) e necessidade imediata (N) ficam fora das taxas e dos custos.</div>
+      <div><b>MQL</b> · qualificado pelo marketing: interesse real, ainda sem pedir o vendedor.</div>
+      <div><b>SQL</b> · qualificado para vendas: disse o que quer e aceitou o consultor ou a visita.</div>
+      <div><b>CPL</b> · custo por lead · <b>CAC</b> · custo de aquisição por venda.</div>
+      <div><b>LVR</b> · Lead Velocity Rate: SQL da semana contra a média das anteriores.</div>
+      <div><b>Intervalo de 95%</b> · faixa onde a taxa real deve estar, dado o tamanho da amostra.</div>
+    </div>
+  </div>
+</div>
+<div class="tip" id="tip" hidden></div>
+
+<script>
+(function () {
+  'use strict';
+  var API = 'https://script.google.com/macros/s/AKfycbydLmUEX3g6FeojFGAcVHfNKoPsr4d9oTBUdi7GtcfsirQL6xHJM0BELVGcCrcqrICY/exec';
+  var CHAVE_TOKEN = 'hub_token_gestao';   // o mesmo do Painel — não duplicar
+  var CHAVE_ABA = 'previsao_aba';         // conveniência do aparelho: a última empresa aberta
+  var MESES = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+  var MESES_MIN = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
+  var $ = function (id) { return document.getElementById(id); };
+
+  var esc = function (s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); };
+  var nf = function (v, d) { return v === null || v === undefined || isNaN(v) ? '—' :
+    Number(v).toLocaleString('pt-BR', { minimumFractionDigits: d || 0, maximumFractionDigits: d || 0 }); };
+  var brl = function (v) { return v === null || v === undefined ? '—' : nf(v, 2); };
+  var pc = function (v, d) { return v === null || v === undefined ? '—' : nf(v * 100, d === undefined ? 1 : d) + '%'; };
+  var dm = function (iso) { var m = String(iso || '').match(/^\d{4}-(\d{2})-(\d{2})/); return m ? m[2] + '/' + m[1] : '—'; };
+  var dmh = function (c) { var m = String(c || '').match(/^\d{4}-(\d{2})-(\d{2}) (\d{2}):(\d{2})/); return m ? m[2] + '/' + m[1] + ' ' + m[3] + 'h' + m[4] : dm(c); };
+  var faixa = function (a, b, fmt) { fmt = fmt || function (x) { return nf(x); }; return fmt(a) + ' a ' + fmt(b); };
+  var teto = function (v) {   // escala "redonda" para os eixos
+    if (!(v > 0)) return 10;
+    var p = Math.pow(10, Math.floor(Math.log10(v))), passos = [1, 2, 2.5, 5, 10];
+    for (var i = 0; i < passos.length; i++) if (passos[i] * p >= v) return passos[i] * p;
+    return 10 * p;
+  };
+
+  /* ══════════ portão ══════════ */
+  function abrirPortao(msg) {
+    $('gate').hidden = false;
+    $('gateErro').textContent = msg || '';
+    $('view-ps').hidden = true; $('view-eu').hidden = true;
+    $('estado').innerHTML = '';
+    setTimeout(function () { $('tk').focus(); }, 60);
+  }
+  $('btEntrar').onclick = function () {
+    var v = $('tk').value.trim();
+    if (!v) { $('gateErro').textContent = 'Digite o token.'; return; }
+    try { localStorage.setItem(CHAVE_TOKEN, v); } catch (e) {}
+    $('tk').value = ''; $('gate').hidden = true; carregar();
+  };
+  $('tk').addEventListener('keydown', function (e) { if (e.key === 'Enter') $('btEntrar').click(); });
+
+  /* POST com o token no corpo (regra 4), texto puro: pedido "simples", sem consulta prévia de CORS. */
+  function pedir(corpo) {
+    return new Promise(function (resolve, reject) {
+      var venceu = false;
+      var t = setTimeout(function () { venceu = true; reject(new Error('o servidor não respondeu em 60 s')); }, 60000);
+      fetch(API + '?app=previsao&fn=dados', { method: 'POST', body: corpo, cache: 'no-store' })
+        .then(function (r) { return r.json(); })
+        .then(function (j) { if (!venceu) { clearTimeout(t); resolve(j); } })
+        .catch(function (e) { if (!venceu) { clearTimeout(t); reject(e); } });
+    });
+  }
+  function bloqueia(titulo, html) {
+    $('view-ps').hidden = true; $('view-eu').hidden = true;
+    $('estado').innerHTML = '<div class="offbox"><strong>' + esc(titulo) + '</strong>' + html + '</div>';
+  }
+
+  function carregar() {
+    var token = '';
+    try { token = localStorage.getItem(CHAVE_TOKEN) || ''; } catch (e) {}
+    if (!token) { abrirPortao(''); return; }
+    $('estado').innerHTML = '<p class="espera">Lendo o Facilita e a mídia…</p>';
+    var corpo = JSON.stringify({ token: token });
+    pedir(corpo)
+      .then(function (j) { return (j && j.ok) || /token/i.test((j && j.error) || '') ? j : pedir(corpo); },
+            function () { return pedir(corpo); })
+      .then(function (r) {
+        if (!r || r.ok !== true) {
+          var err = (r && r.error) || 'resposta sem dado';
+          if (/token/i.test(err)) {
+            try { localStorage.removeItem(CHAVE_TOKEN); } catch (e) {}
+            abrirPortao('Token recusado. Confira e digite de novo.');
+            return;
+          }
+          if (/rota desconhecida/i.test(err)) {
+            bloqueia('O servidor ainda não tem esta tela.', '<p>A rota ?app=previsao nasceu em 10/10/2026. O conserto é publicar o ' +
+              'servidor (Implantar ▸ Gerenciar implantações ▸ ✏️ ▸ Nova versão).</p>');
+            return;
+          }
+          bloqueia('O servidor respondeu, mas sem dado.', '<p>' + esc(err) + '</p>');
+          return;
+        }
+        if (!r.ps || !r.eu || !r.ps.captacao) {
+          bloqueia('Esta página não vai desenhar: a rota respondeu em outro formato.', '<p>Publicar o servidor de novo.</p>');
+          return;
+        }
+        $('estado').innerHTML = '';
+        desenhar(r);
+      })
+      .catch(function (e) {
+        bloqueia('Não consegui ler os dados.', '<p>' + esc(e.message || e) + '</p><p>Nenhum número aparece enquanto isso: ' +
+          'tela vazia é melhor que tela desatualizada com cara de atual.</p>');
+      });
+  }
+
+  /* ══════════ peças de desenho (as do protótipo) ══════════ */
+  function frescorDe(emp, id) { for (var i = 0; i < emp.frescor.length; i++) if (emp.frescor[i].id === id) return emp.frescor[i]; return null; }
+  function velho(f) { return !f || f.estado !== 'em_dia'; }
+
+  function freshLinha(ok, html) {
+    return '<div class="fresh ' + (ok ? 'ok' : 'old') + '"><span class="dot"></span><span>' + html + '</span></div>';
+  }
+
+  function cols(data, max, step, ref, refRot) {
+    var y = '', g = '';
+    for (var v = 0; v <= max; v += step) { var p = v / max * 100; y += '<span style="bottom:' + p + '%">' + v + '</span>'; if (v) g += '<div class="gl" style="bottom:' + p + '%"></div>'; }
+    var h = g + (ref ? '<div class="ref" style="bottom:' + Math.min(100, ref / max * 100) + '%"><b>' + esc(refRot || ('necessário ' + ref)) + '</b></div>' : '');
+    data.forEach(function (d) {
+      if (d.v === null) { h += '<div class="c empty" style="height:100%" data-t="' + esc(d.t) + '"></div>'; return; }
+      var p = d.v / max * 100;
+      h += '<div class="c' + (d.part ? ' part' : '') + '" data-t="' + esc(d.t) + '"><i style="height:' + p + '%"></i><em style="bottom:calc(' + p + '% + 2px)">' + d.v + '</em></div>';
+    });
+    return '<div class="cols"><div class="ya">' + y + '</div><div class="plot">' + h + '</div></div>' +
+           '<div class="xa">' + data.map(function (d) { return '<span>' + esc(d.x) + '</span>'; }).join('') + '</div>';
+  }
+
+  function spark(vals, max, ultimaParcial) {
+    var w = 92, hh = 22, n = vals.length;
+    if (n < 2) return '';
+    var pts = vals.map(function (v, i) { return [i * (w / (n - 1)), hh - (v / max) * hh]; });
+    var cheia = ultimaParcial ? pts.slice(0, n - 1) : pts;
+    var h = '<svg viewBox="0 0 ' + w + ' ' + hh + '" aria-hidden="true">';
+    if (cheia.length > 1) h += '<polyline points="' + cheia.map(function (p) { return p.join(','); }).join(' ') + '" fill="none" stroke="var(--act)" stroke-width="2" stroke-linejoin="round"/>';
+    if (ultimaParcial) h += '<polyline points="' + pts.slice(n - 2).map(function (p) { return p.join(','); }).join(' ') + '" fill="none" stroke="var(--act)" stroke-width="2" stroke-dasharray="3 3"/>';
+    var e = pts[ultimaParcial ? n - 2 : n - 1];
+    return h + '<circle cx="' + e[0] + '" cy="' + e[1] + '" r="2.5" fill="var(--act)"/></svg>';
+  }
+
+  /* SQL por canal: barra (SQL no período), linha por semana (última tracejada se incompleta), leads, conversão */
+  function canaisHtml(cap) {
+    var lidas = [], parcial = false;
+    cap.semanas.forEach(function (s, i) { if (s.lida) { lidas.push(i); parcial = !s.completa; } });
+    var rows = cap.canais.filter(function (c) { return !c.so_gasto; });
+    var maxBar = teto(Math.max.apply(null, rows.map(function (c) { return c.sql; }).concat([1])));
+    var maxSp = Math.max.apply(null, rows.map(function (c) { return Math.max.apply(null, lidas.map(function (i) { return c.por_semana[i]; }).concat([1])); }));
+    var h = '<span class="hd">Canal</span><span class="hd">SQL</span><span class="hd hide-s">Por semana</span><span class="hd r">Leads</span><span class="hd r hide-s">Conv.</span>';
+    rows.forEach(function (c) {
+      var w = c.sql / maxBar * 100;
+      h += '<span>' + esc(c.canal) + '</span><span class="hb"><i style="width:' + w + '%"></i><b style="left:calc(' + w + '% + 6px)">' + c.sql + '</b></span>' +
+           '<span class="hide-s">' + spark(lidas.map(function (i) { return c.por_semana[i]; }), maxSp, parcial) + '</span>' +
+           '<span class="r">' + nf(c.leads) + '</span><span class="r hide-s">' + (c.conv === null ? '—' : pc(c.conv, 0)) + '</span>';
+    });
+    return '<div class="ch">' + h + '</div>';
+  }
+
+  function semanasDados(cap, proxima) {
+    return cap.semanas.map(function (s) {
+      if (!s.lida) return { x: dm(s.semana), v: null, t: dm(s.semana) + ': lido em ' + dm(proxima) };
+      return { x: dm(s.semana), v: s.sql, part: !s.completa, t: dm(s.semana) + ': ' + s.sql + ' SQL' + (s.completa ? '' : ' (semana incompleta)') };
+    });
+  }
+
+  function saudeHtml(emp) {
+    var h = '';
+    emp.frescor.forEach(function (f) {
+      var st, txt = esc(f.rotulo), carimbo = '—';
+      if (f.estado === 'em_dia') { st = '<span class="st ok">em dia</span>'; carimbo = f.data && f.data.length > 10 ? dmh(f.data) : dm(f.data); }
+      else if (f.estado === 'atrasado') { st = '<span class="st old">atrasado</span>'; carimbo = f.dias + ' dias'; }
+      else if (f.estado === 'incompleto') st = '<span class="st bad">incompleto</span>';
+      else if (f.estado === 'sem_meta') st = '<span class="st bad">sem meta</span>';
+      else st = '<span class="st bad">' + (f.texto_nunca === 'nenhuma conta da Estrela acessível' ? 'sem conta' : 'nunca lançado') + '</span>';
+      if (f.id === 'qualidade' && f.data) txt += ' · último 1º contato lido ' + dm(f.data) + ' (semana de ' + dm(f.semana) + ')';
+      if (f.id === 'gasto_meta' && f.data) txt += ' · lançado até ' + dm(f.data);
+      if (f.estado === 'nunca' && f.texto_nunca && f.texto_nunca !== 'nunca lançado') txt += ' · ' + esc(f.texto_nunca);
+      if (f.texto) txt += ' · ' + esc(f.texto);
+      h += st + '<span>' + txt + '</span><span class="stamp">' + carimbo + '</span>';
+    });
+    return '<div class="health">' + h + '</div>';
+  }
+
+  /* ══════════ Parque ══════════ */
+  function parque(r) {
+    var P = r.ps, cap = P.captacao, c2 = P.camada2, mes = Number(P.mes.slice(5, 7)) - 1;
+    var fV = frescorDe(P, 'vendas'), fQ = frescorDe(P, 'qualidade'), fM = frescorDe(P, 'gasto_meta'), fF = frescorDe(P, 'funil');
+    var h = '';
+
+    // ---------- mês contra a meta
+    var prev = c2.previsto, cob = c2.cobertura, meta = P.meta;
+    var esc100 = teto(Math.max(meta || 0, prev ? prev.alto : 0, P.realizado || 0, 1));
+    var pos = function (v) { return Math.min(100, v / esc100 * 100); };
+    var bullet = '<div class="bg"><div class="act" style="width:' + pos(P.realizado) + '%"></div>';
+    if (prev) bullet += '<div class="fcr" style="left:' + pos(prev.baixo) + '%;width:' + (pos(prev.alto) - pos(prev.baixo)) + '%" data-t="previsto: ' + faixa(prev.baixo, prev.alto) + '"></div>';
+    else bullet += '<div class="fc" style="left:' + pos(P.realizado) + '%;width:' + (100 - pos(P.realizado)) + '%"></div>';
+    if (meta) bullet += '<div class="tgt" style="left:calc(' + pos(meta) + '% - 3px)" data-t="meta: ' + meta + '"></div>';
+    bullet += '</div><div class="scale">';
+    [0, .25, .5, .75, 1].forEach(function (q, i) {
+      bullet += '<span style="left:' + q * 100 + '%' + (i === 0 ? ';transform:none' : i === 4 ? ';transform:translateX(-100%)' : '') + '">' + nf(esc100 * q) + '</span>';
+    });
+    bullet += '</div>';
+    h += '<div class="g2"><div class="panel"><div class="head"><h2>' + MESES[mes] + ' · vendas contra a meta</h2><span class="stamp">Facilita · ' + dmh(P.vendas_atualizado_em) + '</span></div>' +
+      '<div class="bullet" role="img" aria-label="Realizado ' + P.realizado + ' de meta ' + (meta || '—') + (prev ? '; previsto entre ' + prev.baixo + ' e ' + prev.alto : '; previsto ainda sem dado') + '">' + bullet + '</div>' +
+      '<div class="figs">' +
+        '<div class="fig"><span class="l">Realizado</span><span class="v">' + nf(P.realizado) + '</span><span class="s">no mês, até hoje · Executivo</span></div>' +
+        '<div class="fig' + (meta ? '' : ' off') + '"><span class="l">Meta</span><span class="v">' + (meta ? nf(meta) : '—') + '</span><span class="s">' + (meta ? 'jazigos' : 'sem meta na Config') + '</span></div>' +
+        (prev ? '<div class="fig"><span class="l">Previsto</span><span class="v">' + faixa(prev.baixo, prev.alto) + '</span><span class="s">ponto central ' + prev.valor + (c2.selo.em_validacao ? ' · em validação' : '') + '</span></div>'
+              : '<div class="fig off"><span class="l">Previsto</span><span class="v">—</span><span class="s">camada 2, ' + (c2.calculado_em ? 'em validação' : 'taxas ainda não calculadas') + '</span></div>') +
+        (cob ? '<div class="fig"><span class="l">Cobertura</span><span class="v">' + faixa(cob.baixo, cob.alto, function (x) { return pc(x, 0); }) + '</span><span class="s">previsto ÷ meta</span></div>'
+             : '<div class="fig off"><span class="l">Cobertura</span><span class="v">—</span><span class="s">previsto ÷ meta</span></div>') +
+      '</div></div>';
+
+    h += '<div class="panel"><div class="head"><h2>Saúde do dado</h2><span class="stamp">regra: mais de ' + r.regra_dias_velho + ' dias sem atualizar = cinza</span></div>' +
+      saudeHtml(P) + '<div class="small muted">Próxima leitura dos leads e do gasto Meta: segunda, ' + dm(r.proxima_leitura) + ', 7h52.</div></div></div>';
+
+    // ---------- camada 1
+    h += '<div class="layer"><h2>1 · Captação e custo</h2><span class="desc">para decidir a semana: qual canal e qual anúncio, quanto custa um SQL</span></div>';
+    if (cap.avisos && cap.avisos.length) h += '<div class="aviso"><b>Aviso.</b> ' + cap.avisos.map(esc).join(' ') + '</div>';
+
+    var sQ = velho(fQ), proxima = r.proxima_leitura;
+    var avisoQ = sQ ? '<b>Dado atrasado.</b> Último 1º contato lido: ' + dm(fQ && fQ.data) + ' (' + (fQ && fQ.dias !== null ? fQ.dias + ' dias' : 'nunca') + '). A semana de ' + dm(cap.semanas[cap.semanas.length - 1].semana) + ' chega na leitura de ' + dm(proxima) + '.'
+                    : 'Em dia. Último 1º contato lido: ' + dm(fQ.data) + '.';
+    var ref = c2.reverso ? c2.reverso.por_semana.valor : null;
+    var maxS = teto(Math.max.apply(null, cap.semanas.map(function (s) { return s.sql; }).concat([ref || 0, 1])) * 1.1);
+    var lvr = cap.lvr;
+    h += '<div class="g57"><div class="panel' + (sQ ? ' stale' : '') + '"><div class="head"><h2>SQL por semana</h2><span class="chip">' + cap.semanas_lidas + ' de ' + cap.semanas_historico + ' semanas</span></div>' +
+      freshLinha(!sQ, avisoQ) + cols(semanasDados(cap, proxima), maxS, maxS / 4, ref) +
+      '<div class="small muted">' + (ref ? 'Linha: ' + ref + ' SQL por semana, o necessário pela camada 2. ' : '') +
+      (lvr ? 'Última semana completa: <b class="num">' + lvr.sql + '</b>, <span class="' + (lvr.variacao < 0 ? 'delta-bad' : 'delta-ok') + '">' + (lvr.variacao > 0 ? '+' : '') + pc(lvr.variacao, 0) + '</span> contra a média das 3 anteriores (LVR).'
+           : 'LVR: precisa de 4 semanas completas lidas.') + '</div></div>';
+
+    h += '<div class="panel' + (sQ ? ' stale' : '') + '"><div class="head"><h2>SQL por canal</h2><span class="stamp">' + dm(cap.de) + ' a ' + dm(cap.ate) + '</span></div>' +
+      freshLinha(!sQ, sQ ? '<b>Dado atrasado.</b> Último 1º contato lido: ' + dm(fQ && fQ.data) + '.' : 'Em dia.') + canaisHtml(cap) +
+      '<div class="small muted">Barra: SQL no período. Linha: SQL por semana, a última tracejada (incompleta). Conv. = SQL ÷ leads, sem X nem N.</div></div></div>';
+
+    // custo por canal
+    var sM = velho(fM);
+    var meta1 = cap.canais.filter(function (c) { return c.custo; })[0];
+    var per = meta1 ? dm(meta1.custo.de) + ' a ' + dm(meta1.custo.ate) : '—';
+    var linhas = '';
+    cap.canais.forEach(function (c) {
+      if (c.so_gasto) {
+        var nota = /^Meta Ads/.test(c.canal) ? 'campanhas de alcance e vídeo, sem conversa lida' : 'retorno não medido por QR · mede-se pela origem declarada no Pocket';
+        linhas += '<tr><td>' + esc(c.canal) + '</td><td class="r num">' + brl(c.gasto_midia) + '</td><td class="dash" colspan="5">' + nota + '</td></tr>';
+        return;
+      }
+      if (c.custo) {
+        var u = c.custo;
+        linhas += '<tr><td>' + esc(c.canal) + '</td><td class="r num">' + brl(u.gasto) + '</td><td class="r num">' + nf(u.leads) + '</td><td class="r num">' + nf(u.sql) +
+          '</td><td class="r num">' + brl(u.cpl) + '</td><td class="r num"><b>' + brl(u.custo_sql) + '</b></td><td class="r num">' + (u.cac === null ? '—' : brl(u.cac)) + '</td></tr>';
+        return;
+      }
+      linhas += '<tr><td>' + esc(c.canal) + '</td><td class="dash">' + (c.gasto_midia ? 'R$ ' + brl(c.gasto_midia) + ' sem campanha casada' : 'sem gasto lançado') + '</td><td class="r num">' + nf(c.leads) +
+        '</td><td class="r num">' + nf(c.sql) + '</td><td class="dash">—</td><td class="dash">—</td><td class="dash">—</td></tr>';
+    });
+    h += '<div class="g75"><div class="panel' + (sM ? ' stale' : '') + '"><div class="head"><h2>Custo por canal</h2><span class="stamp">' + per + '</span></div>' +
+      freshLinha(!sM, sM ? '<b>Dado atrasado.</b> Gasto Meta lançado até ' + dm(fM && fM.data) + '.' + (velho(frescorDe(P, 'gasto_google')) ? ' Google sem gasto lançado.' : '') : 'Em dia. Gasto Meta lançado até ' + dm(fM.data) + '.') +
+      '<div class="scroll"><table><thead><tr><th>Canal</th><th class="r">Gasto (R$)</th><th class="r">Leads</th><th class="r">SQL</th><th class="r">CPL</th><th class="r">Custo por SQL</th><th class="r">CAC</th></tr></thead><tbody>' +
+      linhas + '</tbody></table></div>' +
+      '<div class="small muted">Leads e SQL só das semanas com gasto lançado. CAC = gasto ÷ vendas dos leads do canal (pelo nº do negócio no Facilita), não a origem declarada no Pocket.</div></div>';
+
+    var maxAd = teto(Math.max.apply(null, cap.anuncios.map(function (a) { return a.custo_sql || 0; }).concat([1])));
+    var ads = '<span class="hd">Anúncio</span><span class="hd">Custo por SQL (R$)</span><span class="hd r">SQL</span>';
+    cap.anuncios.forEach(function (a) {
+      var w = a.custo_sql === null ? 0 : a.custo_sql / maxAd * 100;
+      ads += '<span>' + esc(a.anuncio) + '</span><span class="hb"><i style="width:' + w + '%"></i><b style="left:calc(' + w + '% + 6px)">' + (a.custo_sql === null ? '—' : brl(a.custo_sql)) + '</b></span><span class="r">' + a.sql + '</span>';
+    });
+    var fato = cap.anuncios_fato, sa = cap.sql_sem_anuncio;
+    h += '<div class="panel' + (sM ? ' stale' : '') + '"><div class="head"><h2>Custo por SQL · anúncios do Meta</h2><span class="stamp">' + per + '</span></div>' +
+      freshLinha(!sM, sM ? '<b>Dado atrasado.</b> Mesmo período do custo por canal.' : 'Em dia.') +
+      (cap.anuncios.length ? '<div class="ch ads">' + ads + '</div>' : '<div class="offbox">Nenhum anúncio identificado pela assinatura da SATI no período.</div>') +
+      '<div class="small muted">' + (fato ? 'Fato: o ' + esc(fato.caro) + ' custa ' + nf(fato.vezes, 1) + ' vezes mais por SQL que o ' + esc(fato.barato) + ' (anúncios com ' + fato.min_sql + ' SQL ou mais). Pergunta: público ou texto? ' : '') +
+      (sa && sa.sql > 0 ? sa.sql + ' dos ' + sa.de + ' SQL do ' + esc(sa.canal) + ' vieram de assinaturas genéricas da SATI, sem anúncio.' : '') + '</div></div></div>';
+
+    // ---------- camada 2
+    h += '<div class="layer"><h2>2 · Previsão</h2>' + (c2.selo.em_validacao ? '<span class="seal">em validação</span>' : '<span class="seal ok">validada</span>') +
+      '<span class="desc">sempre em intervalo; o intervalo estreita a cada semana lida' +
+      (c2.selo.margem_pp !== null ? ' · margem hoje ±' + nf(c2.selo.margem_pp, 1) + ' pp' + (c2.selo.margem_max_pp === null ? ' (limite ainda não definido)' : ', limite ' + nf(c2.selo.margem_max_pp, 1) + ' pp') : '') +
+      '</span></div>';
+    if (!c2.calculado_em) h += '<div class="offbox"><strong>As taxas ainda não foram calculadas.</strong> Elas saem na primeira rodada de atualização do servidor (de 2 em 2 horas) depois da publicação.</div>';
+
+    var rv = c2.reverso, revHtml;
+    if (rv) {
+      var n = rv.sql_necessarios, escR = teto(n.alto || 1);
+      var p = function (v) { return Math.min(100, v / escR * 100); };
+      revHtml = '<div class="rev">' +
+        '<div class="step"><span class="op"></span><div class="what"><b>Meta do mês</b></div><span class="v">' + nf(rv.meta) + '</span></div>' +
+        '<div class="step"><span class="op">−</span><div class="what"><b>Vendas de captação própria do vendedor</b><span>mediana dos 3 últimos meses · variou de ' + nf(rv.vendedor.baixo) + ' a ' + nf(rv.vendedor.alto) + '</span></div><span class="v">' + nf(rv.vendedor.valor) + '</span></div>' +
+        '<div class="step"><span class="op">=</span><div class="what"><b>Vendas a gerar pela captação da empresa</b></div><span class="v">' + nf(rv.a_gerar) + '</span></div>' +
+        '<div class="step"><span class="op">÷</span><div class="what"><b>Conversão SQL → venda</b><span>' + rv.conv.k + ' vendas em ' + rv.conv.n + ' SQL, em até 30 dias · intervalo de 95%</span></div><span class="v">' + pc(rv.conv.valor) + '<small>' + faixa(rv.conv.baixo, rv.conv.alto, pc) + '</small></span></div>' +
+        '<div class="step key"><span class="op">=</span><div class="what"><b>SQL necessários no mês</b><span>por semana: ' + rv.por_semana.valor + ' (' + faixa(rv.por_semana.baixo, rv.por_semana.alto) + ')</span></div><span class="v">' + nf(n.valor) + '<small>' + faixa(n.baixo, n.alto) + '</small></span></div>' +
+        '</div>' +
+        '<div class="range" role="img" aria-label="SQL necessários entre ' + n.baixo + ' e ' + n.alto + ', ponto central ' + n.valor + '">' +
+        '<div class="ln" style="left:' + p(n.baixo) + '%;width:' + (p(n.alto) - p(n.baixo)) + '%"></div><div class="cap" style="left:' + p(n.baixo) + '%"></div><div class="cap" style="left:calc(' + p(n.alto) + '% - 2px)"></div><div class="pt" style="left:' + p(n.valor) + '%"></div></div>' +
+        '<div class="ticks">' + [0, .2, .4, .6, .8, 1].map(function (q) { return '<span>' + nf(escR * q) + '</span>'; }).join('') + '</div>' +
+        '<div class="small muted">' + (rv.sql_mes_anterior ? 'Captado em ' + MESES_MIN[Number(rv.sql_mes_anterior.mes.slice(5, 7)) - 1] + ': ' + rv.sql_mes_anterior.sql + ' SQL. ' : '') + 'A margem cai à medida que entram semanas e vendas novas.</div>';
+    } else {
+      revHtml = '<div class="offbox"><strong>Para acender:</strong> a meta do mês na Config, a conversão SQL → venda e a captação própria do vendedor, calculadas pelo servidor a cada 2 horas.</div>';
+    }
+    h += '<div class="g57"><div class="panel"><div class="head"><h2>Funil reverso · SQL necessários</h2><span class="stamp">taxas · ' + dmh(c2.calculado_em) + '</span></div>' + revHtml + '</div>';
+
+    // previsão por categoria
+    var fx = function (v) { return v === null || v === undefined ? '—' : nf(v, 1); };
+    var semHist = [];
+    var cat = '';
+    c2.categorias.forEach(function (c) {
+      var conv = c.etapas.map(function (e) {
+        if (e.n === 0 || e.n === null) { semHist.push(e.etapa); return '<span class="rg">' + esc(e.etapa) + ': sem histórico</span>'; }
+        return '<span class="rg">' + esc(e.etapa) + ': ' + faixa(e.baixo, e.alto, function (x) { return pc(x, 0); }) +
+               (e.dias !== null && e.dias !== undefined ? ' · mediana ' + nf(e.dias) + ' d' : '') + '</span>';
+      }).join('');
+      cat += '<tr><td><b>' + esc(c.rotulo) + '</b></td><td>' + c.etapas.map(function (e) { return esc(e.etapa) + ' ' + nf(e.abertos); }).join(' · ') + '</td>' +
+        '<td class="r num">' + nf(c.negocios) + '</td><td class="r num">' + conv + '</td><td class="r num">' + faixa(Math.floor(c.baixo), Math.ceil(c.alto)) + '<span class="rg">central ' + fx(c.valor) + '</span></td></tr>';
+    });
+    var rc = c2.sql_recentes, vr = c2.vendedor_restante, sim = c2.simulador;
+    if (rc) cat += '<tr><td><b>SQL recentes</b></td><td>captados nas 2 últimas semanas, fora do funil acima</td><td class="r num">' + nf(rc.sql) + '</td><td class="r num">' +
+      (sim.conv ? faixa(sim.conv.baixo, sim.conv.alto, function (x) { return pc(x, 0); }) + '<span class="rg">no que falta do mês</span>' : '—') + '</td><td class="r num">' + faixa(Math.floor(rc.baixo), Math.ceil(rc.alto)) + '<span class="rg">central ' + fx(rc.valor) + '</span></td></tr>';
+    if (vr) cat += '<tr class="sub"><td>Captação própria do vendedor</td><td>o que ele costuma vender, no que falta do mês</td><td class="grey">—</td><td class="grey">—</td><td class="r num">' + faixa(Math.floor(vr.baixo), Math.ceil(vr.alto)) + '<span class="rg">central ' + fx(vr.valor) + '</span></td></tr>';
+    cat += '<tr class="sub"><td>Realizado</td><td>até hoje · Executivo</td><td class="grey">—</td><td class="grey">—</td><td class="r num">' + nf(P.realizado) + '</td></tr>';
+    if (prev) cat += '<tr class="tot"><td>Previsto do mês</td><td></td><td></td><td></td><td class="r num">' + faixa(prev.baixo, prev.alto) + '<span class="rg">central ' + prev.valor + '</span></td></tr>';
+    var sF = velho(fF);
+    h += '<div class="panel' + (sF ? ' stale' : '') + '"><div class="head"><h2>Previsão por categoria</h2><span class="stamp">funil: ' + (fF && fF.data ? dmh(fF.data) : '—') + ' · horizonte ' + nf(c2.horizonte_dias) + ' dias</span></div>' +
+      (sF ? freshLinha(false, '<b>Dado atrasado.</b> A foto do funil (aba Leads) tem ' + (fF && fF.dias !== null ? fF.dias + ' dias' : 'data desconhecida') + '.') : '') +
+      '<div class="scroll"><table class="cat"><thead><tr><th>Categoria</th><th>Etapas do Facilita</th><th class="r">Negócios</th><th class="r">Conversão da etapa</th><th class="r">Vendas previstas</th></tr></thead><tbody>' + cat + '</tbody></table></div>' +
+      '<div class="offbox"><strong>Como se lê:</strong> negócios abertos hoje × a conversão de cada etapa até Venda Ganha no que falta do mês, medida no registro de etapas do Facilita (desde 29/08), em intervalo de 95%.' +
+      (semHist.length ? ' <strong>' + esc(semHist.join(', ')) + '</strong> ainda sem histórico: entra como 0 a 100%.' : '') + '</div></div></div>';
+
+    // simulador
+    h += '<div class="panel" id="simPanel"><div class="head"><h2>Simulador · planejar a meta</h2><span class="stamp">custos e taxas do histórico · cenário, nada é gravado</span></div>';
+    if (!sim.conv || sim.conv.valor === null || sim.custo_sql_meta === null || sim.custo_sql_meta === undefined) {
+      h += '<div class="offbox"><strong>Para acender:</strong> a conversão SQL → venda e o custo por SQL do Meta, calculados pelo servidor a cada 2 horas.</div></div>';
+    } else {
+      h += '<div class="sim"><div class="sim-in">' +
+        '<label for="s-meta">Meta de vendas do mês</label><input id="s-meta" type="number" min="0" max="500" step="5" value="' + (meta || 100) + '">' +
+        '<label for="s-vend">Vendas de captação própria do vendedor</label><input id="s-vend" type="number" min="0" max="500" step="5" value="' + Math.round(sim.vendedor || 0) + '">' +
+        '<label for="s-meta-share">Parte dos SQL comprados no Meta: <b id="s-share-v" class="num">100%</b></label><input id="s-meta-share" type="range" min="0" max="100" step="10" value="100">' +
+        '<span class="small muted">O resto vai para o Google, que ainda não tem custo histórico.</span></div>' +
+        '<div class="scroll"><table><thead><tr><th>Passo</th><th class="r">SQL no mês</th><th class="r">Investimento (R$)</th></tr></thead><tbody id="s-body"></tbody></table></div></div>' +
+        '<div class="small muted">Valor central com a conversão de ' + pc(sim.conv.valor) + '; embaixo, o intervalo (' + pc(sim.conv.alto) + ' a ' + pc(sim.conv.baixo) + '). Custo por SQL no Meta: R$ ' + brl(sim.custo_sql_meta) +
+        '. SQL que chegam sem gasto atribuído: ' + nf(sim.sql_sem_gasto_mes) + ' por mês. A conta é linear: com mais verba o custo por SQL pode subir, e a camada 1 mostra o custo real da semana para comparar.</div></div>';
+    }
+    return h;
+  }
+
+  function simulador(sim) {
+    if (!$('s-body')) return;
+    var CONV = [sim.conv.valor, sim.conv.alto, sim.conv.baixo], CPS = sim.custo_sql_meta, LIVRE = sim.sql_sem_gasto_mes || 0;
+    var brl0 = function (v) { return Math.round(v).toLocaleString('pt-BR'); };
+    function run() {
+      var meta = Math.max(0, +$('s-meta').value || 0), vend = Math.max(0, +$('s-vend').value || 0), sh = (+$('s-meta-share').value) / 100;
+      $('s-share-v').textContent = Math.round(sh * 100) + '%';
+      var emp = Math.max(0, meta - vend);
+      var calc = CONV.map(function (c) { var sql = Math.round(emp / c), buy = Math.max(0, sql - LIVRE), m = Math.round(buy * sh); return { sql: sql, meta: m, goo: buy - m, inv: m * CPS, cac: CPS / c }; });
+      var C = calc[0], L = calc[1], H = calc[2];
+      var cell = function (a, b, c, fmt) { return '<td class="r num">' + fmt(a) + '<span class="rg">' + fmt(b) + ' a ' + fmt(c) + '</span></td>'; };
+      var id = function (x) { return x; };
+      var h = '<tr><td>Vendas a gerar pela captação da empresa</td><td class="r num">' + emp + '</td><td></td></tr>';
+      h += '<tr><td>SQL necessários</td>' + cell(C.sql, L.sql, H.sql, id) + '<td></td></tr>';
+      h += '<tr><td>SQL que já chegam sem gasto atribuído</td><td class="r num">' + LIVRE + '</td><td class="dash">—</td></tr>';
+      h += '<tr><td>SQL a comprar no Meta Ads</td>' + cell(C.meta, L.meta, H.meta, id) + cell(C.inv, L.inv, H.inv, brl0) + '</tr>';
+      h += '<tr><td>SQL a comprar no Google</td>' + cell(C.goo, L.goo, H.goo, id) + '<td class="dash">' + (C.goo ? 'sem custo histórico' : '—') + '</td></tr>';
+      h += '<tr class="tot"><td>Investimento no Meta · CAC previsto R$ ' + brl0(C.cac) + ' (' + brl0(L.cac) + ' a ' + brl0(H.cac) + ')</td><td></td>' + cell(C.inv, L.inv, H.inv, brl0) + '</tr>';
+      $('s-body').innerHTML = h;
+    }
+    ['s-meta', 's-vend', 's-meta-share'].forEach(function (id) { $(id).addEventListener('input', run); });
+    run();
+  }
+
+  /* ══════════ Estrela: só a camada 1 ══════════ */
+  function estrela(r) {
+    var E = r.eu, cap = E.captacao, fQ = frescorDe(E, 'qualidade'), fM = frescorDe(E, 'gasto_meta');
+    var h = '<div class="g2"><div class="panel"><div class="head"><h2>Vendas contra a meta</h2></div>' +
+      '<div class="offbox"><strong>Sem dado ainda.</strong> ' + esc(E.falta) + ' Com 1 a 4 vendas por mês, a previsão vai sair como intervalo largo.</div></div>' +
+      '<div class="panel"><div class="head"><h2>Saúde do dado</h2><span class="stamp">mais de ' + r.regra_dias_velho + ' dias = cinza</span></div>' + saudeHtml(E) + '</div></div>';
+    h += '<div class="layer"><h2>1 · Captação e custo</h2><span class="desc">a única camada que a Estrela tem hoje</span></div>';
+    if (cap.avisos && cap.avisos.length) h += '<div class="aviso"><b>Aviso.</b> ' + cap.avisos.map(esc).join(' ') + '</div>';
+    var sQ = velho(fQ), sM = velho(fM);
+    var maxS = teto(Math.max.apply(null, cap.semanas.map(function (s) { return s.sql; }).concat([1])) * 1.1);
+    h += '<div class="g57"><div class="panel' + (sQ ? ' stale' : '') + '"><div class="head"><h2>SQL por semana</h2><span class="chip">' + cap.semanas_lidas + ' semanas</span></div>' +
+      freshLinha(!sQ, sQ ? '<b>Dado atrasado.</b> Último 1º contato lido: ' + dm(fQ && fQ.data) + '.' : 'Em dia.') + cols(semanasDados(cap, r.proxima_leitura), maxS, maxS / 2, null) + '</div>';
+    var linhas = '';
+    cap.canais.forEach(function (c) {
+      if (c.custo) linhas += '<tr><td>' + esc(c.canal) + '</td><td class="r num">' + brl(c.custo.gasto) + '</td><td class="r num">' + nf(c.custo.sql) + '</td><td class="r num">' + brl(c.custo.custo_sql) + '</td></tr>';
+      else if (c.so_gasto) linhas += '<tr><td>' + esc(c.canal) + '</td><td class="r num">' + brl(c.gasto_midia) + '</td><td class="dash" colspan="2">sem conversa lida</td></tr>';
+    });
+    h += '<div class="panel' + (sQ || sM ? ' stale' : '') + '"><div class="head"><h2>SQL e custo por canal</h2><span class="stamp">' + dm(cap.de) + ' a ' + dm(cap.ate) + '</span></div>' +
+      freshLinha(!(sQ || sM), sQ || sM ? '<b>Dado atrasado.</b> Leads lidos até ' + dm(fQ && fQ.data) + ' · gasto Meta até ' + dm(fM && fM.data) + '.' : 'Em dia.') + canaisHtml(cap) +
+      (linhas ? '<div class="scroll"><table><thead><tr><th>Campanha</th><th class="r">Gasto (R$)</th><th class="r">SQL</th><th class="r">Custo por SQL</th></tr></thead><tbody>' + linhas + '</tbody></table></div>' : '') +
+      '<div class="small muted">Vale o gasto da conta do Meta, nas semanas com gasto lançado.</div></div></div>';
+    h += '<div class="layer"><h2>2 · Previsão</h2><span class="desc">apagada até a Estrela ter meta de vendas e funil</span></div>';
+    return h;
+  }
+
+  /* ══════════ abas ══════════ */
+  var TABS = [['tab-ps', 'view-ps'], ['tab-eu', 'view-eu']];
+  function mostrar(tab) {
+    TABS.forEach(function (q) {
+      var on = q[0] === tab;
+      $(q[0]).setAttribute('aria-selected', on);
+      $(q[1]).hidden = !on;
+    });
+    try { localStorage.setItem(CHAVE_ABA, tab); } catch (e) {}
+  }
+  TABS.forEach(function (p) { $(p[0]).addEventListener('click', function () { mostrar(p[0]); }); });
+
+  function desenhar(r) {
+    $('view-ps').innerHTML = parque(r);
+    $('view-eu').innerHTML = estrela(r);
+    simulador(r.ps.camada2.simulador);
+    var aba = 'tab-ps';
+    try { aba = localStorage.getItem(CHAVE_ABA) === 'tab-eu' ? 'tab-eu' : 'tab-ps'; } catch (e) {}
+    mostrar(aba);
+  }
+
+  var tip = $('tip');
+  document.addEventListener('mousemove', function (e) {
+    var t = e.target.closest && e.target.closest('[data-t]');
+    if (t) { tip.textContent = t.getAttribute('data-t'); tip.hidden = false; tip.style.left = (e.clientX + 12) + 'px'; tip.style.top = (e.clientY + 12) + 'px'; }
+    else tip.hidden = true;
+  });
+
+  carregar();
+})();
+</script>
+</body>
+</html>

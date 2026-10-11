@@ -1,6 +1,9 @@
 /* Painel Comercial — Parque da Saudade + Estrela Urbanidade
    Service worker: instalação PWA + reserva offline.
-   Atualizado em: 10/10/2026 — PONTEAPP: a D4Sign atualiza de hora em hora pela API, no servidor (Cofre @160).
+   Atualizado em: 10/10/2026 (2ª) — PREVISÃO DE VENDAS (projeto FAROL): página nova ./previsao/, aba
+   "Previsão" no menu do Parque logo depois do Executivo (e no rodapé do celular, que passa a 5 colunas).
+   Lê ?app=previsao (script.google.com, cross-origin — passa direto pelo SW).
+   Antes, 10/10/2026 — PONTEAPP: a D4Sign atualiza de hora em hora pela API, no servidor (Cofre @160).
    Saem da tarja o "PC do Ricardo", o "8h, 14h e 20h" e a "janela do Edge"; o espelho é velho a partir de 4 h
    (era 48); a falha que pede gente é a chave da API recusada.
    Antes, 04/10/2026 (5ª) — SEM "COFRE" NA TELA (pedido do Ricardo: Cofre é backend). Todo texto visível
@@ -302,7 +305,7 @@
    ?app=doacoes (script.google.com, cross-origin — passa direto pelo SW).
    Estratégia: rede primeiro (pega versão nova quando online), cache como
    reserva offline. A cada deploy, bumpar a versão em CACHE. */
-const CACHE = 'painel-comercial-101026-1';
+const CACHE = 'painel-comercial-101026-2';
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(['./'])).then(() => self.skipWaiting()));
