@@ -1,6 +1,8 @@
 /* Painel Comercial — Parque da Saudade + Estrela Urbanidade
    Service worker: instalação PWA + reserva offline.
-   Atualizado em: 10/10/2026 (2ª) — PREVISÃO DE VENDAS (projeto FAROL): página nova ./previsao/, aba
+   Atualizado em: 10/10/2026 (3ª) — a aba Previsão SAI do menu e do rodapé (decisão do Ricardo: só quando o
+   projeto estiver mais avançado). A página ./previsao/ segue no ar pelo endereço direto; rodapé volta a 4 colunas.
+   Antes, 10/10/2026 (2ª) — PREVISÃO DE VENDAS (projeto FAROL): página nova ./previsao/, aba
    "Previsão" no menu do Parque logo depois do Executivo (e no rodapé do celular, que passa a 5 colunas).
    Lê ?app=previsao (script.google.com, cross-origin — passa direto pelo SW).
    Antes, 10/10/2026 — PONTEAPP: a D4Sign atualiza de hora em hora pela API, no servidor (Cofre @160).
@@ -305,7 +307,7 @@
    ?app=doacoes (script.google.com, cross-origin — passa direto pelo SW).
    Estratégia: rede primeiro (pega versão nova quando online), cache como
    reserva offline. A cada deploy, bumpar a versão em CACHE. */
-const CACHE = 'painel-comercial-101026-2';
+const CACHE = 'painel-comercial-101026-3';
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(['./'])).then(() => self.skipWaiting()));
