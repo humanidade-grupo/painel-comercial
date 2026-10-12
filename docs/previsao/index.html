@@ -29,7 +29,11 @@
    · a tabela ganha as linhas "SQL recentes", "vendas que não passam pela SATI no que falta do mês" (até 12/10,
      "captação própria do vendedor" — decisão 10 do FAROL: o número é o mesmo, o nome enganava) e
      "realizado", e o total é o previsto do bullet — a soma fica à vista;
-   · o CAC do custo por canal é gasto ÷ vendas dos leads do canal (pelo nº do negócio), não o
+   · NOMES REVISTOS EM 12/10 contra o vocabulário de mercado (pedido do Ricardo): "CAC" virou "custo de mídia por
+     venda" (o CAC de mercado soma salários e comissão), "Cobertura" virou "% da meta prevista" (a cobertura de
+     mercado é pipeline ÷ o que falta da meta), "LVR" virou "variação semanal de SQL" (o LVR de mercado é mensal) e
+     "Conv." virou "Lead → SQL". Os campos da rota ficaram (`cac`, `cobertura`, `lvr`);
+   · o custo de mídia por venda do custo por canal é gasto ÷ vendas dos leads do canal (pelo nº do negócio), não o
      diagnóstico de 02/10 pela origem declarada no Pocket;
    · a "Estrela" não mostra a nota sobre a divergência do Alta Business na tela da SATI (era
      comentário do dia, não dado).
@@ -99,6 +103,17 @@ html.embutido .voltar{display:none}
 #ajPop{position:fixed;z-index:30;max-width:min(360px,calc(100vw - 32px));background:var(--ink);color:var(--bg);padding:10px 12px;
   border-radius:6px;font-size:13px;line-height:1.45;box-shadow:0 8px 28px rgba(0,0,0,.45)}
 #ajPop[hidden]{display:none}
+/* (12/10) o funil para frente */
+.wf{display:grid;gap:2px}
+.wf-r{display:grid;grid-template-columns:minmax(120px,190px) 1fr 52px;gap:10px;align-items:center}
+.wf-l{display:grid;font-size:13px} .wf-l small{font-size:11px;color:var(--muted)}
+.wf-b{position:relative;height:18px} .wf-b i{position:absolute;left:0;top:0;bottom:0;background:var(--act);border-radius:0 3px 3px 0}
+.wf-r b{text-align:right}
+.wf-p{padding-left:min(200px,40%);font:600 12px var(--f-num);color:var(--muted)}
+/* (12/10) previsto × realizado no mês */
+.pxr{width:100%;height:auto;display:block}
+.pxr text{font:11px var(--f-num);fill:var(--muted)}
+.pxr .lg{font:12px var(--f-body);fill:var(--ink)}
 #ajPop b{display:block;font-family:var(--f-head);font-size:13px;letter-spacing:.02em;text-transform:uppercase;margin:6px 0 1px}
 #ajPop b:first-child{margin-top:0}
 #ajPop p{margin:0}
@@ -133,7 +148,7 @@ html.embutido .voltar{display:none}
 .cols{display:grid;grid-template-columns:30px 1fr;gap:6px}
 .ya{position:relative;height:180px;font-family:var(--f-num);font-size:11px;color:var(--muted)}
 .ya span{position:absolute;right:0;transform:translateY(50%)}
-.plot{position:relative;height:180px;display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:10px;align-items:end;border-bottom:1px solid var(--act)}
+.plot{position:relative;height:180px;display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:10px;align-items:end;border-bottom:1px solid var(--act)}
 .gl{position:absolute;left:0;right:0;border-top:1px solid var(--grid)}
 .ref{position:absolute;left:0;right:0;border-top:2px solid var(--plan);z-index:2}
 .ref b{position:absolute;right:0;top:-18px;font:600 11px var(--f-num);background:var(--panel);padding:0 4px}
@@ -143,7 +158,10 @@ html.embutido .voltar{display:none}
 .c.part i{background:repeating-linear-gradient(135deg,var(--act) 0 2px,transparent 2px 5px);border:1.5px solid var(--act);border-bottom:0}
 .c.empty{background:var(--panel);border:1px dashed var(--off);border-bottom:0;border-radius:3px 3px 0 0}
 .c em{position:absolute;left:0;right:0;text-align:center;font:600 12px var(--f-num);font-style:normal}
-.xa{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:10px;margin-left:36px;font-family:var(--f-num);font-size:11px;color:var(--muted);text-align:center}
+/* (12/10) muitas semanas (a Estrela tem 14): colunas mais juntas e uma data sim, outra não — antes as colunas vazavam
+   para o quadro do lado e as datas se sobrepunham. minmax(0,1fr) deixa a coluna encolher abaixo do rótulo. */
+.densa .plot,.xa.densa{gap:3px} .xa.densa span{white-space:nowrap;overflow:visible}
+.xa{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:10px;margin-left:36px;font-family:var(--f-num);font-size:11px;color:var(--muted);text-align:center}
 
 .ch{display:grid;grid-template-columns:minmax(120px,1.3fr) minmax(0,2fr) 92px 56px 52px;gap:6px 10px;align-items:center}
 .ch .hd{font-family:var(--f-head);font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
@@ -260,8 +278,9 @@ tr.sub td{color:var(--muted)}
       <div><b>Lead</b> · toda conversa nova. Não é lead (X) e necessidade imediata (N) ficam fora das taxas e dos custos.</div>
       <div><b>MQL</b> · qualificado pelo marketing: interesse real, ainda sem pedir o vendedor.</div>
       <div><b>SQL</b> · qualificado para vendas: disse o que quer e aceitou o consultor ou a visita.</div>
-      <div><b>CPL</b> · custo por lead · <b>CAC</b> · custo de aquisição por venda.</div>
-      <div><b>LVR</b> · Lead Velocity Rate: SQL da semana contra a média das anteriores.</div>
+      <div><b>CPL</b> · custo por lead · <b>Custo de mídia por venda</b> · gasto de mídia ÷ vendas. Não é o CAC de mercado, que soma também salários e comissão.</div>
+      <div><b>Variação semanal de SQL</b> · a última semana completa contra a média das 3 anteriores. Inspirada no Lead Velocity Rate, que é mensal.</div>
+      <div><b>% da meta prevista</b> · previsto ÷ meta. Não é a cobertura de pipeline (valor no funil ÷ o que falta da meta).</div>
       <div><b>Intervalo de 95%</b> · faixa onde a taxa real deve estar, dado o tamanho da amostra.</div>
     </div>
   </div>
@@ -382,8 +401,11 @@ tr.sub td{color:var(--muted)}
       var p = d.v / max * 100;
       h += '<div class="c' + (d.part ? ' part' : '') + '" data-t="' + esc(d.t) + '"><i style="height:' + p + '%"></i><em style="bottom:calc(' + p + '% + 2px)">' + d.v + '</em></div>';
     });
-    return '<div class="cols"><div class="ya">' + y + '</div><div class="plot">' + h + '</div></div>' +
-           '<div class="xa">' + data.map(function (d) { return '<span>' + esc(d.x) + '</span>'; }).join('') + '</div>';
+    var densa = data.length > 8;
+    return '<div class="cols' + (densa ? ' densa' : '') + '"><div class="ya">' + y + '</div><div class="plot">' + h + '</div></div>' +
+           '<div class="xa' + (densa ? ' densa' : '') + '">' + data.map(function (d, i) {
+             return '<span>' + (densa && (data.length - 1 - i) % 2 ? '' : esc(d.x)) + '</span>';
+           }).join('') + '</div>';
   }
 
   function spark(vals, max, ultimaParcial) {
@@ -405,7 +427,7 @@ tr.sub td{color:var(--muted)}
     var rows = cap.canais.filter(function (c) { return !c.so_gasto; });
     var maxBar = teto(Math.max.apply(null, rows.map(function (c) { return c.sql; }).concat([1])));
     var maxSp = Math.max.apply(null, rows.map(function (c) { return Math.max.apply(null, lidas.map(function (i) { return c.por_semana[i]; }).concat([1])); }));
-    var h = '<span class="hd">Canal</span><span class="hd">SQL</span><span class="hd hide-s">Por semana</span><span class="hd r">Leads</span><span class="hd r hide-s">Conv.</span>';
+    var h = '<span class="hd">Canal</span><span class="hd">SQL</span><span class="hd hide-s">Por semana</span><span class="hd r">Leads</span><span class="hd r hide-s">Lead → SQL</span>';
     rows.forEach(function (c) {
       var w = c.sql / maxBar * 100;
       h += '<span>' + esc(c.canal) + '</span><span class="hb"><i style="width:' + w + '%"></i><b style="left:calc(' + w + '% + 6px)">' + c.sql + '</b></span>' +
@@ -466,8 +488,8 @@ tr.sub td{color:var(--muted)}
         '<div class="fig' + (meta ? '' : ' off') + '"><span class="l">Meta</span><span class="v">' + (meta ? nf(meta) : '—') + '</span><span class="s">' + (meta ? 'jazigos' : 'sem meta na Config') + '</span></div>' +
         (prev ? '<div class="fig"><span class="l">Previsto</span><span class="v">' + faixa(prev.baixo, prev.alto) + '</span><span class="s">ponto central ' + prev.valor + (c2.selo.em_validacao ? ' · em validação' : '') + '</span></div>'
               : '<div class="fig off"><span class="l">Previsto</span><span class="v">—</span><span class="s">camada 2, ' + (c2.calculado_em ? 'em validação' : 'taxas ainda não calculadas') + '</span></div>') +
-        (cob ? '<div class="fig"><span class="l">Cobertura</span><span class="v">' + faixa(cob.baixo, cob.alto, function (x) { return pc(x, 0); }) + '</span><span class="s">previsto ÷ meta</span></div>'
-             : '<div class="fig off"><span class="l">Cobertura</span><span class="v">—</span><span class="s">previsto ÷ meta</span></div>') +
+        (cob ? '<div class="fig"><span class="l">% da meta prevista</span><span class="v">' + faixa(cob.baixo, cob.alto, function (x) { return pc(x, 0); }) + '</span><span class="s">previsto ÷ meta</span></div>'
+             : '<div class="fig off"><span class="l">% da meta prevista</span><span class="v">—</span><span class="s">previsto ÷ meta</span></div>') +
       '</div></div>';
 
     h += '<div class="panel"><div class="head"><h2>Saúde do dado</h2><span class="stamp">regra: mais de ' + r.regra_dias_velho + ' dias sem atualizar = cinza</span></div>' +
@@ -486,12 +508,31 @@ tr.sub td{color:var(--muted)}
     h += '<div class="g57"><div class="panel' + (sQ ? ' stale' : '') + '"><div class="head"><h2>SQL por semana</h2><span class="chip">' + cap.semanas_lidas + ' de ' + cap.semanas_historico + ' semanas</span></div>' +
       freshLinha(!sQ, avisoQ) + cols(semanasDados(cap, proxima), maxS, maxS / 4, ref) +
       '<div class="small muted">' + (ref ? 'Linha: ' + ref + ' SQL por semana, o necessário pela camada 2. ' : '') +
-      (lvr ? 'Última semana completa: <b class="num">' + lvr.sql + '</b>, <span class="' + (lvr.variacao < 0 ? 'delta-bad' : 'delta-ok') + '">' + (lvr.variacao > 0 ? '+' : '') + pc(lvr.variacao, 0) + '</span> contra a média das 3 anteriores (LVR).'
-           : 'LVR: precisa de 4 semanas completas lidas.') + '</div></div>';
+      (lvr ? 'Última semana completa: <b class="num">' + lvr.sql + '</b>, <span class="' + (lvr.variacao < 0 ? 'delta-bad' : 'delta-ok') + '">' + (lvr.variacao > 0 ? '+' : '') + pc(lvr.variacao, 0) + '</span> contra a média das 3 anteriores (variação semanal de SQL).'
+           : 'Variação semanal de SQL: precisa de 4 semanas completas lidas.') + '</div></div>';
 
     h += '<div class="panel' + (sQ ? ' stale' : '') + '"><div class="head"><h2>SQL por canal</h2><span class="stamp">' + dm(cap.de) + ' a ' + dm(cap.ate) + '</span></div>' +
       freshLinha(!sQ, sQ ? '<b>Dado atrasado.</b> Último 1º contato lido: ' + dm(fQ && fQ.data) + '.' : 'Em dia.') + canaisHtml(cap) +
-      '<div class="small muted">Barra: SQL no período. Linha: SQL por semana, a última tracejada (incompleta). Conv. = SQL ÷ leads, sem X nem N.</div></div></div>';
+      '<div class="small muted">Barra: SQL no período. Linha: SQL por semana, a última tracejada (incompleta). Lead → SQL = SQL ÷ leads, sem X nem N.</div></div></div>';
+
+    // (12/10) o funil para frente — Demand Waterfall: lead → qualificado → SQL → venda, coorte com 30 dias
+    var cs = cap.cascata;
+    if (cs && cs.leads) {
+      var etapas = [['Leads', cs.leads, 'conversas lidas, sem X nem N'], ['Qualificados (MQL e SQL)', cs.qualificados, 'classes A e B'],
+                    ['SQL', cs.sql, 'classe A'], ['Vendas dos SQL', cs.vendas_sql, 'em até ' + cs.dias + ' dias']];
+      var pass = [cs.passagem.lead_qualificado, cs.passagem.qualificado_sql, cs.passagem.sql_venda.valor];
+      var fh = '';
+      etapas.forEach(function (e, i) {
+        if (i > 0) fh += '<div class="wf-p"><span>↓ ' + pc(pass[i - 1], pass[i - 1] !== null && pass[i - 1] < 0.1 ? 1 : 0) + ' passam' +
+          (i === 3 ? ' <span class="rg">(' + faixa(cs.passagem.sql_venda.baixo, cs.passagem.sql_venda.alto, function (x) { return pc(x, 0); }) + ', intervalo de 95%)</span>' : '') + '</span></div>';
+        fh += '<div class="wf-r"><span class="wf-l">' + esc(e[0]) + '<small>' + esc(e[2]) + '</small></span><span class="wf-b"><i style="width:' + Math.max(0.6, e[1] / cs.leads * 100) + '%"></i></span><b class="num">' + nf(e[1]) + '</b></div>';
+      });
+      h += '<div class="panel"><div class="head"><h2>Do lead à venda · funil de demanda</h2><span class="stamp">leads de ' + dm(cs.de) + ' a ' + dm(cs.ate) + ' · com ' + cs.dias + ' dias completos</span></div>' +
+        '<div class="wf">' + fh + '</div>' +
+        '<div class="small muted">Do lead à venda: ' + pc(cs.passagem.lead_venda, 1) + ' (' + (cs.vendas_sql + cs.vendas_outros) + ' vendas em ' + nf(cs.leads) + ' leads), contando ' + cs.vendas_outros +
+        ' venda(s) de leads que não chegaram a SQL. Só leads com 1º contato há ' + cs.dias + ' dias ou mais, para todos terem tido o mesmo tempo de virar venda; ficaram fora ' +
+        cs.fora.x + ' que não são lead e ' + cs.fora.n + ' de necessidade imediata.</div></div>';
+    }
 
     // (12/10) leads entrando no CRM por semana — todo dia, sem esperar a leitura de segunda
     var crm = cap.crm_semanas || [];
@@ -532,9 +573,9 @@ tr.sub td{color:var(--muted)}
     });
     h += '<div class="g75"><div class="panel' + (sM ? ' stale' : '') + '"><div class="head"><h2>Custo por canal</h2><span class="stamp">' + per + '</span></div>' +
       freshLinha(!sM, sM ? '<b>Dado atrasado.</b> Gasto Meta lançado até ' + dm(fM && fM.data) + '.' + (velho(frescorDe(P, 'gasto_google')) ? ' Google sem gasto lançado.' : '') : 'Em dia. Gasto Meta lançado até ' + dm(fM.data) + '.') +
-      '<div class="scroll"><table><thead><tr><th>Canal</th><th class="r">Gasto (R$)</th><th class="r">Leads</th><th class="r">SQL</th><th class="r">CPL</th><th class="r">Custo por SQL</th><th class="r">CAC</th></tr></thead><tbody>' +
+      '<div class="scroll"><table><thead><tr><th>Canal</th><th class="r">Gasto (R$)</th><th class="r">Leads</th><th class="r">SQL</th><th class="r">CPL</th><th class="r">Custo por SQL</th><th class="r">Custo de mídia por venda</th></tr></thead><tbody>' +
       linhas + '</tbody></table></div>' +
-      '<div class="small muted">Leads e SQL só das semanas com gasto lançado. CAC = gasto ÷ vendas dos leads do canal (pelo nº do negócio no Facilita), não a origem declarada no Pocket.</div></div>';
+      '<div class="small muted">Leads e SQL só das semanas com gasto lançado. Custo de mídia por venda = gasto ÷ vendas dos leads do canal (pelo nº do negócio no Facilita), não a origem declarada no Pocket.</div></div>';
 
     var maxAd = teto(Math.max.apply(null, cap.anuncios.map(function (a) { return a.custo_sql || 0; }).concat([1])));
     var ads = '<span class="hd">Anúncio</span><span class="hd">Custo por SQL (R$)</span><span class="hd r">SQL</span>';
@@ -645,6 +686,8 @@ tr.sub td{color:var(--muted)}
     if (hi.erro) hh += '<div class="offbox"><strong>Histórico ilegível.</strong> ' + esc(hi.erro) + '</div>';
     else if (!hi.mes_atual || !hi.mes_atual.length) hh += '<div class="offbox"><strong>Começa a contar na próxima rodada do servidor.</strong> A cada dia fica gravado o que a tela previu para o mês; no fim do mês, mede-se quantas vezes a faixa acertou.</div>';
     else {
+      if (hi.mes_atual.length >= 2) hh += pxrSvg(hi.mes_atual, P.meta, P.dias_no_mes);
+      else hh += '<div class="small muted">O gráfico previsto × realizado aparece a partir do 2º dia gravado.</div>';
       var dias = hi.mes_atual.slice(-10).reverse();
       hh += '<div class="scroll"><table><thead><tr><th>Dia</th><th class="r">Realizado até o dia</th><th class="r">Previsto para o mês</th><th class="r">Central</th></tr></thead><tbody>' +
         dias.map(function (d) {
@@ -692,6 +735,36 @@ tr.sub td{color:var(--muted)}
   }
 
   /* (12/10) atendimento comercial por corretor — a aba Comercial da auditoria de segunda (R1: 1º registro em até 2h úteis) */
+  /* (12/10) PREVISTO × REALIZADO no mês — o gráfico padrão de acurácia de previsão, em notação IBCS: a faixa prevista em cada
+     dia (hachurada), o ponto central (tracejado), o realizado até o dia (sólido) e a meta (linha clara). */
+  function pxrSvg(dias, meta, nDias) {
+    var W = 640, H = 230, ml = 36, mr = 64, mt = 12, mb = 26, w = W - ml - mr, hgt = H - mt - mb;
+    var top = teto(Math.max(meta || 0, Math.max.apply(null, dias.map(function (d) { return Math.max(d.alto || 0, d.realizado || 0); }))) * 1.08);
+    var X = function (dia) { return ml + (dia - 1) / Math.max(1, nDias - 1) * w; }, Y = function (v) { return mt + hgt - v / top * hgt; };
+    var pts = function (campo) { return dias.filter(function (d) { return d[campo] !== null; }).map(function (d) { return X(d.dia).toFixed(1) + ',' + Y(d[campo]).toFixed(1); }).join(' '); };
+    var g = '<svg class="pxr" viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="Previsto e realizado por dia do mês">' +
+      '<defs><pattern id="hpx" width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="1.6" height="5" fill="var(--act)"/></pattern></defs>';
+    [0, .25, .5, .75, 1].forEach(function (q) {
+      g += '<line x1="' + ml + '" x2="' + (ml + w) + '" y1="' + Y(top * q) + '" y2="' + Y(top * q) + '" stroke="var(--grid)"/>' +
+        '<text x="' + (ml - 6) + '" y="' + (Y(top * q) + 4) + '" text-anchor="end">' + nf(top * q) + '</text>';
+    });
+    [1, 8, 15, 22, nDias].forEach(function (d) { g += '<text x="' + X(d) + '" y="' + (H - 8) + '" text-anchor="middle">' + d + '</text>'; });
+    var faixa = dias.filter(function (d) { return d.baixo !== null && d.alto !== null; });
+    if (faixa.length) {
+      g += '<polygon points="' + faixa.map(function (d) { return X(d.dia).toFixed(1) + ',' + Y(d.alto).toFixed(1); }).join(' ') + ' ' +
+        faixa.slice().reverse().map(function (d) { return X(d.dia).toFixed(1) + ',' + Y(d.baixo).toFixed(1); }).join(' ') + '" fill="url(#hpx)" opacity=".55" stroke="var(--act)" stroke-width=".8"/>';
+      g += '<polyline points="' + pts('central') + '" fill="none" stroke="var(--act)" stroke-width="1.6" stroke-dasharray="4 3"/>';
+    }
+    g += '<polyline points="' + pts('realizado') + '" fill="none" stroke="var(--act)" stroke-width="2.4"/>';
+    dias.forEach(function (d) { if (d.realizado !== null) g += '<circle cx="' + X(d.dia) + '" cy="' + Y(d.realizado) + '" r="2.6" fill="var(--act)"/>'; });
+    if (meta) g += '<line x1="' + ml + '" x2="' + (ml + w) + '" y1="' + Y(meta) + '" y2="' + Y(meta) + '" stroke="var(--plan)" stroke-width="2"/>' +
+      '<text class="lg" x="' + (ml + w + 6) + '" y="' + (Y(meta) + 4) + '">meta ' + nf(meta) + '</text>';
+    var u = dias[dias.length - 1];
+    if (u.central !== null) g += '<text class="lg" x="' + (ml + w + 6) + '" y="' + (Y(u.central) + 4) + '">prev. ' + nf(u.central) + '</text>';
+    g += '<text class="lg" x="' + (X(u.dia) + 6) + '" y="' + (Y(u.realizado) - 6) + '">' + nf(u.realizado) + '</text>';
+    return g + '</svg><div class="small muted">Linha sólida: realizado até o dia. Faixa hachurada: o previsto para o mês, como a tela mostrava em cada dia; tracejado: o ponto central. Linha clara: a meta.</div>';
+  }
+
   function comercialHtml(com, hoje) {
     var h = '<div class="panel"><div class="head"><h2>Atendimento comercial · leads A, B e N</h2><span class="stamp">' +
       (com && com.de ? dm(com.de) + ' a ' + dm(com.ate) + ' · ' + com.semanas.length + ' semana(s)' : 'auditoria de segunda') + '</span></div>';
@@ -718,19 +791,21 @@ tr.sub td{color:var(--muted)}
      fixa aberto; tocar fora ou Esc fecha. O texto diz O QUE É o quadro e COMO LER o número — nunca o número em si. */
   var AJUDA = [
     [/vendas contra a meta/i, 'As vendas do mês até hoje, a meta e onde o mês deve fechar.',
-     'A barra sólida é o realizado (a mesma conta do Executivo). A parte hachurada é o previsto, do cenário mais baixo ao mais alto. A marca vertical é a meta. Meta dentro da faixa: ainda dá. Meta acima do alto da faixa: só com mais captação. Cobertura = previsto ÷ meta. Na Estrela fica vazio até haver meta mensal e funil no Cofre.'],
+     'A barra sólida é o realizado (a mesma conta do Executivo). A parte hachurada é o previsto, do cenário mais baixo ao mais alto. A marca vertical é a meta. Meta dentro da faixa: ainda dá. Meta acima do alto da faixa: só com mais captação. % da meta prevista = previsto ÷ meta. Na Estrela fica vazio até haver meta mensal e funil no Cofre.'],
     [/^Saúde do dado/, 'A idade de cada fonte que alimenta a tela.',
      '"Em dia" = atualizada nos últimos 8 dias. "Atrasado" = mais velha que isso, e os quadros que dependem dela ficam cinza e tracejados. "Nunca lançado" ou "incompleto" = o dado falta. Antes de tirar conclusão de um número, confira aqui se a fonte dele está em dia.'],
     [/^1 · Captação/, 'A camada para decidir a semana: quantos leads entram, de onde vêm e quanto custam.',
      'Tudo aqui é medição do que já aconteceu, lida das conversas da SATI, do Facilita e do gasto lançado na planilha de mídia.'],
     [/^SQL por semana/, 'Quantos leads qualificados para vendas (SQL, classe A) a leitura das conversas encontrou em cada semana.',
-     'Cada coluna é uma semana, de segunda a domingo; a última, tracejada, ainda está incompleta. A linha horizontal é o necessário por semana para bater a meta (vem do funil reverso). LVR compara a última semana completa com a média das 3 anteriores: positivo, a captação acelerou.'],
+     'Cada coluna é uma semana, de segunda a domingo; a última, tracejada, ainda está incompleta. A linha horizontal é o necessário por semana para bater a meta (vem do funil reverso). A variação semanal compara a última semana completa com a média das 3 anteriores: positiva, a captação acelerou.'],
     [/^SQL (e custo )?por canal/, 'De onde vieram os SQL no período lido, por canal (a campanha da SATI agrupada).',
-     'A barra é o total de SQL do canal; a linha mostra semana a semana. Conv. = SQL ÷ leads do canal, sem os que não são lead (X) nem necessidade imediata (N): diz qual canal traz conversa de melhor qualidade, não só volume.'],
+     'A barra é o total de SQL do canal; a linha mostra semana a semana. Lead → SQL = SQL ÷ leads do canal, sem os que não são lead (X) nem necessidade imediata (N): diz qual canal traz conversa de melhor qualidade, não só volume.'],
+    [/^Do lead à venda/, 'O funil de demanda para frente: de cada 100 leads lidos, quantos ficam qualificados, quantos viram SQL e quantos SQL viram venda.',
+     'Cada barra é uma etapa; entre elas, a % que passa para a seguinte. É o Demand Waterfall, a referência de mercado deste tipo de painel. Só entram leads com 30 dias completos, para todos terem tido o mesmo tempo de virar venda. Onde a passagem cai muito de uma etapa para a outra é onde agir: na mídia (lead → qualificado), no atendimento da IA (qualificado → SQL) ou no comercial (SQL → venda).'],
     [/^Leads entrando no CRM/, 'Quantos negócios foram criados no Facilita em cada semana. Atualiza todo dia.',
      'Serve para ver se a captação sobe ou cai antes da leitura de segunda. "Pela SATI" = a IA abriu o negócio; "cadastrados pelo vendedor" = cadastro à mão. Não tem classe: um negócio daqui ainda pode ser curioso ou nem ser lead.'],
     [/^Custo por canal/, 'Quanto cada canal custou, e quanto custou cada lead, cada SQL e cada venda.',
-     'CPL = gasto ÷ leads (sem X nem N). Custo por SQL = gasto ÷ SQL. CAC = gasto ÷ vendas dos leads do canal, casadas pelo nº do negócio. Só entram as semanas com gasto lançado. Canal com traço tem custo, mas o gasto não foi lançado.'],
+     'CPL = gasto ÷ leads (sem X nem N). Custo por SQL = gasto ÷ SQL. Custo de mídia por venda = gasto ÷ vendas dos leads do canal, casadas pelo nº do negócio (não é o CAC de mercado, que soma salários e comissão). Só entram as semanas com gasto lançado. Canal com traço tem custo, mas o gasto não foi lançado.'],
     [/^Custo por SQL · anúncios/, 'O custo por SQL de cada anúncio do Meta, onde a SATI identificou o anúncio.',
      'Barra menor = anúncio mais eficiente. Só compare anúncios com 10 SQL ou mais; abaixo disso o número oscila demais. É o quadro para decidir para onde vai a verba da semana.'],
     [/^Custo por venda, pela origem/, 'O custo de cada venda pela origem que o vendedor declarou no Anúncio de Venda do Pocket — inclusive mídia sem QR (outdoor, panfleto, rádio, busdoor).',
@@ -743,14 +818,14 @@ tr.sub td{color:var(--muted)}
      'Meta − vendas que não passam pela SATI (cadastradas à mão no Facilita, mediana de 3 meses; embaixo, de onde elas vêm pela origem do Pocket) − vendas que os MQL costumam gerar = vendas a gerar pelo SQL. Dividindo pela conversão SQL → venda, saem os SQL necessários. A faixa vem do intervalo de 95% da conversão: estreita a cada semana lida.'],
     [/^Previsão por categoria/, 'Quantas vendas devem sair, até o fim do mês, do que já está no funil do Facilita.',
      'Negócios abertos em cada etapa × a chance histórica de a etapa virar venda no que falta do mês. Comprometido (Contrato, Aprovação) é quase certo; Melhor cenário (Visita, Proposta) é provável; Pipeline (Lead Quente, Agendado) é possível. Somando o realizado, os SQL e MQL recentes e as vendas que costumam entrar fora da SATI, sai o previsto do mês.'],
-    [/^Como a previsão andou/, 'O que a tela previu para o mês, dia a dia: a prova de que a previsão funciona.',
-     'Cada linha guarda a faixa prevista naquele dia. No fim do mês, conta-se em quantos dias o resultado final caiu dentro da faixa e quanto o ponto central errou. É com isso que se decide quando a previsão sai de "em validação".'],
+    [/^Como a previsão andou/, 'O que a tela previu para o mês, dia a dia, contra o que de fato vendeu: a prova de que a previsão funciona.',
+     'No gráfico, a linha sólida é o realizado até cada dia e a faixa hachurada é o previsto para o mês naquele dia; o normal é a faixa estreitar e o realizado subir na direção dela. Na tabela, cada linha guarda a faixa prevista naquele dia. No fim do mês, conta-se em quantos dias o resultado final caiu dentro da faixa e quanto o ponto central errou. É com isso que se decide quando a previsão sai de "em validação".'],
     [/^Conversão por classe/, 'Quanto de cada classe da régua (A, B, C, D) virou venda.',
      '"Venda em até 30 dias" só conta leads com 30 dias completos; a faixa é o intervalo de 95%. "Vendidos até hoje" inclui os que ainda estão maturando. Se a régua funciona, A vende mais que B, e B mais que C. Dias até a venda = mediana de quem comprou.'],
     [/^Simulador/, 'Um cenário para planejar a meta. Não é medição, e nada dele é gravado.',
      'Mude a meta, as vendas que não passam pela SATI e quanto dos SQL viria do Meta: a tabela mostra quantos SQL comprar e quanto investir, com o intervalo embaixo de cada número. A conta é linear; com muito mais verba, o custo por SQL tende a subir.'],
     [/^Termos/, 'O glossário dos termos de mercado usados na tela.',
-     'Os nomes seguem o Demand Waterfall (Forrester) e a Receita Previsível: Lead, MQL (classe B), SQL (classe A), CPL, CAC e LVR. Nenhum termo foi inventado.']
+     'Lead, MQL (classe B), SQL (classe A) e CPL seguem o Demand Waterfall (Forrester) e a Receita Previsível. Onde a conta da tela é diferente da de mercado, o nome diz o que ela é: custo de mídia por venda (não CAC), % da meta prevista (não cobertura de pipeline), variação semanal de SQL (o LVR de mercado é mensal).']
   ];
   var ajAberto = null, ajFixo = false;
   function ajMostrar(btn) {
@@ -817,7 +892,7 @@ tr.sub td{color:var(--muted)}
       h += '<tr><td>SQL que já chegam sem gasto atribuído</td><td class="r num">' + LIVRE + '</td><td class="dash">—</td></tr>';
       h += '<tr><td>SQL a comprar no Meta Ads</td>' + cell(C.meta, L.meta, H.meta, id) + cell(C.inv, L.inv, H.inv, brl0) + '</tr>';
       h += '<tr><td>SQL a comprar no Google</td>' + cell(C.goo, L.goo, H.goo, id) + '<td class="dash">' + (C.goo ? 'sem custo histórico' : '—') + '</td></tr>';
-      h += '<tr class="tot"><td>Investimento no Meta · CAC previsto R$ ' + brl0(C.cac) + ' (' + brl0(L.cac) + ' a ' + brl0(H.cac) + ')</td><td></td>' + cell(C.inv, L.inv, H.inv, brl0) + '</tr>';
+      h += '<tr class="tot"><td>Investimento no Meta · custo de mídia por venda previsto R$ ' + brl0(C.cac) + ' (' + brl0(L.cac) + ' a ' + brl0(H.cac) + ')</td><td></td>' + cell(C.inv, L.inv, H.inv, brl0) + '</tr>';
       $('s-body').innerHTML = h;
     }
     ['s-meta', 's-vend', 's-meta-share'].forEach(function (id) { $(id).addEventListener('input', run); });
