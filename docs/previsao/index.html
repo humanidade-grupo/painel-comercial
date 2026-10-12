@@ -138,6 +138,8 @@ html.embutido .voltar{display:none}
 .ch .hd{font-family:var(--f-head);font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
 .ch .hb{position:relative;height:14px}
 .ch .hb i{position:absolute;left:0;top:0;bottom:0;background:var(--act);border-radius:0 3px 3px 0}
+.hbar{display:block;position:relative;height:12px}
+.hbar i{position:absolute;left:0;top:0;bottom:0;background:var(--act);border-radius:0 3px 3px 0}
 .ch .hb b{position:absolute;top:-1px;font:600 12px var(--f-num)}
 .ch .r{text-align:right;font-family:var(--f-num);font-variant-numeric:tabular-nums}
 .ch svg{display:block;width:92px;height:22px;overflow:visible}
@@ -479,6 +481,23 @@ tr.sub td{color:var(--muted)}
       freshLinha(!sQ, sQ ? '<b>Dado atrasado.</b> Último 1º contato lido: ' + dm(fQ && fQ.data) + '.' : 'Em dia.') + canaisHtml(cap) +
       '<div class="small muted">Barra: SQL no período. Linha: SQL por semana, a última tracejada (incompleta). Conv. = SQL ÷ leads, sem X nem N.</div></div></div>';
 
+    // (12/10) leads entrando no CRM por semana — todo dia, sem esperar a leitura de segunda
+    var crm = cap.crm_semanas || [];
+    if (crm.length) {
+      var maxC = Math.max.apply(null, crm.map(function (w) { return w.total; }).concat([1]));
+      var lcrm = '';
+      crm.slice().reverse().forEach(function (w, i) {
+        var atual = i === 0;
+        lcrm += '<tr><td>' + dm(w.semana) + (atual ? ' <span class="rg">semana em curso</span>' : '') + '</td>' +
+          '<td class="r num">' + nf(w.sati) + '</td><td class="r num">' + nf(w.manual) + '</td><td class="r num">' + nf(w.form + w.outros) + '</td>' +
+          '<td class="r num"><b>' + nf(w.total) + '</b></td><td style="width:34%"><span class="hbar"><i style="width:' + (w.total / maxC * 100) + '%' + (atual ? ';opacity:.45' : '') + '"></i></span></td></tr>';
+      });
+      h += '<div class="panel"><div class="head"><h2>Leads entrando no CRM por semana</h2><span class="stamp">Facilita · atualizado todo dia</span></div>' +
+        '<div class="scroll"><table><thead><tr><th>Semana</th><th class="r">Pela SATI</th><th class="r">Cadastrados pelo vendedor</th><th class="r">Formulários e outros</th><th class="r">Total</th><th></th></tr></thead><tbody>' +
+        lcrm + '</tbody></table></div>' +
+        '<div class="small muted">Negócios criados no Facilita na semana, pelo canal de entrada. Sem classe: a classe (SQL, MQL) só sai na leitura de segunda. Serve para ver se a captação sobe ou cai antes da leitura chegar.</div></div>';
+    }
+
     // custo por canal
     var sM = velho(fM);
     var meta1 = cap.canais.filter(function (c) { return c.custo; })[0];
@@ -517,6 +536,32 @@ tr.sub td{color:var(--muted)}
       (cap.anuncios.length ? '<div class="ch ads">' + ads + '</div>' : '<div class="offbox">Nenhum anúncio identificado pela assinatura da SATI no período.</div>') +
       '<div class="small muted">' + (fato ? 'Fato: o ' + esc(fato.caro) + ' custa ' + nf(fato.vezes, 1) + ' vezes mais por SQL que o ' + esc(fato.barato) + ' (anúncios com ' + fato.min_sql + ' SQL ou mais). Pergunta: público ou texto? ' : '') +
       (sa && sa.sql > 0 ? sa.sql + ' dos ' + sa.de + ' SQL do ' + esc(sa.canal) + ' vieram de assinaturas genéricas da SATI, sem anúncio.' : '') + '</div></div></div>';
+
+    // (12/10) custo por venda por origem DECLARADA no Pocket — inclusive a mídia offline, que não tem QR
+    var co = P.custo_origem;
+    if (co && co.meses && co.meses.length) {
+      var ms = co.meses.slice(0, 2), nomes = [];
+      ms.forEach(function (m) { m.linhas.forEach(function (l) { if (nomes.indexOf(l.origem) < 0) nomes.push(l.origem); }); });
+      var celO = function (l) {
+        if (!l) return '<td class="r num grey">—</td><td class="r num grey">—</td><td class="r num grey">—</td>';
+        var cv = l.custo_venda !== null ? '<b>' + brl(l.custo_venda) + '</b>'
+               : (l.gasto === null ? '<span class="grey">' + (/do vendedor$/.test(l.origem) ? 'gasto do vendedor' : 'sem gasto lançado') + '</span>' : '<span class="grey">nenhuma venda</span>');
+        return '<td class="r num">' + nf(l.vendas) + '</td><td class="r num">' + (l.gasto === null ? '<span class="grey">—</span>' : brl(l.gasto) + (l.gasto_ate ? '<span class="rg">até ' + dm(l.gasto_ate) + '</span>' : '')) + '</td><td class="r num">' + cv + '</td>';
+      };
+      var rotM = function (m) { return MESES_MIN[Number(m.mes.slice(5, 7)) - 1] + (m.ate ? ' até ' + dm(m.ate) : ''); };
+      var lo = '';
+      nomes.forEach(function (n) {
+        lo += '<tr><td>' + esc(n) + '</td>' + ms.map(function (m) { return celO(m.linhas.filter(function (l) { return l.origem === n; })[0]); }).join('') + '</tr>';
+      });
+      lo += '<tr class="sub"><td>Vendas sem anúncio no Pocket</td>' + ms.map(function (m) { return '<td class="r num">' + nf(m.vendas_sem_anuncio) + '</td><td></td><td></td>'; }).join('') + '</tr>';
+      h += '<div class="panel"><div class="head"><h2>Custo por venda, pela origem declarada no Pocket</h2><span class="stamp">desde ' + dm(co.desde) + '</span></div>' +
+        '<div class="scroll"><table><thead><tr><th rowspan="2">Origem</th>' + ms.map(function (m) { return '<th colspan="3" class="r">' + esc(rotM(m)) + '</th>'; }).join('') + '</tr><tr>' +
+        ms.map(function () { return '<th class="r">Vendas</th><th class="r">Gasto (R$)</th><th class="r">Custo por venda</th>'; }).join('') + '</tr></thead><tbody>' + lo + '</tbody></table></div>' +
+        '<div class="small muted">A origem é a que o vendedor declarou no Anúncio de Venda; o gasto é o da planilha de mídia, na mesma lista de origens, rateado por dia quando a semana vira o mês. É assim que a mídia sem QR (outdoor, panfleto, rádio, busdoor) ganha custo. ' +
+        '"Sem gasto lançado" = o gasto ainda não está na planilha (o offline está sendo recadastrado pelo formulário). Meta Ads do vendedor é verba do próprio vendedor e não entra. Rádio e Captação própria entraram na lista do Pocket em 01/10 e 11/10; as de setembro vêm da revisão de origens feita com os vendedores.</div></div>';
+    }
+
+    h += comercialHtml(P.comercial, r.hoje);
 
     // ---------- camada 2
     h += '<div class="layer"><h2>2 · Previsão</h2>' + (c2.selo.em_validacao ? '<span class="seal">em validação</span>' : '<span class="seal ok">validada</span>') +
@@ -612,6 +657,28 @@ tr.sub td{color:var(--muted)}
     return h;
   }
 
+  /* (12/10) atendimento comercial por corretor — a aba Comercial da auditoria de segunda (R1: 1º registro em até 2h úteis) */
+  function comercialHtml(com, hoje) {
+    var h = '<div class="panel"><div class="head"><h2>Atendimento comercial · leads A, B e N</h2><span class="stamp">' +
+      (com && com.de ? dm(com.de) + ' a ' + dm(com.ate) + ' · ' + com.semanas.length + ' semana(s)' : 'auditoria de segunda') + '</span></div>';
+    if (!com || !com.total || !com.total.leads) {
+      return h + '<div class="offbox"><strong>Sem dado ainda.</strong> Acende com a primeira auditoria semanal que gravar a aba Comercial (segunda, 7h52): ' +
+        'por corretor, o 1º contato em até 2h úteis e as tentativas em 5 dias.</div></div>';
+    }
+    var lin = function (c, tot) {
+      return '<tr' + (tot ? ' class="tot"' : '') + '><td>' + esc(c.corretor) + '</td><td class="r num">' + nf(c.leads) + '<span class="rg">A ' + c.a + ' · B ' + c.b + (c.n ? ' · N ' + c.n : '') + '</span></td>' +
+        '<td class="r num">' + (c.r1_n ? '<b>' + pc(c.r1, 0) + '</b><span class="rg">' + c.r1_k + ' de ' + c.r1_n + '</span>' : '<span class="grey">—</span>') + '</td>' +
+        '<td class="r num">' + (c.horas_mediana === null ? '<span class="grey">—</span>' : nf(c.horas_mediana, 1) + ' h') + '</td>' +
+        '<td class="r num">' + nf(c.sem_registro) + '</td><td class="r num">' + nf(c.alertas) + '</td></tr>';
+    };
+    var regra = hoje < com.registro_obrigatorio_desde
+      ? ' Até ' + dm(com.registro_obrigatorio_desde) + ', "sem registro" não quer dizer "sem contato": o corretor pode ter ligado sem registrar. A partir daí, tentativa sem registro conta como não feita.'
+      : ' Desde ' + dm(com.registro_obrigatorio_desde) + ', tentativa sem registro no Facilita conta como não feita.';
+    return h + '<div class="scroll"><table><thead><tr><th>Corretor (no envio)</th><th class="r">Leads</th><th class="r">1º contato em até 2h</th><th class="r">Mediana até o 1º registro</th><th class="r">Sem registro</th><th class="r">Alertas</th></tr></thead><tbody>' +
+      com.corretores.map(function (c) { return lin(c, false); }).join('') + lin(com.total, true) + '</tbody></table></div>' +
+      '<div class="small muted">Da entrada no Facilita ao 1º registro do corretor, em horas úteis (seg–sex, 8h–18h). Corretor = o dono do negócio no envio da SATI.' + regra + '</div></div>';
+  }
+
   function simulador(sim) {
     if (!$('s-body')) return;
     var CONV = [sim.conv.valor, sim.conv.alto, sim.conv.baixo], CPS = sim.custo_sql_meta, LIVRE = sim.sql_sem_gasto_mes || 0;
@@ -660,6 +727,7 @@ tr.sub td{color:var(--muted)}
       freshLinha(!(sQ || sM), sQ || sM ? '<b>Dado atrasado.</b> Leads lidos até ' + dm(fQ && fQ.data) + ' · gasto Meta até ' + dm(fM && fM.data) + '.' : 'Em dia.') + canaisHtml(cap) +
       (linhas ? '<div class="scroll"><table><thead><tr><th>Campanha</th><th class="r">Gasto (R$)</th><th class="r">SQL</th><th class="r">Custo por SQL</th></tr></thead><tbody>' + linhas + '</tbody></table></div>' : '') +
       '<div class="small muted">Vale o gasto da conta do Meta, nas semanas com gasto lançado.</div></div></div>';
+    h += comercialHtml(E.comercial, r.hoje);
     h += '<div class="layer"><h2>2 · Previsão</h2><span class="desc">apagada até a Estrela ter meta de vendas e funil</span></div>';
     return h;
   }
