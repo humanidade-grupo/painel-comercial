@@ -26,7 +26,8 @@
    · o funil da previsão por categoria é a foto do dia (aba Leads), não a de 01/10;
    · a conversão de cada etapa é no HORIZONTE do que falta do mês (não em 30 dias), para a previsão
      ser do mês; a mediana de dias até a venda aparece embaixo da conversão;
-   · a tabela ganha as linhas "SQL recentes", "captação própria do vendedor no que falta do mês" e
+   · a tabela ganha as linhas "SQL recentes", "vendas que não passam pela SATI no que falta do mês" (até 12/10,
+     "captação própria do vendedor" — decisão 10 do FAROL: o número é o mesmo, o nome enganava) e
      "realizado", e o total é o previsto do bullet — a soma fica à vista;
    · o CAC do custo por canal é gasto ÷ vendas dos leads do canal (pelo nº do negócio), não o
      diagnóstico de 02/10 pela origem declarada no Pocket;
@@ -587,7 +588,7 @@ tr.sub td{color:var(--muted)}
       var p = function (v) { return Math.min(100, v / escR * 100); };
       revHtml = '<div class="rev">' +
         '<div class="step"><span class="op"></span><div class="what"><b>Meta do mês</b></div><span class="v">' + nf(rv.meta) + '</span></div>' +
-        '<div class="step"><span class="op">−</span><div class="what"><b>Vendas de captação própria do vendedor</b><span>mediana dos 3 últimos meses · variou de ' + nf(rv.vendedor.baixo) + ' a ' + nf(rv.vendedor.alto) + '</span></div><span class="v">' + nf(rv.vendedor.valor) + '</span></div>' +
+        '<div class="step"><span class="op">−</span><div class="what"><b>Vendas que não passam pela SATI</b><span>cadastradas à mão no Facilita · mediana dos 3 últimos meses · variou de ' + nf(rv.vendedor.baixo) + ' a ' + nf(rv.vendedor.alto) + '</span></div><span class="v">' + nf(rv.vendedor.valor) + '</span></div>' +
         (rv.mql ? '<div class="step"><span class="op">−</span><div class="what"><b>Vendas que vêm dos MQL (classe B)</b><span>' + nf(rv.mql.no_mes) + ' MQL no mês (' + nf(rv.mql.por_semana, 1) + ' por semana) × ' +
           pc(rv.mql.conv.valor) + ' (' + rv.mql.conv.k + ' vendas em ' + rv.mql.conv.n + ' MQL, em até 30 dias)</span></div><span class="v">' + nf(rv.mql.vendas.valor, 1) +
           '<small>' + faixa(rv.mql.vendas.baixo, rv.mql.vendas.alto, function (x) { return nf(x, 1); }) + '</small></span></div>' : '') +
@@ -595,12 +596,16 @@ tr.sub td{color:var(--muted)}
         '<div class="step"><span class="op">÷</span><div class="what"><b>Conversão SQL → venda</b><span>' + rv.conv.k + ' vendas em ' + rv.conv.n + ' SQL, em até 30 dias · intervalo de 95%</span></div><span class="v">' + pc(rv.conv.valor) + '<small>' + faixa(rv.conv.baixo, rv.conv.alto, pc) + '</small></span></div>' +
         '<div class="step key"><span class="op">=</span><div class="what"><b>SQL necessários no mês</b><span>por semana: ' + rv.por_semana.valor + ' (' + faixa(rv.por_semana.baixo, rv.por_semana.alto) + ')</span></div><span class="v">' + nf(n.valor) + '<small>' + faixa(n.baixo, n.alto) + '</small></span></div>' +
         '</div>' +
+        (rv.nao_sati ? '<div class="small">' + '<b>As vendas que não passam pela SATI, pela origem declarada no Pocket</b> (' + esc(rv.nao_sati.meses.split(', ').map(function (m) { return MESES_MIN[Number(m.slice(5, 7)) - 1]; }).join(' e ')) +
+          ', ' + rv.nao_sati.total + ' vendas): ' + rv.nao_sati.grupos.filter(function (g) { return g.vendas; }).map(function (g) {
+            return '<span title="' + esc(g.detalhe.replace(/^meses [^:]+: ?/, '')) + '">' + esc(g.rotulo.toLowerCase()) + ' <b class="num">' + g.vendas + '</b></span>';
+          }).join(' · ') + '. As de mídia da empresa crescem junto com a verba.</div>' : '') +
         '<div class="range" role="img" aria-label="SQL necessários entre ' + n.baixo + ' e ' + n.alto + ', ponto central ' + n.valor + '">' +
         '<div class="ln" style="left:' + p(n.baixo) + '%;width:' + (p(n.alto) - p(n.baixo)) + '%"></div><div class="cap" style="left:' + p(n.baixo) + '%"></div><div class="cap" style="left:calc(' + p(n.alto) + '% - 2px)"></div><div class="pt" style="left:' + p(n.valor) + '%"></div></div>' +
         '<div class="ticks">' + [0, .2, .4, .6, .8, 1].map(function (q) { return '<span>' + nf(escR * q) + '</span>'; }).join('') + '</div>' +
         '<div class="small muted">' + (rv.sql_mes_anterior ? 'Captado em ' + MESES_MIN[Number(rv.sql_mes_anterior.mes.slice(5, 7)) - 1] + ': ' + rv.sql_mes_anterior.sql + ' SQL. ' : '') + 'A margem cai à medida que entram semanas e vendas novas.</div>';
     } else {
-      revHtml = '<div class="offbox"><strong>Para acender:</strong> a meta do mês na Config, a conversão SQL → venda e a captação própria do vendedor, calculadas pelo servidor a cada 2 horas.</div>';
+      revHtml = '<div class="offbox"><strong>Para acender:</strong> a meta do mês na Config, a conversão SQL → venda e as vendas que não passam pela SATI, calculadas pelo servidor a cada 2 horas.</div>';
     }
     h += '<div class="g57"><div class="panel"><div class="head"><h2>Funil reverso · SQL necessários</h2><span class="stamp">taxas · ' + dmh(c2.calculado_em) + '</span></div>' + revHtml + '</div>';
 
@@ -624,7 +629,7 @@ tr.sub td{color:var(--muted)}
     if (rb && rb.mql) cat += '<tr><td><b>MQL recentes</b></td><td>classe B das 2 últimas semanas, fora do funil acima</td><td class="r num">' + nf(rb.mql) + '</td><td class="r num">' +
       (rb.conv && rb.conv.valor !== null ? faixa(rb.conv.baixo, rb.conv.alto, function (x) { return pc(x, 0); }) + '<span class="rg">no que falta do mês</span>' : '—') +
       '</td><td class="r num">' + faixa(Math.floor(rb.baixo), Math.ceil(rb.alto)) + '<span class="rg">central ' + fx(rb.valor) + '</span></td></tr>';
-    if (vr) cat += '<tr class="sub"><td>Captação própria do vendedor</td><td>o que ele costuma vender, no que falta do mês</td><td class="grey">—</td><td class="grey">—</td><td class="r num">' + faixa(Math.floor(vr.baixo), Math.ceil(vr.alto)) + '<span class="rg">central ' + fx(vr.valor) + '</span></td></tr>';
+    if (vr) cat += '<tr class="sub"><td>Vendas que não passam pela SATI</td><td>o que costuma entrar cadastrado à mão, no que falta do mês</td><td class="grey">—</td><td class="grey">—</td><td class="r num">' + faixa(Math.floor(vr.baixo), Math.ceil(vr.alto)) + '<span class="rg">central ' + fx(vr.valor) + '</span></td></tr>';
     cat += '<tr class="sub"><td>Realizado</td><td>até hoje · Executivo</td><td class="grey">—</td><td class="grey">—</td><td class="r num">' + nf(P.realizado) + '</td></tr>';
     if (prev) cat += '<tr class="tot"><td>Previsto do mês</td><td></td><td></td><td></td><td class="r num">' + faixa(prev.baixo, prev.alto) + '<span class="rg">central ' + prev.valor + '</span></td></tr>';
     var sF = velho(fF);
@@ -676,7 +681,7 @@ tr.sub td{color:var(--muted)}
     } else {
       h += '<div class="sim"><div class="sim-in">' +
         '<label for="s-meta">Meta de vendas do mês</label><input id="s-meta" type="number" min="0" max="500" step="5" value="' + (meta || 100) + '">' +
-        '<label for="s-vend">Vendas de captação própria do vendedor</label><input id="s-vend" type="number" min="0" max="500" step="5" value="' + Math.round(sim.vendedor || 0) + '">' +
+        '<label for="s-vend">Vendas que não passam pela SATI</label><input id="s-vend" type="number" min="0" max="500" step="5" value="' + Math.round(sim.vendedor || 0) + '">' +
         '<label for="s-meta-share">Parte dos SQL comprados no Meta: <b id="s-share-v" class="num">100%</b></label><input id="s-meta-share" type="range" min="0" max="100" step="10" value="100">' +
         '<span class="small muted">O resto vai para o Google, que ainda não tem custo histórico.</span></div>' +
         '<div class="scroll"><table><thead><tr><th>Passo</th><th class="r">SQL no mês</th><th class="r">Investimento (R$)</th></tr></thead><tbody id="s-body"></tbody></table></div></div>' +
@@ -735,15 +740,15 @@ tr.sub td{color:var(--muted)}
     [/^2 · Previsão/, 'A camada que projeta o mês.',
      'Sempre em faixa (intervalo de 95%), nunca um número só. O selo "em validação" fica até a faixa provar que acerta — veja "Como a previsão andou".'],
     [/^Funil reverso/, 'Quantos SQL o mês precisa para bater a meta, calculado de trás para frente.',
-     'Meta − vendas cadastradas pelo próprio vendedor (mediana de 3 meses) − vendas que os MQL costumam gerar = vendas a gerar pelo SQL. Dividindo pela conversão SQL → venda, saem os SQL necessários. A faixa vem do intervalo de 95% da conversão: estreita a cada semana lida.'],
+     'Meta − vendas que não passam pela SATI (cadastradas à mão no Facilita, mediana de 3 meses; embaixo, de onde elas vêm pela origem do Pocket) − vendas que os MQL costumam gerar = vendas a gerar pelo SQL. Dividindo pela conversão SQL → venda, saem os SQL necessários. A faixa vem do intervalo de 95% da conversão: estreita a cada semana lida.'],
     [/^Previsão por categoria/, 'Quantas vendas devem sair, até o fim do mês, do que já está no funil do Facilita.',
-     'Negócios abertos em cada etapa × a chance histórica de a etapa virar venda no que falta do mês. Comprometido (Contrato, Aprovação) é quase certo; Melhor cenário (Visita, Proposta) é provável; Pipeline (Lead Quente, Agendado) é possível. Somando o realizado, os SQL e MQL recentes e o que o vendedor costuma vender, sai o previsto do mês.'],
+     'Negócios abertos em cada etapa × a chance histórica de a etapa virar venda no que falta do mês. Comprometido (Contrato, Aprovação) é quase certo; Melhor cenário (Visita, Proposta) é provável; Pipeline (Lead Quente, Agendado) é possível. Somando o realizado, os SQL e MQL recentes e as vendas que costumam entrar fora da SATI, sai o previsto do mês.'],
     [/^Como a previsão andou/, 'O que a tela previu para o mês, dia a dia: a prova de que a previsão funciona.',
      'Cada linha guarda a faixa prevista naquele dia. No fim do mês, conta-se em quantos dias o resultado final caiu dentro da faixa e quanto o ponto central errou. É com isso que se decide quando a previsão sai de "em validação".'],
     [/^Conversão por classe/, 'Quanto de cada classe da régua (A, B, C, D) virou venda.',
      '"Venda em até 30 dias" só conta leads com 30 dias completos; a faixa é o intervalo de 95%. "Vendidos até hoje" inclui os que ainda estão maturando. Se a régua funciona, A vende mais que B, e B mais que C. Dias até a venda = mediana de quem comprou.'],
     [/^Simulador/, 'Um cenário para planejar a meta. Não é medição, e nada dele é gravado.',
-     'Mude a meta, as vendas do próprio vendedor e quanto dos SQL viria do Meta: a tabela mostra quantos SQL comprar e quanto investir, com o intervalo embaixo de cada número. A conta é linear; com muito mais verba, o custo por SQL tende a subir.'],
+     'Mude a meta, as vendas que não passam pela SATI e quanto dos SQL viria do Meta: a tabela mostra quantos SQL comprar e quanto investir, com o intervalo embaixo de cada número. A conta é linear; com muito mais verba, o custo por SQL tende a subir.'],
     [/^Termos/, 'O glossário dos termos de mercado usados na tela.',
      'Os nomes seguem o Demand Waterfall (Forrester) e a Receita Previsível: Lead, MQL (classe B), SQL (classe A), CPL, CAC e LVR. Nenhum termo foi inventado.']
   ];
@@ -806,7 +811,7 @@ tr.sub td{color:var(--muted)}
       var C = calc[0], L = calc[1], H = calc[2];
       var cell = function (a, b, c, fmt) { return '<td class="r num">' + fmt(a) + '<span class="rg">' + fmt(b) + ' a ' + fmt(c) + '</span></td>'; };
       var id = function (x) { return x; };
-      var h = '<tr><td>Vendas a gerar pela captação da empresa</td><td class="r num">' + emp + '</td><td></td></tr>';
+      var h = '<tr><td>Vendas a gerar pelos leads da SATI</td><td class="r num">' + emp + '</td><td></td></tr>';
       if (sim.mql_vendas) h += '<tr><td>Vendas que vêm dos MQL (classe B), no ritmo de hoje</td>' + cell(MV[0], MV[2], MV[1], function (x) { return nf(x, 1); }) + '<td></td></tr>';
       h += '<tr><td>SQL necessários</td>' + cell(C.sql, L.sql, H.sql, id) + '<td></td></tr>';
       h += '<tr><td>SQL que já chegam sem gasto atribuído</td><td class="r num">' + LIVRE + '</td><td class="dash">—</td></tr>';
