@@ -532,7 +532,10 @@ tr.sub td{color:var(--muted)}
       revHtml = '<div class="rev">' +
         '<div class="step"><span class="op"></span><div class="what"><b>Meta do mês</b></div><span class="v">' + nf(rv.meta) + '</span></div>' +
         '<div class="step"><span class="op">−</span><div class="what"><b>Vendas de captação própria do vendedor</b><span>mediana dos 3 últimos meses · variou de ' + nf(rv.vendedor.baixo) + ' a ' + nf(rv.vendedor.alto) + '</span></div><span class="v">' + nf(rv.vendedor.valor) + '</span></div>' +
-        '<div class="step"><span class="op">=</span><div class="what"><b>Vendas a gerar pela captação da empresa</b></div><span class="v">' + nf(rv.a_gerar) + '</span></div>' +
+        (rv.mql ? '<div class="step"><span class="op">−</span><div class="what"><b>Vendas que vêm dos MQL (classe B)</b><span>' + nf(rv.mql.no_mes) + ' MQL no mês (' + nf(rv.mql.por_semana, 1) + ' por semana) × ' +
+          pc(rv.mql.conv.valor) + ' (' + rv.mql.conv.k + ' vendas em ' + rv.mql.conv.n + ' MQL, em até 30 dias)</span></div><span class="v">' + nf(rv.mql.vendas.valor, 1) +
+          '<small>' + faixa(rv.mql.vendas.baixo, rv.mql.vendas.alto, function (x) { return nf(x, 1); }) + '</small></span></div>' : '') +
+        '<div class="step"><span class="op">=</span><div class="what"><b>Vendas a gerar pelo SQL</b></div><span class="v">' + nf(rv.a_gerar) + '</span></div>' +
         '<div class="step"><span class="op">÷</span><div class="what"><b>Conversão SQL → venda</b><span>' + rv.conv.k + ' vendas em ' + rv.conv.n + ' SQL, em até 30 dias · intervalo de 95%</span></div><span class="v">' + pc(rv.conv.valor) + '<small>' + faixa(rv.conv.baixo, rv.conv.alto, pc) + '</small></span></div>' +
         '<div class="step key"><span class="op">=</span><div class="what"><b>SQL necessários no mês</b><span>por semana: ' + rv.por_semana.valor + ' (' + faixa(rv.por_semana.baixo, rv.por_semana.alto) + ')</span></div><span class="v">' + nf(n.valor) + '<small>' + faixa(n.baixo, n.alto) + '</small></span></div>' +
         '</div>' +
@@ -561,6 +564,10 @@ tr.sub td{color:var(--muted)}
     var rc = c2.sql_recentes, vr = c2.vendedor_restante, sim = c2.simulador;
     if (rc) cat += '<tr><td><b>SQL recentes</b></td><td>captados nas 2 últimas semanas, fora do funil acima</td><td class="r num">' + nf(rc.sql) + '</td><td class="r num">' +
       (sim.conv ? faixa(sim.conv.baixo, sim.conv.alto, function (x) { return pc(x, 0); }) + '<span class="rg">no que falta do mês</span>' : '—') + '</td><td class="r num">' + faixa(Math.floor(rc.baixo), Math.ceil(rc.alto)) + '<span class="rg">central ' + fx(rc.valor) + '</span></td></tr>';
+    var rb = c2.mql_recentes;
+    if (rb && rb.mql) cat += '<tr><td><b>MQL recentes</b></td><td>classe B das 2 últimas semanas, fora do funil acima</td><td class="r num">' + nf(rb.mql) + '</td><td class="r num">' +
+      (rb.conv && rb.conv.valor !== null ? faixa(rb.conv.baixo, rb.conv.alto, function (x) { return pc(x, 0); }) + '<span class="rg">no que falta do mês</span>' : '—') +
+      '</td><td class="r num">' + faixa(Math.floor(rb.baixo), Math.ceil(rb.alto)) + '<span class="rg">central ' + fx(rb.valor) + '</span></td></tr>';
     if (vr) cat += '<tr class="sub"><td>Captação própria do vendedor</td><td>o que ele costuma vender, no que falta do mês</td><td class="grey">—</td><td class="grey">—</td><td class="r num">' + faixa(Math.floor(vr.baixo), Math.ceil(vr.alto)) + '<span class="rg">central ' + fx(vr.valor) + '</span></td></tr>';
     cat += '<tr class="sub"><td>Realizado</td><td>até hoje · Executivo</td><td class="grey">—</td><td class="grey">—</td><td class="r num">' + nf(P.realizado) + '</td></tr>';
     if (prev) cat += '<tr class="tot"><td>Previsto do mês</td><td></td><td></td><td></td><td class="r num">' + faixa(prev.baixo, prev.alto) + '<span class="rg">central ' + prev.valor + '</span></td></tr>';
@@ -570,6 +577,23 @@ tr.sub td{color:var(--muted)}
       '<div class="scroll"><table class="cat"><thead><tr><th>Categoria</th><th>Etapas do Facilita</th><th class="r">Negócios</th><th class="r">Conversão da etapa</th><th class="r">Vendas previstas</th></tr></thead><tbody>' + cat + '</tbody></table></div>' +
       '<div class="offbox"><strong>Como se lê:</strong> negócios abertos hoje × a conversão de cada etapa até Venda Ganha no que falta do mês, medida no registro de etapas do Facilita (desde 29/08), em intervalo de 95%.' +
       (semHist.length ? ' <strong>' + esc(semHist.join(', ')) + '</strong> ainda sem histórico: entra como 0 a 100%.' : '') + '</div></div></div>';
+
+    // conversão por classe do lead (11/10) — a prova 3 da régua (FAROL §4.5)
+    var cls = (c2.por_classe || []).filter(function (x) { return x.acumulado && x.acumulado.n; });
+    if (cls.length) {
+      var lc = '';
+      cls.forEach(function (x) {
+        var c = x.conv30, a = x.acumulado, d = x.dias;
+        lc += '<tr><td><b>' + esc(x.classe) + '</b> · ' + esc(x.rotulo.replace(/ \(classe .\)$/, '')) + '</td>' +
+          '<td class="r num">' + (c && c.n ? pc(c.valor) + '<span class="rg">' + faixa(c.baixo, c.alto, function (v) { return pc(v, 0); }) + ' · ' + c.k + ' em ' + c.n + '</span>' : '<span class="grey">ainda sem 30 dias</span>') + '</td>' +
+          '<td class="r num">' + a.k + ' de ' + nf(a.n) + '<span class="rg">' + (a.maturando ? nf(a.maturando) + ' maturando' : 'todos com 30 dias') + '</span></td>' +
+          '<td class="r num">' + (d && d.n ? nf(d.valor) + ' d<span class="rg">' + nf(d.baixo) + ' a ' + nf(d.alto) + ' d</span>' : '<span class="grey">—</span>') + '</td></tr>';
+      });
+      h += '<div class="panel"><div class="head"><h2>Conversão por classe do lead</h2><span class="stamp">taxas · ' + dmh(c2.calculado_em) + '</span></div>' +
+        '<div class="scroll"><table><thead><tr><th>Classe</th><th class="r">Venda em até 30 dias</th><th class="r">Vendidos até hoje</th><th class="r">Dias até a venda</th></tr></thead><tbody>' + lc + '</tbody></table></div>' +
+        '<div class="small muted">Lead lido na conversa da SATI × venda no Facilita, pelo nº do negócio. "Maturando" = lead com menos de 30 dias, que ainda pode vender. ' +
+        'É a prova 3 da régua: o A tem de vender mais que o B, e o B mais que o C. Até fechar 60 dias, vale como "ainda não validada contra venda". Dias até a venda: mediana (p25 a p75), só de quem vendeu.</div></div>';
+    }
 
     // simulador
     h += '<div class="panel" id="simPanel"><div class="head"><h2>Simulador · planejar a meta</h2><span class="stamp">custos e taxas do histórico · cenário, nada é gravado</span></div>';
@@ -591,16 +615,19 @@ tr.sub td{color:var(--muted)}
   function simulador(sim) {
     if (!$('s-body')) return;
     var CONV = [sim.conv.valor, sim.conv.alto, sim.conv.baixo], CPS = sim.custo_sql_meta, LIVRE = sim.sql_sem_gasto_mes || 0;
+    // (11/10) as vendas que os MQL costumam gerar, no mesmo cenário da conversão: central · alta · baixa
+    var MV = sim.mql_vendas ? [sim.mql_vendas.valor, sim.mql_vendas.alto, sim.mql_vendas.baixo] : [0, 0, 0];
     var brl0 = function (v) { return Math.round(v).toLocaleString('pt-BR'); };
     function run() {
       var meta = Math.max(0, +$('s-meta').value || 0), vend = Math.max(0, +$('s-vend').value || 0), sh = (+$('s-meta-share').value) / 100;
       $('s-share-v').textContent = Math.round(sh * 100) + '%';
       var emp = Math.max(0, meta - vend);
-      var calc = CONV.map(function (c) { var sql = Math.round(emp / c), buy = Math.max(0, sql - LIVRE), m = Math.round(buy * sh); return { sql: sql, meta: m, goo: buy - m, inv: m * CPS, cac: CPS / c }; });
+      var calc = CONV.map(function (c, i) { var sql = Math.round(Math.max(0, emp - MV[i]) / c), buy = Math.max(0, sql - LIVRE), m = Math.round(buy * sh); return { sql: sql, meta: m, goo: buy - m, inv: m * CPS, cac: CPS / c }; });
       var C = calc[0], L = calc[1], H = calc[2];
       var cell = function (a, b, c, fmt) { return '<td class="r num">' + fmt(a) + '<span class="rg">' + fmt(b) + ' a ' + fmt(c) + '</span></td>'; };
       var id = function (x) { return x; };
       var h = '<tr><td>Vendas a gerar pela captação da empresa</td><td class="r num">' + emp + '</td><td></td></tr>';
+      if (sim.mql_vendas) h += '<tr><td>Vendas que vêm dos MQL (classe B), no ritmo de hoje</td>' + cell(MV[0], MV[2], MV[1], function (x) { return nf(x, 1); }) + '<td></td></tr>';
       h += '<tr><td>SQL necessários</td>' + cell(C.sql, L.sql, H.sql, id) + '<td></td></tr>';
       h += '<tr><td>SQL que já chegam sem gasto atribuído</td><td class="r num">' + LIVRE + '</td><td class="dash">—</td></tr>';
       h += '<tr><td>SQL a comprar no Meta Ads</td>' + cell(C.meta, L.meta, H.meta, id) + cell(C.inv, L.inv, H.inv, brl0) + '</tr>';
