@@ -62,6 +62,9 @@ h2{font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:.06em}
 .stamp{font-family:var(--f-num);font-size:11px;color:var(--muted)}
 .muted{color:var(--muted)} .small{font-size:12px}
 .voltar{color:var(--muted);text-decoration:none;font-size:13px}
+/* (12/10) a linha do topo: voltar ao Painel e o Manual da Previsão (página de estudo, privada no claude.ai) */
+.topo{display:flex;flex-wrap:wrap;gap:6px 18px;align-items:baseline}
+.voltar:hover,.voltar:focus-visible{color:var(--ink)}
 html.embutido .voltar{display:none}
 .panel{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:14px;display:grid;gap:10px;align-content:start;min-width:0}
 .head{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap}
@@ -250,7 +253,10 @@ tr.sub td{color:var(--muted)}
 </div>
 
 <div class="wrap">
-  <a class="voltar" href="../">← Painel Comercial</a>
+  <div class="topo">
+    <a class="voltar" href="../">← Painel Comercial</a>
+    <a class="voltar" href="https://claude.ai/artifact/WK7tVgqjCtsRSmCzPLr2Ei" target="_blank" rel="noopener" title="Abre o Manual da Previsão de Vendas numa aba nova (exige estar logado no Claude com acesso à página)">📘 Manual da tela ↗</a>
+  </div>
 
   <div class="bar">
     <div>
