@@ -91,6 +91,16 @@ html.embutido .voltar{display:none}
 .dot{width:8px;height:8px;border-radius:50%;flex:none}
 .ok .dot{background:var(--ok)} .old .dot{background:var(--off)}
 .panel.stale{background:var(--off-soft);border-style:dashed}
+/* (12/10) o (?) de cada quadro: passa o mouse ou toca para ler o que é e como ler */
+.aj{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;margin-left:7px;padding:0;border-radius:50%;
+  border:1px solid var(--muted);background:transparent;color:var(--muted);font:600 11px/1 var(--f-body);cursor:help;vertical-align:2px}
+.aj:hover,.aj:focus-visible,.aj[aria-expanded="true"]{background:var(--ink);border-color:var(--ink);color:var(--bg);outline:none}
+#ajPop{position:fixed;z-index:30;max-width:min(360px,calc(100vw - 32px));background:var(--ink);color:var(--bg);padding:10px 12px;
+  border-radius:6px;font-size:13px;line-height:1.45;box-shadow:0 8px 28px rgba(0,0,0,.45)}
+#ajPop[hidden]{display:none}
+#ajPop b{display:block;font-family:var(--f-head);font-size:13px;letter-spacing:.02em;text-transform:uppercase;margin:6px 0 1px}
+#ajPop b:first-child{margin-top:0}
+#ajPop p{margin:0}
 .panel.stale .c i{background:var(--act-soft)}
 .panel.stale .c.part i{background:repeating-linear-gradient(135deg,var(--act-soft) 0 2px,transparent 2px 5px);border-color:var(--act-soft)}
 .panel.stale .hb i{background:var(--act-soft)}
@@ -256,6 +266,7 @@ tr.sub td{color:var(--muted)}
   </div>
 </div>
 <div class="tip" id="tip" hidden></div>
+<div id="ajPop" role="tooltip" hidden></div>
 
 <script>
 (function () {
@@ -623,6 +634,24 @@ tr.sub td{color:var(--muted)}
       '<div class="offbox"><strong>Como se lê:</strong> negócios abertos hoje × a conversão de cada etapa até Venda Ganha no que falta do mês, medida no registro de etapas do Facilita (desde 29/08), em intervalo de 95%.' +
       (semHist.length ? ' <strong>' + esc(semHist.join(', ')) + '</strong> ainda sem histórico: entra como 0 a 100%.' : '') + '</div></div></div>';
 
+    // (12/10) como a previsão andou: a linha que a rodada de 2 h grava por dia (Previsao_Historico) e o acerto dos meses fechados
+    var hi = c2.historico || {};
+    var hh = '<div class="panel"><div class="head"><h2>Como a previsão andou</h2><span class="stamp">' + (hi.desde ? 'registrado desde ' + dm(hi.desde) : 'registro diário') + '</span></div>';
+    if (hi.erro) hh += '<div class="offbox"><strong>Histórico ilegível.</strong> ' + esc(hi.erro) + '</div>';
+    else if (!hi.mes_atual || !hi.mes_atual.length) hh += '<div class="offbox"><strong>Começa a contar na próxima rodada do servidor.</strong> A cada dia fica gravado o que a tela previu para o mês; no fim do mês, mede-se quantas vezes a faixa acertou.</div>';
+    else {
+      var dias = hi.mes_atual.slice(-10).reverse();
+      hh += '<div class="scroll"><table><thead><tr><th>Dia</th><th class="r">Realizado até o dia</th><th class="r">Previsto para o mês</th><th class="r">Central</th></tr></thead><tbody>' +
+        dias.map(function (d) {
+          return '<tr><td>' + dm(d.data) + '</td><td class="r num">' + nf(d.realizado) + '</td><td class="r num">' + (d.baixo === null ? '—' : faixa(d.baixo, d.alto)) + '</td><td class="r num">' + (d.central === null ? '—' : nf(d.central)) + '</td></tr>';
+        }).join('') + '</tbody></table></div>';
+    }
+    (hi.fechados || []).slice(0, 2).forEach(function (m) {
+      hh += '<div class="small"><b>' + esc(MESES_MIN[Number(m.mes.slice(5, 7)) - 1]) + ':</b> fechou com ' + nf(m.final) + ' vendas · a faixa prevista continha o resultado em <b>' + m.dentro + ' de ' + m.dias +
+        '</b> dias · o central errou em média ' + nf(m.erro_medio, 1) + ' vendas' + (m.ultimo_fora ? ' · último dia fora da faixa: ' + dm(m.ultimo_fora) : '') + '.</div>';
+    });
+    h += hh + '<div class="small muted">Cada dia guarda a faixa que a tela mostrava. É a medida de acerto que tira a previsão do "em validação".</div></div>';
+
     // conversão por classe do lead (11/10) — a prova 3 da régua (FAROL §4.5)
     var cls = (c2.por_classe || []).filter(function (x) { return x.acumulado && x.acumulado.n; });
     if (cls.length) {
@@ -678,6 +707,90 @@ tr.sub td{color:var(--muted)}
       com.corretores.map(function (c) { return lin(c, false); }).join('') + lin(com.total, true) + '</tbody></table></div>' +
       '<div class="small muted">Da entrada no Facilita ao 1º registro do corretor, em horas úteis (seg–sex, 8h–18h). Corretor = o dono do negócio no envio da SATI.' + regra + '</div></div>';
   }
+
+  /* ══════════ (12/10) o (?) de cada quadro — pedido do Ricardo ══════════
+     Cada título de quadro casa com uma entrada abaixo (pelo começo do texto). Passar o mouse abre; tocar ou clicar
+     fixa aberto; tocar fora ou Esc fecha. O texto diz O QUE É o quadro e COMO LER o número — nunca o número em si. */
+  var AJUDA = [
+    [/vendas contra a meta/i, 'As vendas do mês até hoje, a meta e onde o mês deve fechar.',
+     'A barra sólida é o realizado (a mesma conta do Executivo). A parte hachurada é o previsto, do cenário mais baixo ao mais alto. A marca vertical é a meta. Meta dentro da faixa: ainda dá. Meta acima do alto da faixa: só com mais captação. Cobertura = previsto ÷ meta. Na Estrela fica vazio até haver meta mensal e funil no Cofre.'],
+    [/^Saúde do dado/, 'A idade de cada fonte que alimenta a tela.',
+     '"Em dia" = atualizada nos últimos 8 dias. "Atrasado" = mais velha que isso, e os quadros que dependem dela ficam cinza e tracejados. "Nunca lançado" ou "incompleto" = o dado falta. Antes de tirar conclusão de um número, confira aqui se a fonte dele está em dia.'],
+    [/^1 · Captação/, 'A camada para decidir a semana: quantos leads entram, de onde vêm e quanto custam.',
+     'Tudo aqui é medição do que já aconteceu, lida das conversas da SATI, do Facilita e do gasto lançado na planilha de mídia.'],
+    [/^SQL por semana/, 'Quantos leads qualificados para vendas (SQL, classe A) a leitura das conversas encontrou em cada semana.',
+     'Cada coluna é uma semana, de segunda a domingo; a última, tracejada, ainda está incompleta. A linha horizontal é o necessário por semana para bater a meta (vem do funil reverso). LVR compara a última semana completa com a média das 3 anteriores: positivo, a captação acelerou.'],
+    [/^SQL (e custo )?por canal/, 'De onde vieram os SQL no período lido, por canal (a campanha da SATI agrupada).',
+     'A barra é o total de SQL do canal; a linha mostra semana a semana. Conv. = SQL ÷ leads do canal, sem os que não são lead (X) nem necessidade imediata (N): diz qual canal traz conversa de melhor qualidade, não só volume.'],
+    [/^Leads entrando no CRM/, 'Quantos negócios foram criados no Facilita em cada semana. Atualiza todo dia.',
+     'Serve para ver se a captação sobe ou cai antes da leitura de segunda. "Pela SATI" = a IA abriu o negócio; "cadastrados pelo vendedor" = cadastro à mão. Não tem classe: um negócio daqui ainda pode ser curioso ou nem ser lead.'],
+    [/^Custo por canal/, 'Quanto cada canal custou, e quanto custou cada lead, cada SQL e cada venda.',
+     'CPL = gasto ÷ leads (sem X nem N). Custo por SQL = gasto ÷ SQL. CAC = gasto ÷ vendas dos leads do canal, casadas pelo nº do negócio. Só entram as semanas com gasto lançado. Canal com traço tem custo, mas o gasto não foi lançado.'],
+    [/^Custo por SQL · anúncios/, 'O custo por SQL de cada anúncio do Meta, onde a SATI identificou o anúncio.',
+     'Barra menor = anúncio mais eficiente. Só compare anúncios com 10 SQL ou mais; abaixo disso o número oscila demais. É o quadro para decidir para onde vai a verba da semana.'],
+    [/^Custo por venda, pela origem/, 'O custo de cada venda pela origem que o vendedor declarou no Anúncio de Venda do Pocket — inclusive mídia sem QR (outdoor, panfleto, rádio, busdoor).',
+     'Gasto da origem no mês ÷ vendas declaradas nela. "Sem gasto lançado" = a venda existe, mas o gasto ainda não está na planilha de mídia. Compare origens dentro do mesmo mês; o mês corrente ainda está incompleto.'],
+    [/^Atendimento comercial/, 'Como os corretores trataram os leads A, B e N, segundo a auditoria de segunda.',
+     '"1º contato em até 2h" = % dos leads com o 1º registro no Facilita em até 2 horas úteis (regra de 10/10). Até 19/10, "sem registro" não quer dizer "sem contato"; depois, conta como não feito. É material para conversar com o corretor: o número mostra o quê, a causa é pergunta.'],
+    [/^2 · Previsão/, 'A camada que projeta o mês.',
+     'Sempre em faixa (intervalo de 95%), nunca um número só. O selo "em validação" fica até a faixa provar que acerta — veja "Como a previsão andou".'],
+    [/^Funil reverso/, 'Quantos SQL o mês precisa para bater a meta, calculado de trás para frente.',
+     'Meta − vendas cadastradas pelo próprio vendedor (mediana de 3 meses) − vendas que os MQL costumam gerar = vendas a gerar pelo SQL. Dividindo pela conversão SQL → venda, saem os SQL necessários. A faixa vem do intervalo de 95% da conversão: estreita a cada semana lida.'],
+    [/^Previsão por categoria/, 'Quantas vendas devem sair, até o fim do mês, do que já está no funil do Facilita.',
+     'Negócios abertos em cada etapa × a chance histórica de a etapa virar venda no que falta do mês. Comprometido (Contrato, Aprovação) é quase certo; Melhor cenário (Visita, Proposta) é provável; Pipeline (Lead Quente, Agendado) é possível. Somando o realizado, os SQL e MQL recentes e o que o vendedor costuma vender, sai o previsto do mês.'],
+    [/^Como a previsão andou/, 'O que a tela previu para o mês, dia a dia: a prova de que a previsão funciona.',
+     'Cada linha guarda a faixa prevista naquele dia. No fim do mês, conta-se em quantos dias o resultado final caiu dentro da faixa e quanto o ponto central errou. É com isso que se decide quando a previsão sai de "em validação".'],
+    [/^Conversão por classe/, 'Quanto de cada classe da régua (A, B, C, D) virou venda.',
+     '"Venda em até 30 dias" só conta leads com 30 dias completos; a faixa é o intervalo de 95%. "Vendidos até hoje" inclui os que ainda estão maturando. Se a régua funciona, A vende mais que B, e B mais que C. Dias até a venda = mediana de quem comprou.'],
+    [/^Simulador/, 'Um cenário para planejar a meta. Não é medição, e nada dele é gravado.',
+     'Mude a meta, as vendas do próprio vendedor e quanto dos SQL viria do Meta: a tabela mostra quantos SQL comprar e quanto investir, com o intervalo embaixo de cada número. A conta é linear; com muito mais verba, o custo por SQL tende a subir.'],
+    [/^Termos/, 'O glossário dos termos de mercado usados na tela.',
+     'Os nomes seguem o Demand Waterfall (Forrester) e a Receita Previsível: Lead, MQL (classe B), SQL (classe A), CPL, CAC e LVR. Nenhum termo foi inventado.']
+  ];
+  var ajAberto = null, ajFixo = false;
+  function ajMostrar(btn) {
+    var pop = $('ajPop'), d = btn._aj;
+    pop.innerHTML = '<b>O que é</b><p>' + esc(d[1]) + '</p><b>Como ler</b><p>' + esc(d[2]) + '</p>';
+    pop.hidden = false;
+    var r = btn.getBoundingClientRect(), w = pop.offsetWidth, hgt = pop.offsetHeight;
+    var x = Math.max(16, Math.min(r.left - 8, window.innerWidth - w - 16));
+    var y = r.bottom + 8 + hgt > window.innerHeight ? Math.max(8, r.top - hgt - 8) : r.bottom + 8;
+    pop.style.left = x + 'px'; pop.style.top = y + 'px';
+    if (ajAberto && ajAberto !== btn) ajAberto.setAttribute('aria-expanded', 'false');
+    btn.setAttribute('aria-expanded', 'true');
+    ajAberto = btn;
+  }
+  function ajFechar() {
+    $('ajPop').hidden = true; ajFixo = false;
+    if (ajAberto) ajAberto.setAttribute('aria-expanded', 'false');
+    ajAberto = null;
+  }
+  function ajudar(raiz) {
+    raiz.querySelectorAll('.panel .head h2, .layer h2').forEach(function (h2) {
+      if (h2.querySelector('.aj')) return;
+      var t = h2.textContent.trim(), d = null;
+      for (var i = 0; i < AJUDA.length && !d; i++) if (AJUDA[i][0].test(t)) d = AJUDA[i];
+      if (!d) return;
+      var b = document.createElement('button');
+      b.type = 'button'; b.className = 'aj'; b.textContent = '?';
+      b.setAttribute('aria-label', 'O que é e como ler: ' + t); b.setAttribute('aria-expanded', 'false'); b.setAttribute('aria-describedby', 'ajPop');
+      b._aj = d;
+      b.addEventListener('mouseenter', function () { if (!ajFixo) ajMostrar(b); });
+      b.addEventListener('mouseleave', function () { if (!ajFixo) ajFechar(); });
+      b.addEventListener('focus', function () { if (!ajFixo) ajMostrar(b); });
+      b.addEventListener('blur', function () { if (!ajFixo) ajFechar(); });
+      b.addEventListener('click', function (ev) {
+        ev.stopPropagation();
+        if (ajFixo && ajAberto === b) { ajFechar(); return; }
+        ajMostrar(b); ajFixo = true;
+      });
+      h2.appendChild(b);
+    });
+  }
+  document.addEventListener('click', function (ev) { if (ajAberto && !$('ajPop').contains(ev.target)) ajFechar(); });
+  document.addEventListener('keydown', function (ev) { if (ev.key === 'Escape' && ajAberto) { var b = ajAberto; ajFechar(); b.focus(); } });
+  window.addEventListener('scroll', function () { if (ajAberto && !ajFixo) ajFechar(); }, { passive: true });
+  ajudar(document);
 
   function simulador(sim) {
     if (!$('s-body')) return;
@@ -747,6 +860,7 @@ tr.sub td{color:var(--muted)}
   function desenhar(r) {
     $('view-ps').innerHTML = parque(r);
     $('view-eu').innerHTML = estrela(r);
+    ajFechar(); ajudar(document);
     simulador(r.ps.camada2.simulador);
     var aba = 'tab-ps';
     try { aba = localStorage.getItem(CHAVE_ABA) === 'tab-eu' ? 'tab-eu' : 'tab-ps'; } catch (e) {}
