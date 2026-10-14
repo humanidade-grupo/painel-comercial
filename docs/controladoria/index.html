@@ -677,6 +677,34 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
 .busca:focus{outline:2px solid var(--accent);outline-offset:1px;border-color:var(--accent)}
 .busca.tem{border-color:var(--accent);background-color:var(--accent-soft)}
 @media (max-width:620px){.busca{width:100%}}
+
+/* (14/10) Certificado de Uso Perpétuo — a folha só existe na impressão (#certPrint), em A4 paisagem */
+.certq{margin-bottom:8px}.certq p{margin:2px 0}
+.certpergunta{margin:12px 0 8px;font-size:14px}
+.certchk{display:flex;gap:8px;align-items:center;margin:6px 0 10px;font-size:13px;cursor:pointer}
+#certPrint{display:none}
+.cf-folha{position:relative;width:297mm;height:209.6mm;overflow:hidden;background:#fffaec;color:#2b1a0e;
+  font-family:"Ingra",Georgia,serif;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.cf-fundo{position:absolute;left:0;top:0;width:297mm;height:209.6mm;display:block}
+.cf-texto{position:absolute;left:24mm;right:24mm;top:64.5mm;font-size:10.3pt;line-height:1.42;text-align:justify}
+.cf-texto p{margin:0 0 2.8mm}
+.cf-texto b{font-weight:700}
+.cf-recuo{text-indent:12mm}
+.cf-nw{white-space:nowrap}
+.cf-linha{display:flex;gap:9mm;margin:0 0 3mm}
+.cf-campo{flex:1;display:flex;align-items:baseline;gap:2mm;border-bottom:.25mm solid #8a7358;padding-bottom:.6mm;text-align:left;min-width:0}
+.cf-campo.cf-grande{flex:2.4}.cf-campo.cf-cpf{flex:1}
+.cf-rot{font-size:9pt;color:#7a6650;white-space:nowrap}
+.cf-val{font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cf-fecho{position:absolute;left:98mm;right:24mm;top:152mm;font-size:11pt}
+.cf-data{margin:0 0 12mm}
+.cf-assin{font-weight:700;font-size:12pt}
+@page{size:A4 landscape;margin:0}
+@media print{
+  html,body{margin:0!important;padding:0!important;background:none!important;height:auto!important}
+  body>*:not(#certPrint){display:none!important}
+  #certPrint{display:block!important}
+}
 </style>
 </head>
 <body>
@@ -923,6 +951,8 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
   </div>
 </div>
 
+<div id="certPrint" aria-hidden="true"></div>
+
 <script>
 (function () {
   'use strict';
@@ -1046,7 +1076,7 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
     novZerar();   // (24/09, Fase 1) sem token, a tela para de conferir as novidades
     // os modais fecham e esvaziam (nada fica na página), e as leituras deles perdem a vez
     PEDIDO_TUDO++; BM.pedido++; BM.r = null; BM.salvando = false;
-    $('#modal').hidden = true; $('#modalCorpo').innerHTML = '';
+    $('#modal').hidden = true; $('#modalCorpo').innerHTML = ''; limparCert();
     $('#modalBol').hidden = true; $('#bmCorpo').innerHTML = '';
     carregando(false);
     $('#rows').textContent = ''; $('#rowsB').textContent = '';
@@ -1776,6 +1806,7 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
               fonte: c ? String(c['Fonte'] || '') : '' },
         pes: pes[id] || null,
         ob: (r.observacoes && r.observacoes[id]) || null,   // (29/09) { texto, quem, quando } ou null
+        cert: (r.certificados && r.certificados[id]) || null,   // (14/10) { vias, ultima, quem } ou null
         pg: o   // o bloco de pagamento: lista fechada da rota, sem dado pessoal
       };
       v.ct = estadoContrato(v);
@@ -2783,6 +2814,7 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
     PEDIDO_TUDO++;
     $('#modal').hidden = true;
     $('#modalCorpo').innerHTML = '';   // nada fica na página depois de fechar
+    limparCert();                      // (14/10) nem o CPF do certificado
     if (fecharTudo.volta) { try { fecharTudo.volta.focus(); } catch (e) {} }
   }
   function abrirTudo(deal, bt) {
@@ -2802,7 +2834,9 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
         var ruim = reciboRuim(r);
         if (ruim) { $('#modalCorpo').innerHTML = '<div class="tarja"><div class="t">' + esc(ruim.t) + '</div>' + ruim.c + '</div>'; return; }
         var docs = r.contratos || [];
+        var vv = r.venda || {};
         $('#modalCorpo').innerHTML =
+          (certElegivel(vv['Modalidade'], vv['Data da Venda']) ? '<p>' + certBotao({ id: deal, mod: vv['Modalidade'], data: vv['Data da Venda'], cert: r.certificado }) + '</p>' : '') +
           secao('Venda · Vendas_Facilita', r.venda) +
           secao('Cliente · Vendas_Facilita_Pessoal', r.pessoal) +
           (docs.length ? docs.map(function (d, i) { return secao('Contrato na D4Sign' + (docs.length > 1 ? ' · ' + (i + 1) + ' de ' + docs.length : ''), d); }).join('')
@@ -2866,6 +2900,239 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
     var bt = e.target.closest && e.target.closest('button[data-docs]');
     if (bt) { e.stopPropagation(); abrirDocs(Number(bt.getAttribute('data-docs')), bt); }
   });
+  /* ---------- (14/10) Certificado de Uso Perpétuo ----------
+     Botão no detalhe da venda e no "Ver tudo" (só Modalidade = Perpétuo, venda de 14/04/2026 em diante).
+     Fluxo: lê a venda (fn=venda, a rota que já existia) → modal pede a confirmação de QUITAÇÃO (o sistema não
+     confere pagamento) → POST fn=certificado grava a emissão (via) → monta o certificado numa folha só de
+     impressão (#certPrint) e chama window.print(); a pessoa salva como PDF → "Abrir WhatsApp" com a mensagem
+     pronta. O CPF e o nome ficam só na memória desta aba, enquanto o modal está aberto: nada vai para URL,
+     localStorage, IndexedDB, Drive ou aba. O wa.me leva só o primeiro nome, a quadra e o jazigo.
+     Fundo: certificado-fundo.png (o original está no Drive: 02-parque-da-saudade/certificado/). Fonte: Ingra,
+     em certificado-fonte.css (a mesma do Pocket), carregada na primeira vez. Sem Ingra carregada, não imprime. */
+  var CERT_CORTE = '2026-04-14';
+  var JARDINS = { M: 'Magnólia', V: 'Violeta', I: 'Ipê', O: 'Oliveiras', R: 'Rosas', P: 'Palmeiras' };   // "R" é Rosas
+  var MESES_EXT = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
+  var CERT = null;   // { deal, dados, vias, emitido: {via, ...} } — só enquanto o modal do certificado está aberto
+  function semAcento(s) { s = String(s == null ? '' : s).trim().toLowerCase(); try { s = s.normalize('NFD').replace(/[̀-ͯ]/g, ''); } catch (e) {} return s; }
+  function certElegivel(mod, data) {
+    return semAcento(mod) === 'perpetuo' && !(/^\d{4}-\d{2}-\d{2}/.test(String(data || '')) && String(data).slice(0, 10) < CERT_CORTE);
+  }
+  function certBotao(v) {
+    if (!certElegivel(v.mod, v.data)) return '';
+    var n = v.cert && v.cert.vias ? v.cert.vias : 0;
+    return '<button type="button" class="ivb vertudo" data-cert="' + esc(v.id) + '" title="' +
+      (n ? 'Já emitido ' + n + (n > 1 ? ' vezes' : ' vez') + ' — a última por ' + esc(v.cert.quem) + ' em ' + esc(fmtCarimbo(v.cert.ultima)) : 'Gera o Certificado de Uso Perpétuo para imprimir ou salvar em PDF') + '">' +
+      (n ? 'Certificado · ' + n + (n > 1 ? ' vias' : ' via') : 'Certificado') + '</button>';
+  }
+  function dma(c) { var m = String(c || '').match(/^(\d{4})-(\d{2})-(\d{2})/); return m ? m[3] + '/' + m[2] + '/' + m[1] : 'sem data'; }
+  function fmtCpf(s) {
+    var d = String(s == null ? '' : s).replace(/\D/g, '');
+    if (d.length === 11) return d.replace(/^(\d{3})(\d{3})(\d{3})(\d{2})$/, '$1.$2.$3-$4');
+    if (d.length === 14) return d.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, '$1.$2.$3/$4-$5');
+    return '';
+  }
+  /* Os dados do certificado a partir da resposta do fn=venda. { erros: [..faltas..], dados } — com erro, não gera. */
+  function dadosCert(r) {
+    var ve = r.venda || {}, pe = r.pessoal || {}, erros = [];
+    var nome = String(pe['Cliente'] || '').trim() || String(ve['Cliente'] || '').trim();
+    var cpfBruto = String(pe['CPF'] || '').trim(), cpf = fmtCpf(cpfBruto);
+    var quadra = String(ve['Quadra'] || '').trim(), jazigo = String(ve['Jazigo'] || '').trim();
+    var jardim = JARDINS[quadra.charAt(0).toUpperCase()] || '';
+    if (!nome) erros.push('o nome do titular');
+    if (!cpfBruto) erros.push('o CPF/CNPJ do titular (não há cadastro pessoal desta venda)');
+    else if (!cpf) erros.push('um CPF/CNPJ válido (o cadastro tem ' + cpfBruto.replace(/\D/g, '').length + ' dígitos; esperados 11 ou 14)');
+    if (!quadra) erros.push('a quadra');
+    else if (!jardim) erros.push('o jardim (a quadra “' + quadra + '” não começa por M, V, I, O, R ou P)');
+    if (!jazigo) erros.push('o jazigo');
+    return { erros: erros, dados: { deal: Number(r.deal), nome: nome, cpf: cpf, jardim: jardim, quadra: quadra, jazigo: jazigo,
+                                    celular: String(pe['Celular'] || '') } };
+  }
+  function dataExtenso(carimbo) {
+    var m = String(carimbo || '').match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (!m) return '';
+    return 'Juiz de Fora, ' + Number(m[3]) + ' de ' + MESES_EXT[Number(m[2]) - 1] + ' de ' + m[1] + '.';
+  }
+  function pecaCert(rot, val) { return '<span class="cf-rot">' + esc(rot) + '</span><span class="cf-val">' + esc(val) + '</span>'; }
+  /* A folha A4 paisagem — o texto é o aprovado pelo Ricardo (13–14/10); {…} vêm da venda. */
+  function folhaCert(d, assinatura, emitidoEm) {
+    var N = '<b>NOVO PARQUE DA SAUDADE LTDA</b>';
+    return '<div class="cf-folha"><img class="cf-fundo" src="certificado-fundo.png" alt="">' +
+      '<div class="cf-texto">' +
+        '<div class="cf-linha"><div class="cf-campo cf-grande">' + pecaCert('Titular:', d.nome) + '</div>' +
+          '<div class="cf-campo cf-cpf">' + pecaCert('CPF/CNPJ:', d.cpf) + '</div></div>' +
+        '<div class="cf-linha"><div class="cf-campo">' + pecaCert('Jardim:', d.jardim) + '</div>' +
+          '<div class="cf-campo">' + pecaCert('Quadra:', d.quadra) + '</div>' +
+          '<div class="cf-campo">' + pecaCert('Jazigo:', d.jazigo) + '</div></div>' +
+        '<p>Por meio deste certificado, ' + N + ', inscrita no CNPJ sob o nº <b>63.612.331/0001-00</b>, na qualidade de <b>administradora</b> do Cemitério Parque da Saudade, declara que <b>' + esc(d.nome) + '</b>, inscrito(a) no CPF/CNPJ sob o nº <b class="cf-nw">' + esc(d.cpf) + '</b>, é titular do direito de uso perpétuo do jazigo acima identificado, nos termos do Contrato nº <b>' + esc(d.deal) + '</b>.</p>' +
+        '<p>O direito de uso poderá ser exercido para o sepultamento do(a) titular e das pessoas por ele(a) indicadas, observadas a legislação vigente, as disposições contratuais e o Regulamento Interno do Cemitério Parque da Saudade.</p>' +
+        '<p class="cf-recuo">Com a quitação integral do valor contratado, ' + N + ' confere ao(à) titular plena, geral e irrevogável quitação relativa à aquisição do direito de uso, permanecendo válidas as obrigações previstas em lei, no contrato firmado e no Regulamento Interno do Cemitério Parque da Saudade.</p>' +
+      '</div>' +
+      '<div class="cf-fecho"><div class="cf-data">' + esc(dataExtenso(emitidoEm)) + '</div><div class="cf-assin">' + esc(assinatura) + '</div></div>' +
+    '</div>';
+  }
+  function limparCert() {
+    CERT = null;
+    var p = $('#certPrint'); if (p) p.innerHTML = '';
+  }
+  /* A fonte e o fundo prontos antes de imprimir: sem Ingra a folha sairia com fonte de reserva, sem erro nenhum. */
+  function prepararCert() {
+    var css = new Promise(function (res, rej) {
+      var l = document.getElementById('certFonteCss');
+      if (l && l.sheet) { res(); return; }
+      if (!l) { l = document.createElement('link'); l.rel = 'stylesheet'; l.id = 'certFonteCss'; l.href = 'certificado-fonte.css'; document.head.appendChild(l); }
+      l.addEventListener('load', function () { res(); });
+      l.addEventListener('error', function () { rej(new Error('o arquivo da fonte do certificado não carregou')); });
+    });
+    var fonte = css.then(function () {
+      return document.fonts && document.fonts.load ? document.fonts.load('400 11pt Ingra', 'Certificado de Uso Perpétuo') : [];
+    });
+    var fundo = new Promise(function (res, rej) {
+      var im = new Image(); im.onload = function () { res(); }; im.onerror = function () { rej(new Error('o fundo do certificado não carregou')); };
+      im.src = 'certificado-fundo.png';
+    });
+    var limite = new Promise(function (res, rej) { setTimeout(function () { rej(new Error('a fonte e o fundo do certificado não carregaram a tempo')); }, 20000); });
+    return Promise.race([Promise.all([fonte, fundo]), limite]).then(function (x) {
+      var carregada = x[0] && x[0].length && x[0].every(function (f) { return f.status === 'loaded'; });
+      if (!carregada) throw new Error('a fonte Ingra não carregou — o certificado não foi impresso para não sair com fonte de reserva');
+    });
+  }
+  function imprimirCert() {
+    if (!CERT || !CERT.emitido) return;
+    var d = CERT.dados, titulo = document.title;
+    $('#certPrint').innerHTML = folhaCert(d, CERT.emitido.assinatura, CERT.emitido.emitido_em);
+    document.title = 'Certificado - ' + d.quadra + '-' + d.jazigo + ' - ' + d.nome;   // vira o nome do PDF ao salvar
+    var volta = function () { document.title = titulo; };
+    window.addEventListener('afterprint', function f() { window.removeEventListener('afterprint', f); volta(); }, false);
+    setTimeout(function () { try { window.print(); } catch (e) {} setTimeout(volta, 60000); }, 50);   // 50 ms: a folha entra no DOM antes
+  }
+  function primeiroNome(n) {
+    var p = String(n || '').trim().split(/\s+/)[0] || '';
+    return p ? p.charAt(0).toUpperCase() + p.slice(1).toLowerCase() : '';
+  }
+  function linkWhats() {
+    var d = CERT.dados, e = CERT.emitido, f = String(d.celular || '').replace(/\D/g, '').replace(/^0+/, '');
+    if (/^55\d{10,11}$/.test(f)) { /* já com o país */ }
+    else if (/^\d{10,11}$/.test(f)) f = '55' + f;
+    else return '';
+    var txt = String(e.mensagem || '').replace(/\{primeiro_nome\}/g, primeiroNome(d.nome)).replace(/\{quadra\}/g, d.quadra).replace(/\{jazigo\}/g, d.jazigo);
+    return 'https://wa.me/' + f + '?text=' + encodeURIComponent(txt);
+  }
+  function pintarCert(estado) {
+    var d = CERT.dados, el = $('#modalCorpo');
+    var cab = '<div class="msec certq"><p><b>' + esc(d.nome) + '</b> · CPF/CNPJ <b>' + esc(d.cpf) + '</b></p>' +
+      '<p>Jardim <b>' + esc(d.jardim) + '</b> · Quadra <b>' + esc(d.quadra) + '</b> · Jazigo <b>' + esc(d.jazigo) + '</b> · Contrato <b>' + esc(d.deal) + '</b></p></div>';
+    if (estado.tipo === 'pergunta') {
+      var n = CERT.vias;
+      el.innerHTML = cab +
+        (n ? '<p class="ivmsg aviso">Já emitido ' + (n > 1 ? n + ' vezes' : 'uma vez') + ' — a última em <b>' + esc(dma(CERT.ultima)) + '</b> por <b>' + esc(CERT.quem) + '</b>. Gerar a ' + (n + 1) + 'ª via?</p>' : '') +
+        (estado.msg ? '<p class="ivmsg ' + (estado.conflito ? 'aviso' : 'erro') + '">' + esc(estado.msg) + '</p>' : '') +
+        '<p class="certpergunta">Confirma que o jazigo <b>' + esc(d.quadra) + ' · ' + esc(d.jazigo) + '</b>, de <b>' + esc(d.nome) + '</b>, está <b>QUITADO</b>?</p>' +
+        '<label class="certchk"><input type="checkbox" id="certOk"> Confirmo que o jazigo está quitado</label>' +
+        '<p><button type="button" class="ivb pri" id="certGerar" disabled>' + (estado.conflito ? 'Gerar mesmo assim' : n ? 'Gerar ' + (n + 1) + 'ª via' : 'Gerar certificado') + '</button></p>' +
+        '<p class="mnota">O sistema não confere o pagamento: quem confirma é você. Ao gerar, abre a impressão — escolha <b>Salvar como PDF</b>. A emissão fica registrada (quem, quando, qual via), sem CPF.</p>';
+      $('#certOk').onchange = function () { $('#certGerar').disabled = !this.checked; };
+      $('#certGerar').onclick = function () { emitirCert(!!estado.conflito); };
+    } else if (estado.tipo === 'emitindo') {
+      el.innerHTML = cab + '<p class="lendo" id="certLendo">' + esc(estado.msg) + '</p>';
+    } else if (estado.tipo === 'pronto') {
+      var link = linkWhats();
+      el.innerHTML = cab +
+        '<p class="ivmsg">✔ ' + esc(CERT.emitido.via) + 'ª via emitida por <b>' + esc(CERT.emitido.quem) + '</b> em ' + esc(fmtCarimbo(CERT.emitido.emitido_em)) + '. Na janela de impressão, escolha <b>Salvar como PDF</b> (o nome do arquivo já vem pronto).</p>' +
+        (estado.aviso ? '<p class="ivmsg erro">' + esc(estado.aviso) + '</p>' : '') +
+        '<p><button type="button" class="ivb pri" id="certImp">Imprimir / salvar PDF de novo</button> ' +
+        (link ? '<button type="button" class="ivb pri" id="certWa">Abrir WhatsApp</button>' : '<button type="button" class="ivb" disabled>Abrir WhatsApp</button>') + '</p>' +
+        (link ? '<p class="mnota">O WhatsApp abre com a mensagem pronta (só nome, quadra e jazigo — nunca o CPF). Anexe o PDF que você acabou de salvar.</p>'
+              : '<p class="ivmsg erro">Sem celular válido no cadastro desta venda — não dá para abrir o WhatsApp. Envie o PDF por outro canal.</p>');
+      $('#certImp').onclick = imprimirCert;
+      if (link) $('#certWa').onclick = function () { window.open(link, '_blank', 'noopener'); };
+    }
+  }
+  function emitirCert(forcar) {
+    if (!CERT || CERT.gravando) return;
+    CERT.gravando = true;
+    var meu = PEDIDO_TUDO, deal = CERT.deal;
+    pintarCert({ tipo: 'emitindo', msg: 'Registrando a emissão e preparando o certificado…' });
+    var corpo = { deal: deal, confirmo_quitado: true, vias_vistas: CERT.vias };
+    if (forcar) corpo.forcar = true;
+    api('certificado', { corpo: corpo }).then(function (r) {
+      if (!CERT || meu !== PEDIDO_TUDO) return;
+      CERT.gravando = false;
+      if (!r || r.ok !== true) {
+        if (r && r.codigo === 'conflito') {
+          CERT.vias = r.vias || 0; CERT.ultima = r.ultima || ''; CERT.quem = r.quem || '';
+          pintarCert({ tipo: 'pergunta', conflito: true, msg: r.error });
+        } else {
+          pintarCert({ tipo: 'pergunta', msg: 'Não emitiu: ' + ((r && r.error) || 'resposta vazia') });
+        }
+        return;
+      }
+      CERT.emitido = r;
+      CERT.vias = r.via; CERT.ultima = r.emitido_em; CERT.quem = r.quem;
+      lembrarCert(deal, { vias: r.via, ultima: r.emitido_em, quem: r.quem });
+      prepararCert().then(function () {
+        if (!CERT || meu !== PEDIDO_TUDO) return;
+        pintarCert({ tipo: 'pronto' });
+        imprimirCert();
+      }, function (e) {
+        if (!CERT || meu !== PEDIDO_TUDO) return;
+        pintarCert({ tipo: 'pronto', aviso: 'A via ' + r.via + ' foi registrada, mas ' + (e && e.message ? e.message : 'o certificado não pôde ser montado') + '. Use “Imprimir / salvar PDF de novo” quando a conexão voltar.' });
+      });
+    }, function (e) {
+      if (!CERT || meu !== PEDIDO_TUDO || e.tipo === 'token') return;
+      CERT.gravando = false;
+      pintarCert({ tipo: 'pergunta', msg: e.tipo === 'prazo'
+        ? 'Não sei se emitiu — a confirmação não chegou em ' + Math.round(PRAZO_GRAVAR / 1000) + ' s. Gere de novo: se a via já foi registrada, a tela avisa antes de repetir.'
+        : 'Não emitiu: ' + textoFalha(e) });
+    });
+  }
+  /* O botão passa a dizer "Certificado · N vias" em toda venda que a tela já tem. */
+  function lembrarCert(deal, c) {
+    VENDAS.concat(FILA_FORA || []).forEach(function (v) { if (v.id === deal) v.cert = c; });
+    Array.prototype.forEach.call(document.querySelectorAll('button[data-cert="' + deal + '"]'), function (b) {
+      if (b.closest && b.closest('#modal')) return;
+      var n = c.vias; b.textContent = 'Certificado · ' + n + (n > 1 ? ' vias' : ' via');
+    });
+  }
+  function abrirCert(deal, bt) {
+    if (!token()) { abrirPortao(''); return; }
+    fecharTudo.volta = bt;
+    limparCert();
+    var meu = ++PEDIDO_TUDO;
+    $('#modalTit').textContent = 'Certificado de Uso Perpétuo · deal ' + deal;
+    $('#modalCorpo').innerHTML = '<p class="lendo" id="certLendo">Lendo a venda no Facilita…</p>';
+    $('#modal').hidden = false;
+    $('#modalX').focus();
+    api('venda', { params: { deal: deal }, paralelo: true, aoEsperar: function (s, t, m) {
+      var el = meu === PEDIDO_TUDO && $('#certLendo'); if (el) el.textContent = textoEspera('Lendo a venda no Facilita…', s, t, m);
+    } })
+      .then(function (r) {
+        if (meu !== PEDIDO_TUDO) return;
+        var erro = function (m) { $('#modalCorpo').innerHTML = '<p class="ivmsg erro">' + esc(m) + '</p>'; };
+        if (!r || r.ok !== true) { erro((r && r.error) || 'resposta vazia'); return; }
+        var ruim = reciboRuim(r);
+        if (ruim) { $('#modalCorpo').innerHTML = '<div class="tarja"><div class="t">' + esc(ruim.t) + '</div>' + ruim.c + '</div>'; return; }
+        if (!certElegivel((r.venda || {})['Modalidade'], (r.venda || {})['Data da Venda'])) {
+          erro('Esta venda não tem certificado: só o jazigo Perpétuo, de 14/04/2026 em diante (as anteriores são feitas à mão).'); return;
+        }
+        var x = dadosCert(r);
+        if (x.erros.length) {
+          $('#modalCorpo').innerHTML = '<p class="ivmsg erro">Não dá para gerar o certificado: falta ' + x.erros.map(esc).join('; falta ') + '.</p>' +
+            '<p class="mnota">Corrija no Facilita e abra de novo.</p>'; return;
+        }
+        var c = r.certificado || {};
+        CERT = { deal: deal, dados: x.dados, vias: c.vias || 0, ultima: c.ultima || '', quem: c.quem || '', emitido: null, gravando: false };
+        pintarCert({ tipo: 'pergunta' });
+      })
+      .catch(function (e) {
+        if (meu !== PEDIDO_TUDO || e.tipo === 'token') return;
+        $('#modalCorpo').innerHTML = '<p class="ivmsg erro">Não consegui ler a venda no Facilita: ' + esc(textoFalha(e)) + '</p>';
+      });
+  }
+  document.addEventListener('click', function (e) {
+    var bt = e.target.closest && e.target.closest('button[data-cert]');
+    if (bt) { e.stopPropagation(); abrirCert(Number(bt.getAttribute('data-cert')), bt); }
+  });
+
   $('#modalX').onclick = fecharTudo;
   $('#modal').addEventListener('click', function (e) { if (e.target === $('#modal')) fecharTudo(); });
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !$('#modal').hidden) fecharTudo(); });
@@ -2914,7 +3181,7 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
         '<p>Deal <b>' + esc(v.id) + '</b> · ' + esc(v.mod) + '</p><p>Jazigo <b>' + esc(v.jaz) + '</b></p>' +
         '<p>Fechada em <b>' + esc(dbr(v.data)) + '</b>' + (v.etapa ? ' · etapa <b>' + esc(v.etapa) + '</b>' : '') + '</p>' +
         '<p>Valor <b>' + esc(brl(v.valor)) + '</b></p><p>Vendedor <b>' + esc(v.vend) + '</b></p>' +
-        '<button type="button" class="ivb vertudo" data-vertudo="' + esc(v.id) + '" title="Todas as colunas desta venda no Facilita, lidas agora">Ver tudo do Facilita</button></div>' +
+        '<button type="button" class="ivb vertudo" data-vertudo="' + esc(v.id) + '" title="Todas as colunas desta venda no Facilita, lidas agora">Ver tudo do Facilita</button>' + certBotao(v) + '</div>' +
       '<div class="dblk"><h4>Assinaturas</h4>' + assin + '</div>' +
       '<div class="dblk"><h4>Ivertex</h4>' +
         (v.iv.lancado ? (v.iv.data ? '<p>Lançado em <b>' + esc(dbr(v.iv.data)) + '</b> por <b>' + esc(v.iv.quem) + '</b></p>'
