@@ -2949,6 +2949,23 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
     return { erros: erros, dados: { deal: Number(r.deal), nome: nome, cpf: cpf, jardim: jardim, quadra: quadra, jazigo: jazigo,
                                     celular: String(pe['Celular'] || '') } };
   }
+  /* (16/10) A TRAVA DO CONTRATO (a mesma conta do Cofre, CertificadoPS.gs): o jazigo da venda tem que ser o do
+     contrato da D4Sign. Deal 6248: contrato M-19-086, reserva do negócio em M-20-286, e o certificado saiu errado.
+     Contrato sem jazigo no nome (reserva, termo) ou cancelado não conta. */
+  function chaveJaz(q, j) {
+    var qq = String(q == null ? '' : q).toUpperCase().replace(/[^A-Z0-9]/g, ''), jj = String(j == null ? '' : j).trim();
+    return qq && /^\d+$/.test(jj) ? qq + '|' + Number(jj) : '';
+  }
+  function jazigoDivergeContrato(r) {
+    var ve = r.venda || {}, minha = chaveJaz(ve['Quadra'], ve['Jazigo']), lidos = [];
+    (r.contratos || []).forEach(function (c) {
+      if (/CANCEL/i.test(String(c['Fase'] || ''))) return;
+      var txt = String(c['Jazigo'] || '').trim(), m = txt.match(/^(.+)-(\d+)$/);
+      if (m && chaveJaz(m[1], m[2])) lidos.push({ txt: txt, k: chaveJaz(m[1], m[2]) });
+    });
+    if (!lidos.length || !minha || lidos.some(function (x) { return x.k === minha; })) return '';
+    return lidos[0].txt;
+  }
   function dataExtenso(carimbo) {
     var m = String(carimbo || '').match(/^(\d{4})-(\d{2})-(\d{2})/);
     if (!m) return '';
@@ -3066,6 +3083,8 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
         if (r && r.codigo === 'conflito') {
           CERT.vias = r.vias || 0; CERT.ultima = r.ultima || ''; CERT.quem = r.quem || '';
           pintarCert({ tipo: 'pergunta', conflito: true, msg: r.error });
+        } else if (r && r.codigo === 'divergente') {
+          CERT = null; $('#modalCorpo').innerHTML = '<p class="ivmsg erro">' + esc(r.error) + '</p>';
         } else {
           pintarCert({ tipo: 'pergunta', msg: 'Não emitiu: ' + ((r && r.error) || 'resposta vazia') });
         }
@@ -3118,6 +3137,12 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
         if (ruim) { $('#modalCorpo').innerHTML = '<div class="tarja"><div class="t">' + esc(ruim.t) + '</div>' + ruim.c + '</div>'; return; }
         if (!certElegivel((r.venda || {})['Modalidade'], (r.venda || {})['Data da Venda'])) {
           erro('Esta venda não tem certificado: só o jazigo Perpétuo, de 14/04/2026 em diante (as anteriores são feitas à mão).'); return;
+        }
+        var diverge = jazigoDivergeContrato(r);
+        if (diverge) {
+          erro('Não dá para gerar: o contrato da D4Sign é do jazigo ' + diverge + ', mas o Facilita registra ' +
+               String((r.venda || {})['Quadra'] || '').trim() + '-' + String((r.venda || {})['Jazigo'] || '').trim() +
+               ' para esta venda (a reserva do negócio não bate com a proposta). Corrija a reserva no Facilita e abra de novo.'); return;
         }
         var x = dadosCert(r);
         if (x.erros.length) {

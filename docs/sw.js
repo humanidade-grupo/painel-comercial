@@ -1,6 +1,8 @@
 /* Painel Comercial — Parque da Saudade + Estrela Urbanidade
    Service worker: instalação PWA + reserva offline.
-   Atualizado em: 16/10/2026 — PONTEAPP: a assinatura da Fabrícia (certificado-assinatura.svg, vetor azul) vai acima do
+   Atualizado em: 16/10/2026 (2ª) — PONTEAPP: o certificado não sai se o jazigo da venda não for o do contrato da D4Sign
+   (deal 6248: contrato M-19-086, reserva M-20-286); a tela avisa antes da pergunta de quitação.
+   Antes, 16/10/2026 — PONTEAPP: a assinatura da Fabrícia (certificado-assinatura.svg, vetor azul) vai acima do
    nome no certificado; a página espera o SVG carregar antes de imprimir.
    Antes, 14/10/2026 — PONTEAPP: CERTIFICADO DE USO PERPÉTUO. Botão "Certificado" no detalhe da venda e no
    "Ver tudo" (só Perpétuo, de 14/04/2026 em diante); modal de quitação, POST fn=certificado, folha A4 paisagem só de
@@ -312,7 +314,7 @@
    ?app=doacoes (script.google.com, cross-origin — passa direto pelo SW).
    Estratégia: rede primeiro (pega versão nova quando online), cache como
    reserva offline. A cada deploy, bumpar a versão em CACHE. */
-const CACHE = 'painel-comercial-161026-1';
+const CACHE = 'painel-comercial-161026-2';
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(['./'])).then(() => self.skipWaiting()));
