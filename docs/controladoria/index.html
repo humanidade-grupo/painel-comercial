@@ -697,8 +697,10 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
 .cf-rot{font-size:9pt;color:#7a6650;white-space:nowrap}
 .cf-val{font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .cf-fecho{position:absolute;left:98mm;right:24mm;top:152mm;font-size:11pt}
-.cf-data{margin:0 0 12mm}
-.cf-assin{font-weight:700;font-size:12pt}
+.cf-data{margin:0 0 4mm}
+.cf-assblk{display:inline-block;text-align:center}
+.cf-assimg{display:block;width:52mm;height:auto;margin:0 auto -1.2mm}
+.cf-assin{position:relative;font-weight:700;font-size:12pt}
 @page{size:A4 landscape;margin:0}
 @media print{
   html,body{margin:0!important;padding:0!important;background:none!important;height:auto!important}
@@ -2967,7 +2969,7 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
         '<p>O direito de uso poderá ser exercido para o sepultamento do(a) titular e das pessoas por ele(a) indicadas, observadas a legislação vigente, as disposições contratuais e o Regulamento Interno do Cemitério Parque da Saudade.</p>' +
         '<p class="cf-recuo">Com a quitação integral do valor contratado, ' + N + ' confere ao(à) titular plena, geral e irrevogável quitação relativa à aquisição do direito de uso, permanecendo válidas as obrigações previstas em lei, no contrato firmado e no Regulamento Interno do Cemitério Parque da Saudade.</p>' +
       '</div>' +
-      '<div class="cf-fecho"><div class="cf-data">' + esc(dataExtenso(emitidoEm)) + '</div><div class="cf-assin">' + esc(assinatura) + '</div></div>' +
+      '<div class="cf-fecho"><div class="cf-data">' + esc(dataExtenso(emitidoEm)) + '</div><div class="cf-assblk"><img class="cf-assimg" src="certificado-assinatura.svg" alt=""><div class="cf-assin">' + esc(assinatura) + '</div></div></div>' +
     '</div>';
   }
   function limparCert() {
@@ -2986,10 +2988,13 @@ footer button{font:inherit;font-size:11.5px;color:var(--ink-2);background:transp
     var fonte = css.then(function () {
       return document.fonts && document.fonts.load ? document.fonts.load('400 11pt Ingra', 'Certificado de Uso Perpétuo') : [];
     });
-    var fundo = new Promise(function (res, rej) {
-      var im = new Image(); im.onload = function () { res(); }; im.onerror = function () { rej(new Error('o fundo do certificado não carregou')); };
-      im.src = 'certificado-fundo.png';
-    });
+    var imagem = function (src, nome) {
+      return new Promise(function (res, rej) {
+        var im = new Image(); im.onload = function () { res(); }; im.onerror = function () { rej(new Error(nome + ' do certificado não carregou')); };
+        im.src = src;
+      });
+    };
+    var fundo = Promise.all([imagem('certificado-fundo.png', 'o fundo'), imagem('certificado-assinatura.svg', 'a assinatura')]);
     var limite = new Promise(function (res, rej) { setTimeout(function () { rej(new Error('a fonte e o fundo do certificado não carregaram a tempo')); }, 20000); });
     return Promise.race([Promise.all([fonte, fundo]), limite]).then(function (x) {
       var carregada = x[0] && x[0].length && x[0].every(function (f) { return f.status === 'loaded'; });

@@ -1,6 +1,8 @@
 /* Painel Comercial — Parque da Saudade + Estrela Urbanidade
    Service worker: instalação PWA + reserva offline.
-   Atualizado em: 14/10/2026 — PONTEAPP: CERTIFICADO DE USO PERPÉTUO. Botão "Certificado" no detalhe da venda e no
+   Atualizado em: 16/10/2026 — PONTEAPP: a assinatura da Fabrícia (certificado-assinatura.svg, vetor azul) vai acima do
+   nome no certificado; a página espera o SVG carregar antes de imprimir.
+   Antes, 14/10/2026 — PONTEAPP: CERTIFICADO DE USO PERPÉTUO. Botão "Certificado" no detalhe da venda e no
    "Ver tudo" (só Perpétuo, de 14/04/2026 em diante); modal de quitação, POST fn=certificado, folha A4 paisagem só de
    impressão (certificado-fundo.png + certificado-fonte.css, mesma origem) e "Abrir WhatsApp".
    Antes, 10/10/2026 (3ª) — a aba Previsão SAI do menu e do rodapé (decisão do Ricardo: só quando o
@@ -310,7 +312,7 @@
    ?app=doacoes (script.google.com, cross-origin — passa direto pelo SW).
    Estratégia: rede primeiro (pega versão nova quando online), cache como
    reserva offline. A cada deploy, bumpar a versão em CACHE. */
-const CACHE = 'painel-comercial-141026-1';
+const CACHE = 'painel-comercial-161026-1';
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(['./'])).then(() => self.skipWaiting()));
