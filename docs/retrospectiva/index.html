@@ -721,9 +721,9 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
      decide; o resto fica "A classificar" até o Ricardo declarar pelo ajuste "natureza".
      Rótulo curto = o do papel (extrato em PDF). */
   var NAT_ROTULO = { alcada:'Alçada vendedor', evento:'Condição especial evento', diretoria:'Autorizado pela diretoria',
-                     parceria:'Parceria', outros:'Outros', classificar:'A classificar', nenhuma:'—' };
+                     parceria:'Parceria', outros:'Outros', temporario:'Temporário', classificar:'A classificar', nenhuma:'—' };
   var NAT_CURTO  = { alcada:'Alçada', evento:'Evento', diretoria:'Diretoria', parceria:'Parceria',
-                     outros:'Outros', classificar:'A classificar', nenhuma:'—' };
+                     outros:'Outros', temporario:'Temporário', classificar:'A classificar', nenhuma:'—' };
   var DESC_TOLERANCIA = 0.0005;   // 0,05 ponto percentual: o arredondamento do Facilita
 
   /* A RÉGUA DE ALÇADA DO VENDEDOR, datada (Regras Comerciais). Vale a régua da DATA DA VENDA:
@@ -1549,6 +1549,7 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
        1. ajuste parceria                 → Parceria
        2. ajuste natureza                 → o valor declarado pelo Ricardo
        3. desconto ≤ R$ 1,00 (ou null)    → "—" (sem desconto; centavos são arredondamento do Facilita)
+       3b. desconto de 80%                → Temporário (o preço do Temporário é 20% do Perpétuo; Ricardo, 17/10)
        4. dentro da campanha 50 Anos      → Condição especial evento
        5. % ≤ teto da alçada do vendedor  → Alçada vendedor (régua vigente NA DATA DA VENDA)
        6. acima de tudo isso              → A classificar (⚠️) */
@@ -1556,6 +1557,8 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
     if (o.parceria) return 'parceria';
     if (o.declarada && NAT_ROTULO[o.declarada] && o.declarada !== 'parceria') return o.declarada;
     if (o.desconto === null || o.desconto <= 1 || o.descPct === null) return 'nenhuma';
+    /* desconto de 80% = o preço do Temporário (20% do Perpétuo) — "sempre", Ricardo, 17/10/2026 */
+    if (Math.abs(o.descPct - 0.8) <= DESC_TOLERANCIA) return 'temporario';
     if (noEscopoCampanha(o)) return 'evento';
     if (o.descPct <= tetoAlcada(o) + DESC_TOLERANCIA) return 'alcada';
     return 'classificar';
@@ -2517,11 +2520,12 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
     ['natureza','diretoria','Natureza do desconto: Autorizado pela diretoria'],
     ['natureza','outros','Natureza do desconto: Outros'],
     ['natureza','alcada','Natureza do desconto: Alçada vendedor'],
-    ['natureza','evento','Natureza do desconto: Condição especial evento']
+    ['natureza','evento','Natureza do desconto: Condição especial evento'],
+    ['natureza','temporario','Natureza do desconto: Temporário (80%)']
   ];
   var AJ_ROTULO = { 'prazo:avista':'Prazo: à vista', 'prazo:parcelada':'Prazo: parcelada', 'base:tabela':'Base pela tabela', 'conferido:ok':'Conferido, está certo',
                     'parceria:sim':'Venda de parceria (comissão zero)', 'natureza:diretoria':'Natureza: Autorizado pela diretoria',
-                    'natureza:outros':'Natureza: Outros', 'natureza:alcada':'Natureza: Alçada vendedor', 'natureza:evento':'Natureza: Condição especial evento' };
+                    'natureza:outros':'Natureza: Outros', 'natureza:alcada':'Natureza: Alçada vendedor', 'natureza:evento':'Natureza: Condição especial evento', 'natureza:temporario':'Natureza: Temporário' };
   var AJ_DICA_OBS = { parceria:'nome do parceiro (opcional)', natureza:'quem autorizou (opcional)' };
   /* O extrato geral do mês já tem as 3 aprovações? Então mexer na comissão de uma venda dele pede aviso. */
   function mesAprovado(id){ return APROVACOES.filter(function (a) { return a.mes === id; }).length >= ORDEM_APROVACAO.length; }
