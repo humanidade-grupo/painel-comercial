@@ -111,7 +111,18 @@
   POST, nunca na URL (regra 4 do CLAUDE.md, 25/09).
 
   SEGURANÇA: nenhum segredo neste arquivo. O repositório é público.
--->
+
+  17/10/2026 — % E NATUREZA DO DESCONTO NO EXTRATO, E A VENDA DE PARCERIA SEM COMISSÃO.
+  (Tarefa do Ricardo: 02-parque-da-saudade/sistemas/Extrato de comissão — % e natureza do desconto…md.)
+    · O extrato ganhou 'Desc. %' e 'Natureza do desconto' logo depois de 'Desconto (R$)': tela, Excel e os
+      dois extratos em PDF (no papel, a alíquota passou a se chamar '% com.' e o desconto '% desc.').
+      A natureza sai de naturezaDesconto() — ordem e réguas datadas escritas ao lado das constantes.
+    · Dois ajustes novos: 'parceria' (comissão da linha zerada; a venda segue contando na meta e nas vendas)
+      e 'natureza' (declarada pelo Ricardo). O que a tela não prova fica 'A classificar' com ⚠️.
+    · Parceria marcada num mês cujo extrato geral tem as 3 aprovações: a tela avisa e pré-preenche, no mês
+      corrente, um Reembolso NEGATIVO (estorno). Só o Reembolso aceita valor negativo (ComissaoLancamentos.gs).
+    · Nenhum valor de comissão muda sem ajuste: as aprovações comparam TOTAIS, não layout.
+  -->
 <style>
 /* =====================================================================
    A casca do artefato 2df469ed, que já é a do Painel Comercial com o
@@ -305,6 +316,7 @@ tfoot td{font-weight:700; color:var(--text-1); border-top:1px solid var(--edge2)
 tr.total-time td{font-weight:800; color:var(--s1b)}
 tr.alerta td:first-child{box-shadow:inset 3px 0 0 var(--warn)}
 td.neg{color:var(--warn)}
+td.nat-classificar{color:var(--warn); font-weight:600}
 .derivado{font-style:italic; color:var(--text-2)}
 .aviso-icone{cursor:help; margin-right:4px}
 .origem-detalhe{color:var(--text-3)}
@@ -696,10 +708,52 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
     'Migração':   { avista: 0.010, parcelada: 0.008 }
   };
 
-  /* As 11 colunas do extrato, NESTA ORDEM — são as da planilha de fechamento
-     que o Ricardo usa hoje. A tela e o .xlsx usam a mesma lista. */
+  /* As 13 colunas do extrato, NESTA ORDEM — as 11 da planilha de fechamento que o Ricardo usa
+     + (17/10/2026) 'Desc. %' e 'Natureza do desconto', logo depois de 'Desconto (R$)'.
+     A tela e o .xlsx usam a mesma lista. */
   var EXTRATO_COLUNAS = ['Cliente', 'Jazigo', 'Modalidade', 'Tipo Uso', 'Vlr Venda (R$)',
-                         'Desconto (R$)', 'Prazo', 'Meio Pgto', 'Origem', '% Comissão', 'Valor'];
+                         'Desconto (R$)', 'Desc. %', 'Natureza do desconto',
+                         'Prazo', 'Meio Pgto', 'Origem', '% Comissão', 'Valor'];
+
+  /* ═══════════════ NATUREZA DO DESCONTO (decisão do Ricardo, 17/10/2026) ═══════════════
+     Cada desconto tem uma natureza: Alçada vendedor · Condição especial evento · Autorizado pela
+     diretoria · Parceria · Outros. O que a tela consegue provar sozinha (alçada, campanha) ela
+     decide; o resto fica "A classificar" até o Ricardo declarar pelo ajuste "natureza".
+     Rótulo curto = o do papel (extrato em PDF). */
+  var NAT_ROTULO = { alcada:'Alçada vendedor', evento:'Condição especial evento', diretoria:'Autorizado pela diretoria',
+                     parceria:'Parceria', outros:'Outros', classificar:'A classificar', nenhuma:'—' };
+  var NAT_CURTO  = { alcada:'Alçada', evento:'Evento', diretoria:'Diretoria', parceria:'Parceria',
+                     outros:'Outros', classificar:'A classificar', nenhuma:'—' };
+  var DESC_TOLERANCIA = 0.0005;   // 0,05 ponto percentual: o arredondamento do Facilita
+
+  /* A RÉGUA DE ALÇADA DO VENDEDOR, datada (Regras Comerciais). Vale a régua da DATA DA VENDA:
+       até 09/10/2026 : Pix à vista 3% · parcelado até 21x (cartão ou boleto) 1% · boleto 22x–72x 0%
+       a partir de 10/10: Pix à vista 3% · cartão 1x 1% · cartão 2x–21x 0% · boleto 2x–21x 1% · boleto 22x–72x 0%
+     e nas duas: +3% para jazigo com tabela a partir de R$ 24.000 (na régua de antes, só a faixa
+     R$ 24.000–25.299). O cartão à vista antes de 10/10 não está na régua escrita: tratado como
+     "parcelado até 21x" (1%); se ficou acima, cai em "A classificar" e o Ricardo declara. */
+  var ALCADA_NOVA_REGUA = '2026-10-10';
+  var ALCADA_ADICIONAL = { minimo: 24000, maximoAntiga: 25299, pontos: 0.03 };
+
+  /* A CAMPANHA 50 ANOS (set/2026). A Config só guarda a vigente (hoje desligada), então a de 50 Anos
+     mora aqui, datada. FONTE: Estudo de Resultado da Campanha 50 Anos, 03/10/2026
+     (02-parque-da-saudade/digital/campanha-50-anos/estudo_campanha_50anos_miolo_031026.html, §2 "Linha do
+     tempo") e o Lote 50 Anos (02-parque-da-saudade/precificacao/lote_50anos_110926.html — os 50
+     jazigos nominais da M-19). Desconto sobre o preço reajustado: 20% à vista · 15% de 2 a 21 parcelas ·
+     10% de 22 a 72. A M-20 e a M-19 fora do lote NUNCA estiveram na campanha (Ricardo, 17/10).
+       18 a 20/09 : Lote 50 + M-21 + Retomadas
+       21 a 27/09 : repescagem, só o saldo do Lote 50 (M-21 e Retomadas saem)
+     "15% de 2 a 21 parcelas" inclui a entrada + 21 mensais (22 parcelas no Facilita), por isso
+     o limite do degrau de 15% é 22 em Nº Parcelas. */
+  var CAMPANHA_50 = {
+    nome: '50 Anos',
+    desconto: { avista: 0.20, ate21x: 0.15, acima21x: 0.10 }, maxParcelas15: 22,
+    lote: ['208','209','210','211','212','213','214','215','217','218','219','220','298',
+           '166','169','170','172','173','174','175','176','178','179','181','182','183','184','221','223','226','227','263','264','332','333','363','451','476',
+           '423','185','186','187','188','300','394','189','190','364','266','477'],
+    fases: [ { de:'2026-09-18', ate:'2026-09-20', escopo:['lote','m21','retomada'] },
+             { de:'2026-09-21', ate:'2026-09-27', escopo:['lote'] } ]
+  };
 
   /* SheetJS, carregado SÓ no clique do botão, de cdnjs, com versão fixa. O
      sw.js não o cacheia (é cross-origin, passa direto): sem rede, o botão diz
@@ -766,7 +820,8 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
   var DOBRAS = {};           // dobras abertas, para o redesenho depois de um lançamento
   var MSG_REPETIR = {};      // o que o "repetir os contratos" respondeu, por mês
   var EXTRATOS = [];         // (05/10) a conferência no Pocket: a versão viva de cada vendedor e mês
-  var AJUSTES = {};          // (05/10) ajustes de conferência por Deal ID: {prazo, base, conferido}
+  var AJUSTES = {};          // (05/10) ajustes de conferência por Deal ID: {prazo, base, conferido, parceria, natureza}
+  var ESTORNO = null;        // (17/10) estorno de parceria a pré-preencher no mês corrente: {mes, vendedor, valor, obs}
   var APROVACOES = [];       // (05/10) a aprovação do extrato geral: as etapas vivas, por mês
   var VENDAS_BRUTO = null;   // o bloco `vendas` cru — recalculado quando um ajuste muda
 
@@ -1338,7 +1393,7 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
     var cond = String(g(l,'Condição Pagamento')).trim();
     var fluxo = String(g(l,'Fluxo de Pagamento')).trim();
     var modalidade = String(g(l,'Modalidade')).trim();
-    var alPrazo = [], alDesc = [], alRegua = [];
+    var alPrazo = [], alDesc = [], alRegua = [], alNat = [];
 
     /* À VISTA × PARCELADA, nesta ordem:
        1. `Condição Pagamento` preenchida MANDA ("À VISTA" = à vista; qualquer
@@ -1439,6 +1494,26 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
       valor = (aliquota === null || semBase || doacao) ? 0 : round2(venda * aliquota);
     }
 
+    /* (17/10) VENDA DE PARCERIA, sem captação do vendedor (marcada pelo Ricardo nos ajustes): a comissão
+       da linha é ZERO, mas a venda continua na lista e conta na meta e na contagem de vendas — nada muda
+       fora do valor. Se o vendedor captou o cliente, não se marca: vale a régua normal. */
+    var parceria = !!(ajuste && ajuste.parceria);
+    var comissaoSemParceria = valor;
+    if (parceria){ valor = 0; aliquota = 0; ajustado.push('parceria'); }
+
+    /* (17/10) DESC. % e NATUREZA do desconto. Ver o bloco NATUREZA DO DESCONTO, no topo. */
+    var descPct = (desconto !== null && face !== null && face > 0) ? desconto / face : null;
+    var natureza = naturezaDesconto({
+      data: data, quadra: quadra, jazigo: jaz, face: face, desconto: desconto, descPct: descPct,
+      avista: avista, nParc: nParc, meio: String(g(l,'Meio Pgto')).trim(), parceria: parceria,
+      declarada: ajuste && ajuste.natureza ? ajuste.natureza.valor : '', ehMig: ehMig, doacao: doacao
+    });
+    if (natureza === 'classificar'){
+      alNat.push('Desconto de ' + pct1(descPct) + ' (' + brl2(desconto) + ') que a tela não consegue classificar sozinha: ' +
+                 'diga a natureza em Ajustes de conferência (Alçada · Evento · Autorizado pela diretoria · Outros).');
+    }
+    if (ajuste && ajuste.natureza && natureza !== 'parceria') ajustado.push('natureza ' + NAT_CURTO[natureza]);
+
     return {
       data: data, quadra: quadra,
       /* a migração não tem jazigo próprio: diz de qual Temporário ela é a conversão */
@@ -1465,8 +1540,57 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
       chegou: String(g(l,'Chegou')).trim(),
       prazoTexto: prazoTexto, prazoDerivado: derivado, avista: avista,
       aliquota: aliquota, valor: valor,
-      alPrazo: alPrazo, alDesc: alDesc, alRegua: alRegua
+      alPrazo: alPrazo, alDesc: alDesc, alRegua: alRegua, alNat: alNat,
+      descPct: descPct, natureza: natureza, parceria: parceria, comissaoSemParceria: comissaoSemParceria
     };
+  }
+
+  /* A NATUREZA do desconto de uma venda, nesta ordem (17/10/2026):
+       1. ajuste parceria                 → Parceria
+       2. ajuste natureza                 → o valor declarado pelo Ricardo
+       3. desconto ≤ R$ 1,00 (ou null)    → "—" (sem desconto; centavos são arredondamento do Facilita)
+       4. dentro da campanha 50 Anos      → Condição especial evento
+       5. % ≤ teto da alçada do vendedor  → Alçada vendedor (régua vigente NA DATA DA VENDA)
+       6. acima de tudo isso              → A classificar (⚠️) */
+  function naturezaDesconto(o){
+    if (o.parceria) return 'parceria';
+    if (o.declarada && NAT_ROTULO[o.declarada] && o.declarada !== 'parceria') return o.declarada;
+    if (o.desconto === null || o.desconto <= 1 || o.descPct === null) return 'nenhuma';
+    if (noEscopoCampanha(o)) return 'evento';
+    if (o.descPct <= tetoAlcada(o) + DESC_TOLERANCIA) return 'alcada';
+    return 'classificar';
+  }
+  function noEscopoCampanha(o){
+    var dia = String(o.data).slice(0, 10), fase = null;
+    CAMPANHA_50.fases.forEach(function (f) { if (dia >= f.de && dia <= f.ate) fase = f; });
+    if (!fase || o.descPct === null || o.ehMig) return false;
+    var jaz = String(o.jazigo).trim().toUpperCase(), quadra = String(o.quadra).trim().toUpperCase();
+    var ehLote = quadra === 'M-19' && CAMPANHA_50.lote.indexOf(jaz) >= 0;
+    var ehM21 = quadra === 'M-21';
+    var ehRetomada = /RETOMADA/.test(quadra + ' ' + jaz) || /^[A-Z]-\d+-\d+$/.test(jaz);
+    var dentro = (ehLote && fase.escopo.indexOf('lote') >= 0) || (ehM21 && fase.escopo.indexOf('m21') >= 0) ||
+                 (ehRetomada && fase.escopo.indexOf('retomada') >= 0);
+    if (!dentro) return false;
+    var d = CAMPANHA_50.desconto;
+    var teto = o.avista ? d.avista : (o.nParc !== null && o.nParc > CAMPANHA_50.maxParcelas15 ? d.acima21x : d.ate21x);
+    return o.descPct <= teto + DESC_TOLERANCIA;
+  }
+  /* Teto de desconto da ALÇADA do vendedor para o meio e a condição da venda (+3% de jazigo caro).
+     Meio e condição: Meio Pgto (o da 1ª parcela) + Nº Parcelas + à vista derivado, como o prazo. Parcelada
+     com 1ª parcela em Pix (a entrada) segue a régua do boleto, que é o que financia o restante. */
+  function tetoAlcada(o){
+    var nova = String(o.data).slice(0, 10) >= ALCADA_NOVA_REGUA;
+    var m = String(o.meio || '').toLowerCase(), cartao = m.indexOf('cart') >= 0, t;
+    if (o.avista){
+      t = cartao ? 0.01 : 0.03;                        // Pix à vista 3%; cartão à vista (1x) 1%
+    } else if (cartao){
+      t = nova ? 0 : ((o.nParc !== null && o.nParc <= 21) ? 0.01 : 0);   // cartão 2x–21x: 0% desde 10/10
+    } else {
+      t = (o.nParc !== null && o.nParc <= 21) ? 0.01 : 0;                // boleto 2x–21x 1% · 22x–72x 0%
+    }
+    var a = ALCADA_ADICIONAL;
+    if (o.face !== null && o.face >= a.minimo && (nova || o.face <= a.maximoAntiga)) t += a.pontos;
+    return t;
   }
 
   /* Agrupa por vendedor, soma linhas JÁ arredondadas, ordena por comissão. */
@@ -1474,22 +1598,25 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
     var mapa = {};
     linhas.forEach(function (x) {
       var v = mapa[x.vendedor] = mapa[x.vendedor] ||
-        { quem:x.vendedor, n:0, base:0, desconto:0, valor:0, linhas:[], alertas:0 };
+        { quem:x.vendedor, n:0, base:0, desconto:0, valor:0, linhas:[], alertas:0, dSoma:0, dTab:0 };
       v.n++; v.base += x.venda; v.desconto += (x.desconto || 0); v.valor += x.valor;
+      if (x.desconto !== null && x.face !== null && x.face > 0){ v.dSoma += x.desconto; v.dTab += x.face; }
       v.linhas.push(x);
-      if (x.alPrazo.length || x.alDesc.length || x.alRegua.length) v.alertas++;
+      if (x.alPrazo.length || x.alDesc.length || x.alRegua.length || x.alNat.length) v.alertas++;
     });
     var por = Object.keys(mapa).map(function (k) { return mapa[k]; })
       .sort(function (a,b) { return b.valor - a.valor || b.n - a.n; });
     por.forEach(function (v) {
       v.base = round2(v.base); v.desconto = round2(v.desconto); v.valor = round2(v.valor);
+      v.descPct = v.dTab > 0 ? v.dSoma / v.dTab : null;     // (17/10) % ponderado: Σ desconto ÷ Σ tabela
       v.linhas.sort(function (a,b) { return a.data < b.data ? -1 : a.data > b.data ? 1 : 0; });
     });
-    var total = { n:0, base:0, desconto:0, valor:0, alertas:0 };
+    var total = { n:0, base:0, desconto:0, valor:0, alertas:0, dSoma:0, dTab:0 };
     por.forEach(function (v) {
       total.n += v.n; total.base += v.base; total.desconto += v.desconto;
-      total.valor += v.valor; total.alertas += v.alertas;
+      total.valor += v.valor; total.alertas += v.alertas; total.dSoma += v.dSoma; total.dTab += v.dTab;
     });
+    total.descPct = total.dTab > 0 ? total.dSoma / total.dTab : null;
     total.base = round2(total.base); total.desconto = round2(total.desconto); total.valor = round2(total.valor);
     return { porVendedor: por, total: total };
   }
@@ -2385,9 +2512,20 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
     ['prazo','avista','Prazo: à vista (alíquota de à vista)'],
     ['prazo','parcelada','Prazo: parcelada (alíquota de parcelada)'],
     ['base','tabela','Base pela tabela (venda acima da tabela)'],
-    ['conferido','ok','Conferido, está certo (só some o ⚠️)']
+    ['conferido','ok','Conferido, está certo (só some o ⚠️)'],
+    ['parceria','sim','Venda de parceria, sem captação do vendedor (comissão zero, conta na meta)'],
+    ['natureza','diretoria','Natureza do desconto: Autorizado pela diretoria'],
+    ['natureza','outros','Natureza do desconto: Outros'],
+    ['natureza','alcada','Natureza do desconto: Alçada vendedor'],
+    ['natureza','evento','Natureza do desconto: Condição especial evento']
   ];
-  var AJ_ROTULO = { 'prazo:avista':'Prazo: à vista', 'prazo:parcelada':'Prazo: parcelada', 'base:tabela':'Base pela tabela', 'conferido:ok':'Conferido, está certo' };
+  var AJ_ROTULO = { 'prazo:avista':'Prazo: à vista', 'prazo:parcelada':'Prazo: parcelada', 'base:tabela':'Base pela tabela', 'conferido:ok':'Conferido, está certo',
+                    'parceria:sim':'Venda de parceria (comissão zero)', 'natureza:diretoria':'Natureza: Autorizado pela diretoria',
+                    'natureza:outros':'Natureza: Outros', 'natureza:alcada':'Natureza: Alçada vendedor', 'natureza:evento':'Natureza: Condição especial evento' };
+  var AJ_DICA_OBS = { parceria:'nome do parceiro (opcional)', natureza:'quem autorizou (opcional)' };
+  /* O extrato geral do mês já tem as 3 aprovações? Então mexer na comissão de uma venda dele pede aviso. */
+  function mesAprovado(id){ return APROVACOES.filter(function (a) { return a.mes === id; }).length >= ORDEM_APROVACAO.length; }
+  function mesCorrenteId(){ var h = new Date(); return h.getFullYear() + '-' + String(h.getMonth() + 1).padStart(2, '0'); }
   function lerAjustes(bloco){
     var mapa = {};
     if (!bloco || !bloco.colunas) return mapa;
@@ -2422,7 +2560,13 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
           if (pode){
             var bd = el('button','lanc-link','Desfazer'); bd.type = 'button';
             bd.addEventListener('click', function () {
-              if (!confirm('Desfazer o ajuste "' + (AJ_ROTULO[tipo + ':' + a.valor] || tipo) + '" da venda ' + rotuloVenda(x) + '?')) return;
+              var avisoMes = '';
+              if (tipo === 'parceria' && mesAprovado(String(x.data).slice(0, 7))){
+                avisoMes = '\n\n⚠️ O extrato geral de ' + mesAno(String(x.data).slice(0, 7)) + ' já tem as 3 aprovações. Desfazer a parceria devolve ' +
+                           brl2(x.comissaoSemParceria) + ' de comissão a esse mês e derruba as aprovações. A diferença com quem já foi pago ' +
+                           'se acerta num lançamento à mão no mês seguinte — a tela não cobra nada sozinha.';
+              }
+              if (!confirm('Desfazer o ajuste "' + (AJ_ROTULO[tipo + ':' + a.valor] || tipo) + '" da venda ' + rotuloVenda(x) + '?' + avisoMes)) return;
               bd.disabled = true;
               chamarComissao('desfazer-ajuste', { id: a.id }).then(function (j) {
                 if (!j || j.ok !== true) throw new Error(mensagemRecusa(j));
@@ -2447,10 +2591,10 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
     };
     var selV = el('select');
     v.linhas.slice().sort(function (a, b) {
-      var wa = (a.alPrazo.length || a.alDesc.length || a.alRegua.length) ? 0 : 1, wb = (b.alPrazo.length || b.alDesc.length || b.alRegua.length) ? 0 : 1;
+      var wa = (a.alPrazo.length || a.alDesc.length || a.alRegua.length || a.alNat.length) ? 0 : 1, wb = (b.alPrazo.length || b.alDesc.length || b.alRegua.length || b.alNat.length) ? 0 : 1;
       return wa - wb || (a.data < b.data ? -1 : 1);
     }).forEach(function (x) {
-      var al = x.alPrazo.length || x.alDesc.length || x.alRegua.length;
+      var al = x.alPrazo.length || x.alDesc.length || x.alRegua.length || x.alNat.length;
       var o = el('option', null, (al ? '⚠️ ' : '') + rotuloVenda(x)); o.value = String(x.deal); selV.append(o);
     });
     var selA = el('select');
@@ -2461,10 +2605,14 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
     var dica = el('p','nota-fina', '');
     var mostrarDica = function () {
       var x = v.linhas.filter(function (z) { return String(z.deal) === selV.value; })[0];
-      var t = x ? x.alPrazo.concat(x.alDesc, x.alRegua) : [];
+      var t = x ? x.alPrazo.concat(x.alDesc, x.alRegua, x.alNat) : [];
       dica.textContent = t.length ? '⚠️ ' + t.join(' ') : 'Esta venda não tem ⚠️.';
     };
     selV.addEventListener('change', mostrarDica); mostrarDica();
+    selA.addEventListener('change', function () {
+      var tp = selA.value.split(':')[0];
+      obs.placeholder = AJ_DICA_OBS[tp] || 'opcional (ex.: contrato assinado à vista)';
+    });
     var acoes = el('div','lanc-acoes'); acoes.append(bt);
     f.append(campo('Venda', selV, true), campo('Ajuste', selA), campo('Observação', obs), acoes, st);
     b.append(f, dica);
@@ -2476,11 +2624,26 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
       if (par[0] === 'base' && !(x.face && x.face < x.venda) && !(x.ajuste && x.ajuste.base)){
         st.classList.add('erro'); st.textContent = 'Esta venda não está acima da tabela: a base pela tabela não muda nada.'; return;
       }
+      /* (17/10) PARCERIA em mês já aprovado: a tela não cobra em silêncio. Avisa e, gravado o ajuste,
+         deixa pré-preenchido no MÊS CORRENTE um Reembolso NEGATIVO com a comissão que saiu. */
+      var estorno = null;
+      if (par[0] === 'parceria' && !x.parceria && mesAprovado(id) && x.comissaoSemParceria > 0){
+        var corrente = mesCorrenteId();
+        if (!confirm('O extrato geral de ' + mesAno(id) + ' já tem as 3 aprovações.\n\n' +
+                     'Marcar esta venda como parceria tira ' + brl2(x.comissaoSemParceria) + ' de comissão de ' + x.vendedor +
+                     ' e derruba as aprovações desse mês.\n\nDepois de gravar, o desconto vai pré-preenchido em ' + mesAno(corrente) +
+                     ' como Reembolso negativo (estorno); você confere e salva lá.\n\nGravar a parceria?')) return;
+        estorno = { mes: corrente, vendedor: x.vendedor, curto: x.vendedorCurto, valor: -x.comissaoSemParceria,
+                    obs: 'Estorno de comissão — venda de parceria, deal ' + x.deal + ' (' + mesAno(id) + ')' };
+      }
       bt.disabled = true; st.classList.remove('erro'); st.textContent = 'gravando…';
       chamarComissao('ajustar', { deal: Number(x.deal), mes: id, tipo: par[0], valor: par[1], observacao: obs.value.replace(/\s+/g, ' ').trim() })
         .then(function (j) {
           if (!j || j.ok !== true) throw new Error(mensagemRecusa(j));
+          if (estorno) ESTORNO = estorno;
           aplicarLancamentos(j);
+          if (estorno) alert('Parceria gravada.\n\nPara descontar no mês seguinte: abra ' + mesAno(estorno.mes) + ' › ' + x.vendedor +
+                             ' › Lançamentos. O Reembolso de ' + brl2(estorno.valor) + ' já vem preenchido; confira e salve.');
         }).catch(function (err) {
           bt.disabled = false; st.classList.add('erro'); st.textContent = 'Nada foi gravado: ' + ((err && err.message) || err);
         });
@@ -2789,6 +2952,11 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
       bt.textContent = 'Salvar lançamento'; cancela.hidden = true; obsObrig();
     };
     cancela.addEventListener('click', limpar);
+    /* (17/10) estorno de parceria vindo de um ajuste em mês já aprovado */
+    if (ESTORNO && ESTORNO.mes === id && (normNome(v.quem) === normNome(ESTORNO.vendedor) || (ESTORNO.curto && normNome(v.quem) === normNome(ESTORNO.curto)))){
+      sel.value = 'Reembolso'; val.value = '-' + nf(Math.abs(ESTORNO.valor), 2); obs.value = ESTORNO.obs; obsObrig();
+      status.textContent = 'Estorno de parceria pré-preenchido (valor negativo): confira e salve.';
+    }
 
     f.addEventListener('submit', function (e) {
       e.preventDefault();
@@ -2796,8 +2964,8 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
       var n = numero(val.value);
       var o = obs.value.replace(/\s+/g, ' ').trim();
       var erro = '';
-      if (n === null || !(n > 0)) erro = 'Digite um valor maior que zero.';
-      else if (n > 100000) erro = 'Valor acima de R$ 100.000,00 — confira o número.';
+      if (n === null || n === 0 || (n < 0 && sel.value !== 'Reembolso')) erro = 'Digite um valor maior que zero (só o Reembolso pode ser negativo).';
+      else if (Math.abs(n) > 100000) erro = 'Valor acima de R$ 100.000,00 — confira o número.';
       else if (Math.abs(Math.round(n * 100) - n * 100) > 1e-6) erro = 'O valor tem no máximo duas casas decimais.';
       else if (!o && LANC_OBS_OBRIGATORIA.indexOf(sel.value) >= 0) erro = 'A observação é obrigatória em ' + sel.value + '.';
       else if (o.length > 500) erro = 'A observação passa de 500 caracteres.';
@@ -2807,6 +2975,7 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
       bt.disabled = true; status.textContent = 'gravando…';
       chamarComissao('salvar', corpo).then(function (j) {
         if (!j || j.ok !== true) throw new Error(mensagemRecusa(j));
+        if (ESTORNO && corpo.tipo === 'Reembolso' && corpo.valor < 0) ESTORNO = null;
         aplicarLancamentos(j);
       }).catch(function (err) {
         bt.disabled = false; status.classList.add('erro');
@@ -2878,13 +3047,13 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
   function tabelaExtrato(v){
     var wrap = el('div','table-wrap extrato'), t = el('table');
     var th = el('thead'), tr = el('tr');
-    var numericas = { 'Vlr Venda (R$)':1, 'Desconto (R$)':1, '% Comissão':1, 'Valor':1 };
+    var numericas = { 'Vlr Venda (R$)':1, 'Desconto (R$)':1, 'Desc. %':1, '% Comissão':1, 'Valor':1 };
     EXTRATO_COLUNAS.forEach(function (c) { tr.append(el('th', numericas[c] ? 'num' : null, c)); });
     th.append(tr); t.append(th);
 
     var tb = el('tbody');
     v.linhas.forEach(function (x) {
-      var todos = x.alPrazo.concat(x.alDesc, x.alRegua);
+      var todos = x.alPrazo.concat(x.alDesc, x.alRegua, x.alNat);
       var r = el('tr', todos.length ? 'alerta' : null);
       if (todos.length) r.title = todos.join('\n');
 
@@ -2905,6 +3074,16 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
       if (x.alDesc.length){ var i1 = el('span','aviso-icone','⚠️'); i1.title = x.alDesc.join('\n'); tdD.append(i1); }
       tdD.append(document.createTextNode(brl2(x.desconto)));
       r.append(tdD);
+
+      /* (17/10) Desc. % e Natureza do desconto, ao lado do Desconto (R$) */
+      var tdDP = el('td','num' + (x.descPct !== null && x.descPct < 0 ? ' neg' : ''), x.descPct === null ? '—' : pct1(x.descPct));
+      if (x.alDesc.length && x.descPct !== null && x.descPct < 0) tdDP.prepend(Object.assign(el('span','aviso-icone','⚠️'), { title: x.alDesc.join('\n') }));
+      r.append(tdDP);
+      var tdN = el('td', x.natureza === 'classificar' ? 'nat-classificar' : null);
+      if (x.natureza === 'classificar'){ var i5 = el('span','aviso-icone','⚠️'); i5.title = x.alNat.join('\n'); tdN.append(i5); }
+      tdN.append(document.createTextNode(NAT_ROTULO[x.natureza]));
+      if (x.parceria) tdN.title = 'Venda de parceria, sem captação do vendedor: comissão zero; conta na meta e na contagem de vendas.';
+      r.append(tdN);
 
       var tdP = el('td');
       if (x.alPrazo.length){ var i2 = el('span','aviso-icone','⚠️'); i2.title = x.alPrazo.join('\n'); tdP.append(i2); }
@@ -2946,6 +3125,7 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
     trS.append(el('td'), el('td'), el('td'));
     trS.append(el('td','num', brl2(v.base)));
     trS.append(el('td','num' + (v.desconto < 0 ? ' neg' : ''), brl2(v.desconto)));
+    trS.append(el('td','num', v.descPct === null ? '' : pct1(v.descPct)), el('td'));   // % ponderado; natureza vazia
     trS.append(el('td'), el('td'), el('td'), el('td'));
     trS.append(el('td','num', brl2(v.valor)));
     tf.append(trS); t.append(tf);
@@ -3086,7 +3266,7 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
   }
 
   /* ── as peças do miolo (classes do timbrado.css; ordem do artefato) ── */
-  var COLS_PAPEL = [7, 22, 14, 11, 10, 12, 10, 5, 9];
+  var COLS_PAPEL = [6, 16, 12, 10, 8, 11, 9, 6, 8, 5, 9];
   function mesAno(id){ return MESES_PT[parseInt(id.split('-')[1],10)-1] + ' ' + id.split('-')[0]; }
   function parcialAte(id){
     var hoje = new Date();
@@ -3112,19 +3292,21 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
     var h = '<table class="tab densa fixa"><colgroup>' +
       COLS_PAPEL.map(function (w) { return '<col style="width:' + w + '%">'; }).join('') + '</colgroup>' +
       '<thead><tr><th>Data</th><th>Cliente</th><th>Jazigo</th><th>Modalidade</th><th>Prazo</th>' +
-      '<th class="r">Vlr venda</th><th class="r">Desconto</th><th class="r">%</th><th class="r">Comissão</th></tr></thead><tbody>';
+      '<th class="r">Vlr venda</th><th class="r">Desconto</th><th class="r">% desc.</th><th>Natureza</th><th class="r">% com.</th><th class="r">Comissão</th></tr></thead><tbody>';
     if (!v.linhas.length){
-      h += '<tr><td colspan="9">Nenhuma venda no mês</td></tr>';
+      h += '<tr><td colspan="11">Nenhuma venda no mês</td></tr>';
     } else {
       v.linhas.forEach(function (x) {
         var dt = String(x.data).match(/^\d{4}-(\d{2})-(\d{2})/);
         h += '<tr><td class="nw">' + (dt ? dt[2] + '/' + dt[1] : esc(x.data)) + '</td><td>' + esc(x.cliente) + '</td>' +
              '<td class="nw">' + esc(x.jazigo) + '</td><td>' + esc(x.modalidade) + (x.doacao ? ' (doação)' : '') + '</td><td>' + esc(x.prazoTexto) + '</td>' +
-             tdR(esc(brl2(x.venda))) + tdR(brlPapel(x.desconto)) + '<td class="r">' + (x.doacao ? '—' : pctBR(x.aliquota)) + '</td>' +
+             tdR(esc(brl2(x.venda))) + tdR(brlPapel(x.desconto)) + '<td class="r">' + (x.descPct === null ? '—' : pct1(x.descPct)) + '</td>' +
+             '<td class="nw">' + esc(NAT_CURTO[x.natureza]) + '</td>' +
+             '<td class="r">' + (x.doacao ? '—' : pctBR(x.aliquota)) + '</td>' +
              tdR(esc(brl2(x.valor)), 'forte') + '</tr>';
       });
       h += '<tr class="total"><td colspan="5">Subtotal ' + esc(v.quem) + ' · ' + v.n + (v.n === 1 ? ' venda' : ' vendas') + '</td>' +
-           tdR(esc(brl2(v.base))) + tdR(brlPapel(v.desconto)) + '<td></td>' + tdR(esc(brl2(v.valor))) + '</tr>';
+           tdR(esc(brl2(v.base))) + tdR(brlPapel(v.desconto)) + '<td class="r">' + (v.descPct === null ? '' : pct1(v.descPct)) + '</td><td></td><td></td>' + tdR(esc(brl2(v.valor))) + '</tr>';
     }
     return h + '</tbody></table>';
   }
@@ -3346,6 +3528,8 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
           x.cliente, x.jazigo, x.modalidade, '—',
           x.venda,
           x.desconto === null ? '' : x.desconto,
+          x.descPct === null ? '' : x.descPct,
+          (x.natureza === 'classificar' ? '⚠️ ' : '') + NAT_ROTULO[x.natureza],
           (x.alPrazo.length ? '⚠️ ' : '') + x.prazoTexto,
           x.meio || '—',
           (x.origemFonte === 'sem' ? '⚠️ ' : '') + x.origem,
@@ -3354,20 +3538,22 @@ try { if (window.top !== window.self) document.documentElement.classList.add('em
           x.origemDetalhe || '', x.origemFonte || '', x.chegou || ''
         ]);
       });
-      aoa.push(['Subtotal ' + v.quem, '', '', '', v.base, v.desconto, '', '', '', '', v.valor]);
+      aoa.push(['Subtotal ' + v.quem, '', '', '', v.base, v.desconto, v.descPct === null ? '' : v.descPct, '', '', '', '', '', v.valor]);
     });
-    aoa.push(['TOTAL', '', '', '', calc.total.base, calc.total.desconto, '', '', '', '', calc.total.valor]);
+    aoa.push(['TOTAL', '', '', '', calc.total.base, calc.total.desconto, calc.total.descPct === null ? '' : calc.total.descPct, '', '', '', '', '', calc.total.valor]);
 
     var ws = X.utils.aoa_to_sheet(aoa);
     for (var r = 1; r < aoa.length; r++){
-      [4, 5, 10].forEach(function (col) {
+      [4, 5, 12].forEach(function (col) {
         var ref = X.utils.encode_cell({ r:r, c:col });
         if (ws[ref] && ws[ref].t === 'n') ws[ref].z = '"R$ "#,##0.00';
       });
-      var pr = X.utils.encode_cell({ r:r, c:9 });
-      if (ws[pr] && ws[pr].t === 'n') ws[pr].z = '0.0%';
+      [6, 11].forEach(function (col) {                       // Desc. % e % Comissão: número, não texto
+        var pr = X.utils.encode_cell({ r:r, c:col });
+        if (ws[pr] && ws[pr].t === 'n') ws[pr].z = '0.0%';
+      });
     }
-    ws['!cols'] = [{wch:36},{wch:12},{wch:11},{wch:9},{wch:15},{wch:14},{wch:12},{wch:18},{wch:20},{wch:11},{wch:13},
+    ws['!cols'] = [{wch:36},{wch:12},{wch:11},{wch:9},{wch:15},{wch:14},{wch:9},{wch:24},{wch:12},{wch:18},{wch:20},{wch:11},{wch:13},
                    {wch:22},{wch:12},{wch:26}];
     var wb = X.utils.book_new();
     X.utils.book_append_sheet(wb, ws, 'Comissões');
