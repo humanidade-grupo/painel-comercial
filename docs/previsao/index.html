@@ -128,7 +128,7 @@ html.embutido .voltar{display:none}
 .health{display:grid;grid-template-columns:auto 1fr auto;gap:6px 10px;align-items:center;font-size:13px}
 .health .st{font:600 11px var(--f-body);padding:1px 8px;border-radius:999px;white-space:nowrap}
 .health .stamp{text-align:right}
-.health a.fonte{color:var(--muted);text-decoration:underline;white-space:nowrap}
+.health a.fonte{display:block;color:var(--muted);text-decoration:underline;white-space:nowrap}
 .st.ok{background:var(--ok-soft);color:var(--ok)}
 .st.old{background:var(--off-soft);color:var(--muted);border:1px dashed var(--off)}
 .st.bad{background:var(--bad-soft);color:var(--bad)}
@@ -470,7 +470,7 @@ tr.sub td{color:var(--muted)}
       if (f.id === 'gasto_meta' && f.data) txt += ' · lançado até ' + dm(f.data);
       if (f.estado === 'nunca' && f.texto_nunca && f.texto_nunca !== 'nunca lançado') txt += ' · ' + esc(f.texto_nunca);
       if (f.texto) txt += ' · ' + esc(f.texto);
-      var lk = PLANILHA_FONTE[f.id] ? ' · <a class="fonte" href="' + PLANILHA_FONTE[f.id] + '" target="_blank" rel="noopener">abrir planilha ↗</a>' : '';
+      var lk = PLANILHA_FONTE[f.id] ? '<a class="fonte" href="' + PLANILHA_FONTE[f.id] + '" target="_blank" rel="noopener">abrir planilha ↗</a>' : '';
       h += st + '<span>' + txt + '</span><span class="stamp">' + carimbo + lk + '</span>';
     });
     return '<div class="health">' + h + '</div>';
