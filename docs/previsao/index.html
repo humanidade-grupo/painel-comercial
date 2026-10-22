@@ -634,6 +634,8 @@ tr.sub td{color:var(--muted)}
     h += '<div class="layer"><h2>2 · Previsão</h2>' + (c2.selo.em_validacao ? '<span class="seal">em validação</span>' : '<span class="seal ok">validada</span>') +
       '<span class="desc">sempre em intervalo; o intervalo estreita a cada semana lida' +
       (c2.selo.margem_pp !== null ? ' · margem hoje ±' + nf(c2.selo.margem_pp, 1) + ' pp' + (c2.selo.margem_max_pp === null ? ' (limite ainda não definido)' : ', limite ' + nf(c2.selo.margem_max_pp, 1) + ' pp') : '') +
+      (c2.selo.em_validacao && c2.selo.motivo ? ' · ' + esc(c2.selo.motivo) : '') +
+      (!c2.selo.em_validacao && c2.selo.meses_ok && c2.selo.meses_ok.length ? ' · faixa acertou em ' + c2.selo.meses_ok.map(function (m) { return MESES_MIN[Number(m.slice(5, 7)) - 1]; }).join(', ') : '') +
       '</span></div>';
     if (!c2.calculado_em) h += '<div class="offbox"><strong>As taxas ainda não foram calculadas.</strong> Elas saem na primeira rodada de atualização do servidor (de 2 em 2 horas) depois da publicação.</div>';
 
@@ -668,7 +670,23 @@ tr.sub td{color:var(--muted)}
     var fx = function (v) { return v === null || v === undefined ? '—' : nf(v, 1); };
     var semHist = [];
     var cat = '';
+    var rk = c2.risco_contrato;
     c2.categorias.forEach(function (c) {
+      /* (22/10, Ricardo) "Comprometido" é 0 por construção — a venda conta desde Contrato —, então a linha mostra o RISCO
+         sobre o realizado: as vendas do mês já contadas que ainda estão em Contrato/Aprovação e quantas podem não fechar.
+         Não soma no "Previsto do mês". */
+      if (c.id === 'comprometido' && rk) {
+        var convR = rk.etapas.map(function (e) {
+          if (e.conv === null || e.conv === undefined) return '<span class="rg">' + esc(e.etapa) + ': sem histórico</span>';
+          return '<span class="rg">' + esc(e.etapa) + ' → Venda Ganha: ' + faixa(e.baixo, e.alto, function (x) { return pc(x, 0); }) + '</span>';
+        }).join('');
+        var pc_ = rk.podem_cair, fxR = function (v) { return v === null || v === undefined ? '—' : nf(v, 1); };
+        cat += '<tr class="risk"><td><b>Vendas ainda em Contrato · podem cair</b><span class="rg">já contam no realizado · não soma no previsto</span></td>' +
+          '<td>' + rk.etapas.map(function (e) { return esc(e.etapa) + ' ' + nf(e.n); }).join(' · ') + '</td>' +
+          '<td class="r num">' + nf(rk.negocios) + '</td><td class="r num">' + convR + '</td>' +
+          '<td class="r num">' + (rk.negocios ? '−' + faixa(Math.floor(pc_.baixo), Math.ceil(pc_.alto)) + '<span class="rg">podem não fechar · central ' + fxR(pc_.valor) + '</span>' : '<span class="grey">—</span>') + '</td></tr>';
+        return;
+      }
       var conv = c.etapas.map(function (e) {
         if (e.n === 0 || e.n === null) { semHist.push(e.etapa); return '<span class="rg">' + esc(e.etapa) + ': sem histórico</span>'; }
         return '<span class="rg">' + esc(e.etapa) + ': ' + faixa(e.baixo, e.alto, function (x) { return pc(x, 0); }) +
@@ -692,6 +710,7 @@ tr.sub td{color:var(--muted)}
       (sF ? freshLinha(false, '<b>Dado atrasado.</b> A foto do funil (aba Leads) tem ' + (fF && fF.dias !== null ? fF.dias + ' dias' : 'data desconhecida') + '.') : '') +
       '<div class="scroll"><table class="cat"><thead><tr><th>Categoria</th><th>Etapas do Facilita</th><th class="r">Negócios</th><th class="r">Conversão da etapa</th><th class="r">Vendas previstas</th></tr></thead><tbody>' + cat + '</tbody></table></div>' +
       '<div class="offbox"><strong>Como se lê:</strong> negócios abertos hoje × a conversão de cada etapa até Venda Ganha no que falta do mês, medida no registro de etapas do Facilita (desde 29/08), em intervalo de 95%.' +
+      (rk ? ' <strong>Vendas ainda em Contrato</strong>: a venda conta desde Contrato (método de 20/08), então essas já estão no realizado; a linha diz quantas podem não fechar e não soma no previsto.' : '') +
       (semHist.length ? ' <strong>' + esc(semHist.join(', ')) + '</strong> ainda sem histórico: entra como 0 a 100%.' : '') + '</div></div></div>';
 
     // (12/10) como a previsão andou: a linha que a rodada de 2 h grava por dia (Previsao_Historico) e o acerto dos meses fechados
@@ -830,11 +849,11 @@ tr.sub td{color:var(--muted)}
     [/^Atendimento comercial/, 'Como os corretores trataram os leads A, B e N, segundo a auditoria de segunda.',
      '"1º contato em até 2h" = % dos leads com o 1º registro no Facilita em até 2 horas úteis (regra de 10/10). Até 19/10, "sem registro" não quer dizer "sem contato"; depois, conta como não feito. É material para conversar com o corretor: o número mostra o quê, a causa é pergunta.'],
     [/^2 · Previsão/, 'A camada que projeta o mês.',
-     'Sempre em faixa (intervalo de 95%), nunca um número só. O selo "em validação" fica até a faixa provar que acerta — veja "Como a previsão andou".'],
+     'Sempre em faixa (intervalo de 95%), nunca um número só. O selo "em validação" só sai com as duas condições: margem da conversão SQL → venda até o limite da Config (5 pp) e pelo menos um mês fechado com o realizado dentro da faixa que a tela mostrava — veja "Como a previsão andou".'],
     [/^Funil reverso/, 'Quantos SQL o mês precisa para bater a meta, calculado de trás para frente.',
      'Meta − vendas que não passam pela SATI (cadastradas à mão no Facilita, mediana de 3 meses; embaixo, de onde elas vêm pela origem do Pocket) − vendas que os MQL costumam gerar = vendas a gerar pelo SQL. Dividindo pela conversão SQL → venda, saem os SQL necessários. A faixa vem do intervalo de 95% da conversão: estreita a cada semana lida.'],
     [/^Previsão por categoria/, 'Quantas vendas devem sair, até o fim do mês, do que já está no funil do Facilita.',
-     'Negócios abertos em cada etapa × a chance histórica de a etapa virar venda no que falta do mês. Comprometido (Contrato, Aprovação) é quase certo; Melhor cenário (Visita, Proposta) é provável; Pipeline (Lead Quente, Agendado) é possível. Somando o realizado, os SQL e MQL recentes e as vendas que costumam entrar fora da SATI, sai o previsto do mês.'],
+     'Negócios abertos em cada etapa × a chance histórica de a etapa virar venda no que falta do mês. Melhor cenário (Visita, Proposta) é provável; Pipeline (Lead Quente, Agendado) é possível. A venda conta desde Contrato, então "Vendas ainda em Contrato · podem cair" não é previsão: são vendas do mês já no realizado que ainda estão em Contrato ou Aprovação, e a faixa diz quantas podem não fechar — um aviso de risco, fora da soma. Somando o realizado, os SQL e MQL recentes e as vendas que costumam entrar fora da SATI, sai o previsto do mês.'],
     [/^Como a previsão andou/, 'O que a tela previu para o mês, dia a dia, contra o que de fato vendeu: a prova de que a previsão funciona.',
      'No gráfico, a linha sólida é o realizado até cada dia e a faixa hachurada é o previsto para o mês naquele dia; o normal é a faixa estreitar e o realizado subir na direção dela. Na tabela, cada linha guarda a faixa prevista naquele dia. No fim do mês, conta-se em quantos dias o resultado final caiu dentro da faixa e quanto o ponto central errou. É com isso que se decide quando a previsão sai de "em validação".'],
     [/^Conversão por classe/, 'Quanto de cada classe da régua (A, B, C, D) virou venda.',
