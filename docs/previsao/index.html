@@ -733,6 +733,8 @@ tr.sub td{color:var(--muted)}
 
     // simulador
     h += '<div class="panel" id="simPanel"><div class="head"><h2>Simulador · planejar a meta</h2><span class="stamp">custos e taxas do histórico · cenário, nada é gravado</span></div>';
+    // (22/10) o Google tem custo por SQL desde que o gasto dele entrou na Custo_Lead (grupo "LP_* (Google Ads)")
+    var temGoo = sim.custo_sql_google !== null && sim.custo_sql_google !== undefined && sim.custo_sql_google > 0;
     if (!sim.conv || sim.conv.valor === null || sim.custo_sql_meta === null || sim.custo_sql_meta === undefined) {
       h += '<div class="offbox"><strong>Para acender:</strong> a conversão SQL → venda e o custo por SQL do Meta, calculados pelo servidor a cada 2 horas.</div></div>';
     } else {
@@ -740,9 +742,10 @@ tr.sub td{color:var(--muted)}
         '<label for="s-meta">Meta de vendas do mês</label><input id="s-meta" type="number" min="0" max="500" step="5" value="' + (meta || 100) + '">' +
         '<label for="s-vend">Vendas que não passam pela SATI</label><input id="s-vend" type="number" min="0" max="500" step="5" value="' + Math.round(sim.vendedor || 0) + '">' +
         '<label for="s-meta-share">Parte dos SQL comprados no Meta: <b id="s-share-v" class="num">100%</b></label><input id="s-meta-share" type="range" min="0" max="100" step="10" value="100">' +
-        '<span class="small muted">O resto vai para o Google, que ainda não tem custo histórico.</span></div>' +
+        '<span class="small muted">' + (temGoo ? 'O resto vai para o Google, a R$ ' + brl(sim.custo_sql_google) + ' por SQL (últimas 4 semanas com gasto).' : 'O resto vai para o Google, que ainda não tem custo histórico.') + '</span></div>' +
         '<div class="scroll"><table><thead><tr><th>Passo</th><th class="r">SQL no mês</th><th class="r">Investimento (R$)</th></tr></thead><tbody id="s-body"></tbody></table></div></div>' +
         '<div class="small muted">Valor central com a conversão de ' + pc(sim.conv.valor) + '; embaixo, o intervalo (' + pc(sim.conv.alto) + ' a ' + pc(sim.conv.baixo) + '). Custo por SQL no Meta: R$ ' + brl(sim.custo_sql_meta) +
+        (temGoo ? '; no Google: R$ ' + brl(sim.custo_sql_google) : '') +
         '. SQL que chegam sem gasto atribuído: ' + nf(sim.sql_sem_gasto_mes) + ' por mês. A conta é linear: com mais verba o custo por SQL pode subir, e a camada 1 mostra o custo real da semana para comparar.</div></div>';
     }
     return h;
@@ -889,6 +892,7 @@ tr.sub td{color:var(--muted)}
   function simulador(sim) {
     if (!$('s-body')) return;
     var CONV = [sim.conv.valor, sim.conv.alto, sim.conv.baixo], CPS = sim.custo_sql_meta, LIVRE = sim.sql_sem_gasto_mes || 0;
+    var CPG = sim.custo_sql_google > 0 ? sim.custo_sql_google : null;   // (22/10) custo por SQL do Google, quando há histórico
     // (11/10) as vendas que os MQL costumam gerar, no mesmo cenário da conversão: central · alta · baixa
     var MV = sim.mql_vendas ? [sim.mql_vendas.valor, sim.mql_vendas.alto, sim.mql_vendas.baixo] : [0, 0, 0];
     var brl0 = function (v) { return Math.round(v).toLocaleString('pt-BR'); };
@@ -896,7 +900,12 @@ tr.sub td{color:var(--muted)}
       var meta = Math.max(0, +$('s-meta').value || 0), vend = Math.max(0, +$('s-vend').value || 0), sh = (+$('s-meta-share').value) / 100;
       $('s-share-v').textContent = Math.round(sh * 100) + '%';
       var emp = Math.max(0, meta - vend);
-      var calc = CONV.map(function (c, i) { var sql = Math.round(Math.max(0, emp - MV[i]) / c), buy = Math.max(0, sql - LIVRE), m = Math.round(buy * sh); return { sql: sql, meta: m, goo: buy - m, inv: m * CPS, cac: CPS / c }; });
+      var calc = CONV.map(function (c, i) {
+        var sql = Math.round(Math.max(0, emp - MV[i]) / c), buy = Math.max(0, sql - LIVRE), m = Math.round(buy * sh), g = buy - m;
+        var invG = CPG ? g * CPG : 0, inv = m * CPS, tot = inv + invG, comprados = m + (CPG ? g : 0);
+        // custo de mídia por venda: o investimento com custo conhecido ÷ as vendas que esses SQL geram
+        return { sql: sql, meta: m, goo: g, inv: inv, invG: invG, tot: tot, cac: comprados > 0 ? tot / (comprados * c) : CPS / c };
+      });
       var C = calc[0], L = calc[1], H = calc[2];
       var cell = function (a, b, c, fmt) { return '<td class="r num">' + fmt(a) + '<span class="rg">' + fmt(b) + ' a ' + fmt(c) + '</span></td>'; };
       var id = function (x) { return x; };
@@ -905,8 +914,9 @@ tr.sub td{color:var(--muted)}
       h += '<tr><td>SQL necessários</td>' + cell(C.sql, L.sql, H.sql, id) + '<td></td></tr>';
       h += '<tr><td>SQL que já chegam sem gasto atribuído</td><td class="r num">' + LIVRE + '</td><td class="dash">—</td></tr>';
       h += '<tr><td>SQL a comprar no Meta Ads</td>' + cell(C.meta, L.meta, H.meta, id) + cell(C.inv, L.inv, H.inv, brl0) + '</tr>';
-      h += '<tr><td>SQL a comprar no Google</td>' + cell(C.goo, L.goo, H.goo, id) + '<td class="dash">' + (C.goo ? 'sem custo histórico' : '—') + '</td></tr>';
-      h += '<tr class="tot"><td>Investimento no Meta · custo de mídia por venda previsto R$ ' + brl0(C.cac) + ' (' + brl0(L.cac) + ' a ' + brl0(H.cac) + ')</td><td></td>' + cell(C.inv, L.inv, H.inv, brl0) + '</tr>';
+      h += '<tr><td>SQL a comprar no Google</td>' + cell(C.goo, L.goo, H.goo, id) +
+           (CPG ? cell(C.invG, L.invG, H.invG, brl0) : '<td class="dash">' + (C.goo ? 'sem custo histórico' : '—') + '</td>') + '</tr>';
+      h += '<tr class="tot"><td>Investimento ' + (CPG ? 'no Meta e no Google' : 'no Meta') + ' · custo de mídia por venda previsto R$ ' + brl0(C.cac) + ' (' + brl0(L.cac) + ' a ' + brl0(H.cac) + ')</td><td></td>' + cell(C.tot, L.tot, H.tot, brl0) + '</tr>';
       $('s-body').innerHTML = h;
     }
     ['s-meta', 's-vend', 's-meta-share'].forEach(function (id) { $(id).addEventListener('input', run); });
