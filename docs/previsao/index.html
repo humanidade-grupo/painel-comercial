@@ -1102,8 +1102,9 @@ tr.sub td{color:var(--muted)}
     if (com && com.total && com.total.r1_n) {
       var cor = (com.corretores || []).filter(function (c) { return c.leads >= 5 && c.r1_n && c.corretor !== '(sem corretor)'; });
       d.atend = { total: com.total.r1, regra: regraAtend(com).boletim,
-                  altos: cor.filter(function (c) { return c.r1 >= 0.7; }),
-                  baixos: cor.filter(function (c) { return c.r1 < 0.4; }) };
+                  // pelo número arredondado que o texto mostra: 39,5% sai "40%" e não pode cair em "menos de 40%"
+                  altos: cor.filter(function (c) { return Math.round(c.r1 * 100) >= 70; }),
+                  baixos: cor.filter(function (c) { return Math.round(c.r1 * 100) < 40; }) };
     }
 
     /* (23/10, v2 do protótipo) ORIGEM DAS VENDAS: por origem do Pocket, mês vigente até o dia · mês anterior até o mesmo dia
