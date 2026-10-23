@@ -29,6 +29,8 @@
    · a tabela ganha as linhas "SQL recentes", "vendas que não passam pela SATI no que falta do mês" (até 12/10,
      "captação própria do vendedor" — decisão 10 do FAROL: o número é o mesmo, o nome enganava) e
      "realizado", e o total é o previsto do bullet — a soma fica à vista;
+   · (23/10) "não passam pela SATI" = cadastradas à mão SEM negócio do WhatsApp da SATI nos 90 dias antes (mesmo telefone
+     ou cliente; aba Vendas_SATI_Antes do Cofre). As que tiveram saem da linha e contam na conversão SQL → venda;
    · NOMES REVISTOS EM 12/10 contra o vocabulário de mercado (pedido do Ricardo): "CAC" virou "custo de mídia por
      venda" (o CAC de mercado soma salários e comissão), "Cobertura" virou "% da meta prevista" (a cobertura de
      mercado é pipeline ÷ o que falta da meta), "LVR" virou "variação semanal de SQL" (o LVR de mercado é mensal) e
@@ -645,7 +647,7 @@ tr.sub td{color:var(--muted)}
       var p = function (v) { return Math.min(100, v / escR * 100); };
       revHtml = '<div class="rev">' +
         '<div class="step"><span class="op"></span><div class="what"><b>Meta do mês</b></div><span class="v">' + nf(rv.meta) + '</span></div>' +
-        '<div class="step"><span class="op">−</span><div class="what"><b>Vendas que não passam pela SATI</b><span>cadastradas à mão no Facilita · mediana dos 3 últimos meses · variou de ' + nf(rv.vendedor.baixo) + ' a ' + nf(rv.vendedor.alto) + '</span></div><span class="v">' + nf(rv.vendedor.valor) + '</span></div>' +
+        '<div class="step"><span class="op">−</span><div class="what"><b>Vendas que não passam pela SATI</b><span>cadastradas à mão no Facilita, sem conversa no WhatsApp da SATI nos 90 dias antes · mediana dos 3 últimos meses · variou de ' + nf(rv.vendedor.baixo) + ' a ' + nf(rv.vendedor.alto) + '</span></div><span class="v">' + nf(rv.vendedor.valor) + '</span></div>' +
         (rv.mql ? '<div class="step"><span class="op">−</span><div class="what"><b>Vendas que vêm dos MQL (classe B)</b><span>' + nf(rv.mql.no_mes) + ' MQL no mês (' + nf(rv.mql.por_semana, 1) + ' por semana) × ' +
           pc(rv.mql.conv.valor) + ' (' + rv.mql.conv.k + ' vendas em ' + rv.mql.conv.n + ' MQL, em até 30 dias)</span></div><span class="v">' + nf(rv.mql.vendas.valor, 1) +
           '<small>' + faixa(rv.mql.vendas.baixo, rv.mql.vendas.alto, function (x) { return nf(x, 1); }) + '</small></span></div>' : '') +
@@ -702,7 +704,7 @@ tr.sub td{color:var(--muted)}
     if (rb && rb.mql) cat += '<tr><td><b>MQL recentes</b></td><td>classe B das 2 últimas semanas, fora do funil acima</td><td class="r num">' + nf(rb.mql) + '</td><td class="r num">' +
       (rb.conv && rb.conv.valor !== null ? faixa(rb.conv.baixo, rb.conv.alto, function (x) { return pc(x, 0); }) + '<span class="rg">no que falta do mês</span>' : '—') +
       '</td><td class="r num">' + faixa(Math.floor(rb.baixo), Math.ceil(rb.alto)) + '<span class="rg">central ' + fx(rb.valor) + '</span></td></tr>';
-    if (vr) cat += '<tr class="sub"><td>Vendas que não passam pela SATI</td><td>o que costuma entrar cadastrado à mão, no que falta do mês</td><td class="grey">—</td><td class="grey">—</td><td class="r num">' + faixa(Math.floor(vr.baixo), Math.ceil(vr.alto)) + '<span class="rg">central ' + fx(vr.valor) + '</span></td></tr>';
+    if (vr) cat += '<tr class="sub"><td>Vendas que não passam pela SATI</td><td>o que costuma entrar cadastrado à mão sem ter passado pela SATI, no que falta do mês</td><td class="grey">—</td><td class="grey">—</td><td class="r num">' + faixa(Math.floor(vr.baixo), Math.ceil(vr.alto)) + '<span class="rg">central ' + fx(vr.valor) + '</span></td></tr>';
     cat += '<tr class="sub"><td>Realizado</td><td>até hoje · Executivo</td><td class="grey">—</td><td class="grey">—</td><td class="r num">' + nf(P.realizado) + '</td></tr>';
     if (prev) cat += '<tr class="tot"><td>Previsto do mês</td><td></td><td></td><td></td><td class="r num">' + faixa(prev.baixo, prev.alto) + '<span class="rg">central ' + prev.valor + '</span></td></tr>';
     var sF = velho(fF);
@@ -746,7 +748,7 @@ tr.sub td{color:var(--muted)}
       });
       h += '<div class="panel"><div class="head"><h2>Conversão por classe do lead</h2><span class="stamp">taxas · ' + dmh(c2.calculado_em) + '</span></div>' +
         '<div class="scroll"><table><thead><tr><th>Classe</th><th class="r">Venda em até 30 dias</th><th class="r">Vendidos até hoje</th><th class="r">Dias até a venda</th></tr></thead><tbody>' + lc + '</tbody></table></div>' +
-        '<div class="small muted">Lead lido na conversa da SATI × venda no Facilita, pelo nº do negócio. "Maturando" = lead com menos de 30 dias, que ainda pode vender. ' +
+        '<div class="small muted">Lead lido na conversa da SATI × venda no Facilita, pelo nº do negócio — ou, se o vendedor recadastrou o cliente, pelo negócio novo de mesmo telefone ou cliente em até 90 dias. "Maturando" = lead com menos de 30 dias, que ainda pode vender. ' +
         'É a prova 3 da régua: o A tem de vender mais que o B, e o B mais que o C. Até fechar 60 dias, vale como "ainda não validada contra venda". Dias até a venda: mediana (p25 a p75), só de quem vendeu.</div></div>';
     }
 
@@ -851,7 +853,7 @@ tr.sub td{color:var(--muted)}
     [/^2 · Previsão/, 'A camada que projeta o mês.',
      'Sempre em faixa (intervalo de 95%), nunca um número só. O selo "em validação" só sai com as duas condições: margem da conversão SQL → venda até o limite da Config (5 pp) e pelo menos um mês fechado com o realizado dentro da faixa que a tela mostrava — veja "Como a previsão andou".'],
     [/^Funil reverso/, 'Quantos SQL o mês precisa para bater a meta, calculado de trás para frente.',
-     'Meta − vendas que não passam pela SATI (cadastradas à mão no Facilita, mediana de 3 meses; embaixo, de onde elas vêm pela origem do Pocket) − vendas que os MQL costumam gerar = vendas a gerar pelo SQL. Dividindo pela conversão SQL → venda, saem os SQL necessários. A faixa vem do intervalo de 95% da conversão: estreita a cada semana lida.'],
+     'Meta − vendas que não passam pela SATI (cadastradas à mão no Facilita, mediana de 3 meses; embaixo, de onde elas vêm pela origem do Pocket). Desde 23/10, a venda cadastrada à mão cujo cliente teve um negócio do WhatsApp da SATI nos 90 dias antes (mesmo telefone ou mesmo cliente) conta como SATI: sai desta linha e entra na conversão SQL → venda como venda daquele lead − vendas que os MQL costumam gerar = vendas a gerar pelo SQL. Dividindo pela conversão SQL → venda, saem os SQL necessários. A faixa vem do intervalo de 95% da conversão: estreita a cada semana lida.'],
     [/^Previsão por categoria/, 'Quantas vendas devem sair, até o fim do mês, do que já está no funil do Facilita.',
      'Negócios abertos em cada etapa × a chance histórica de a etapa virar venda no que falta do mês. Melhor cenário (Visita, Proposta) é provável; Pipeline (Lead Quente, Agendado) é possível. A venda conta desde Contrato, então "Vendas ainda em Contrato · podem cair" não é previsão: são vendas do mês já no realizado que ainda estão em Contrato ou Aprovação, e a faixa diz quantas podem não fechar — um aviso de risco, fora da soma. Somando o realizado, os SQL e MQL recentes e as vendas que costumam entrar fora da SATI, sai o previsto do mês.'],
     [/^Como a previsão andou/, 'O que a tela previu para o mês, dia a dia, contra o que de fato vendeu: a prova de que a previsão funciona.',
