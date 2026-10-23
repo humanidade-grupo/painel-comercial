@@ -878,18 +878,22 @@ tr.sub td{color:var(--muted)}
       return h + '<div class="offbox"><strong>Sem dado ainda.</strong> Acende com a primeira auditoria semanal que gravar a aba Comercial (segunda, 7h52): ' +
         'por corretor, o 1º contato em até 2h úteis e as tentativas em 5 dias.</div></div>';
     }
+    var nova = com.regra === 'todos_os_dias';   // (23/10) a regra de 22/10, calculada no Cofre: a coluna "entregue de folga"
     var lin = function (c, tot) {
       return '<tr' + (tot ? ' class="tot"' : '') + '><td>' + esc(c.corretor) + '</td><td class="r num">' + nf(c.leads) + '<span class="rg">A ' + c.a + ' · B ' + c.b + (c.n ? ' · N ' + c.n : '') + '</span></td>' +
         '<td class="r num">' + (c.r1_n ? '<b>' + pc(c.r1, 0) + '</b><span class="rg">' + c.r1_k + ' de ' + c.r1_n + '</span>' : '<span class="grey">—</span>') + '</td>' +
         '<td class="r num">' + (c.horas_mediana === null ? '<span class="grey">—</span>' : nf(c.horas_mediana, 1) + ' h') + '</td>' +
-        '<td class="r num">' + nf(c.sem_registro) + '</td><td class="r num">' + nf(c.alertas) + '</td></tr>';
+        '<td class="r num">' + nf(c.sem_registro) + '</td>' + (nova ? '<td class="r num">' + nf(c.de_folga || 0) + '</td>' : '') + '<td class="r num">' + nf(c.alertas) + '</td></tr>';
     };
     var regra = hoje < com.registro_obrigatorio_desde
       ? ' Até ' + dm(com.registro_obrigatorio_desde) + ', "sem registro" não quer dizer "sem contato": o corretor pode ter ligado sem registrar. A partir daí, tentativa sem registro conta como não feita.'
       : ' Desde ' + dm(com.registro_obrigatorio_desde) + ', tentativa sem registro no Facilita conta como não feita.';
-    return h + '<div class="scroll"><table><thead><tr><th>Corretor (no envio)</th><th class="r">Leads</th><th class="r">1º contato em até 2h</th><th class="r">Mediana até o 1º registro</th><th class="r">Sem registro</th><th class="r">Alertas</th></tr></thead><tbody>' +
+    return h + '<div class="scroll"><table><thead><tr><th>Corretor (no envio)</th><th class="r">Leads</th><th class="r">1º contato em até 2h</th><th class="r">Mediana até o 1º registro</th><th class="r">Sem registro</th>' + (nova ? '<th class="r">Entregue de folga</th>' : '') + '<th class="r">Alertas</th></tr></thead><tbody>' +
       com.corretores.map(function (c) { return lin(c, false); }).join('') + lin(com.total, true) + '</tbody></table></div>' +
-      '<div class="small muted">Da entrada no Facilita ao 1º registro do corretor, ' + regraAtend(com).nota + '. Corretor = o dono do negócio no envio da SATI.' + regra + '</div></div>';
+      '<div class="small muted">Da entrada no Facilita ao 1º registro do corretor, ' + regraAtend(com).nota + '. Corretor = o dono do negócio no envio da SATI.' +
+      (nova ? ' A linha Total conta todo lead, todos os dias: é o tempo que o cliente sente. "Entregue de folga" = lead enviado pela SATI num dia de folga do corretor (questão da distribuição, não dele); a escala é a do Pocket' +
+        (com.escala_ate ? ', lida até ' + dm(com.escala_ate) : '') + (com.leads_sem_escala ? ' — ' + com.leads_sem_escala + ' lead(s) em dia sem escala contam sem folga' : '') + '.' : '') +
+      regra + '</div></div>';
   }
 
   /* ══════════ (12/10) o (?) de cada quadro — pedido do Ricardo ══════════
