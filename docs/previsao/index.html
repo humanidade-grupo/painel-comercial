@@ -286,8 +286,8 @@ tr.sub td{color:var(--muted)}
     <div class="head"><h2>Termos</h2><span class="stamp">Demand Waterfall (Forrester) · Receita Previsível (Aaron Ross) · IBCS · Stephen Few</span></div>
     <div class="gloss">
       <div><b>Lead</b> · toda conversa nova. Não é lead (X) e necessidade imediata (N) ficam fora das taxas e dos custos.</div>
-      <div><b>MQL</b> · qualificado pelo marketing: interesse real, ainda sem pedir o vendedor.</div>
-      <div><b>SQL</b> · qualificado para vendas: disse o que quer e aceitou o consultor ou a visita.</div>
+      <div><b>MQL</b> · interesse real (classe B), ainda sem pedir o vendedor.</div>
+      <div><b>SQL</b> · lead qualificado (classe A): disse o que quer e aceitou o consultor ou a visita.</div>
       <div><b>CPL</b> · custo por lead · <b>Custo de mídia por venda</b> · gasto de mídia ÷ vendas. Não é o CAC de mercado, que soma também salários e comissão.</div>
       <div><b>Variação semanal de SQL</b> · a última semana completa contra a média das 3 anteriores. Inspirada no Lead Velocity Rate, que é mensal.</div>
       <div><b>% da meta prevista</b> · previsto ÷ meta. Não é a cobertura de pipeline (valor no funil ÷ o que falta da meta).</div>
@@ -531,11 +531,12 @@ tr.sub td{color:var(--muted)}
       freshLinha(!sQ, sQ ? '<b>Dado atrasado.</b> Último 1º contato lido: ' + dm(fQ && fQ.data) + '.' : 'Em dia.') + canaisHtml(cap) +
       '<div class="small muted">Barra: SQL no período. Linha: SQL por semana, a última tracejada (incompleta). Lead → SQL = SQL ÷ leads, sem X nem N.</div></div></div>';
 
-    // (12/10) o funil para frente — Demand Waterfall: lead → qualificado → SQL → venda, coorte com 30 dias
+    // (12/10) o funil para frente — Demand Waterfall: lead → com interesse (A+B) → qualificado (SQL, A) → venda, coorte com 30 dias.
+    // (23/10, Ricardo) "qualificado" é só a classe A; A+B é "com interesse". Os campos da rota (qualificados, lead_qualificado…) ficaram.
     var cs = cap.cascata;
     if (cs && cs.leads) {
-      var etapas = [['Leads', cs.leads, 'conversas lidas, sem X nem N'], ['Qualificados (MQL e SQL)', cs.qualificados, 'classes A e B'],
-                    ['SQL', cs.sql, 'classe A'], ['Vendas dos SQL', cs.vendas_sql, 'em até ' + cs.dias + ' dias']];
+      var etapas = [['Leads', cs.leads, 'conversas lidas, sem X nem N'], ['Com interesse (MQL e SQL)', cs.qualificados, 'classes A e B'],
+                    ['Qualificados (SQL)', cs.sql, 'classe A'], ['Vendas dos SQL', cs.vendas_sql, 'em até ' + cs.dias + ' dias']];
       var pass = [cs.passagem.lead_qualificado, cs.passagem.qualificado_sql, cs.passagem.sql_venda.valor];
       var fh = '';
       etapas.forEach(function (e, i) {
@@ -838,8 +839,8 @@ tr.sub td{color:var(--muted)}
      'Cada coluna é uma semana, de segunda a domingo; a última, tracejada, ainda está incompleta. A linha horizontal é o necessário por semana para bater a meta (vem do funil reverso). A variação semanal compara a última semana completa com a média das 3 anteriores: positiva, a captação acelerou.'],
     [/^SQL (e custo )?por canal/, 'De onde vieram os SQL no período lido, por canal (a campanha da SATI agrupada).',
      'A barra é o total de SQL do canal; a linha mostra semana a semana. Lead → SQL = SQL ÷ leads do canal, sem os que não são lead (X) nem necessidade imediata (N): diz qual canal traz conversa de melhor qualidade, não só volume.'],
-    [/^Do lead à venda/, 'O funil de demanda para frente: de cada 100 leads lidos, quantos ficam qualificados, quantos viram SQL e quantos SQL viram venda.',
-     'Cada barra é uma etapa; entre elas, a % que passa para a seguinte. É o Demand Waterfall, a referência de mercado deste tipo de painel. Só entram leads com 30 dias completos, para todos terem tido o mesmo tempo de virar venda. Onde a passagem cai muito de uma etapa para a outra é onde agir: na mídia (lead → qualificado), no atendimento da IA (qualificado → SQL) ou no comercial (SQL → venda).'],
+    [/^Do lead à venda/, 'O funil de demanda para frente: de cada 100 leads lidos, quantos mostram interesse, quantos ficam qualificados (SQL) e quantos SQL viram venda.',
+     'Cada barra é uma etapa; entre elas, a % que passa para a seguinte. É o Demand Waterfall, a referência de mercado deste tipo de painel. Só entram leads com 30 dias completos, para todos terem tido o mesmo tempo de virar venda. Onde a passagem cai muito de uma etapa para a outra é onde agir: na mídia (lead → com interesse), no atendimento da IA (com interesse → SQL) ou no comercial (SQL → venda).'],
     [/^Leads entrando no CRM/, 'Quantos negócios foram criados no Facilita em cada semana. Atualiza todo dia.',
      'Serve para ver se a captação sobe ou cai antes da leitura de segunda. "Pela SATI" = a IA abriu o negócio; "cadastrados pelo vendedor" = cadastro à mão. Não tem classe: um negócio daqui ainda pode ser curioso ou nem ser lead.'],
     [/^Custo por canal/, 'Quanto cada canal custou, e quanto custou cada lead, cada SQL e cada venda.',
