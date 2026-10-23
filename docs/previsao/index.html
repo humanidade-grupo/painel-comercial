@@ -659,6 +659,10 @@ tr.sub td{color:var(--muted)}
     if (co && co.meses && co.meses.length) {
       var ms = co.meses.slice(0, 2), nomes = [];
       ms.forEach(function (m) { m.linhas.forEach(function (l) { if (nomes.indexOf(l.origem) < 0) nomes.push(l.origem); }); });
+      /* (23/10, Ricardo) o mês anterior ganha a coluna "até DD": as vendas até o mesmo dia do corte do mês vigente (o Cofre
+         corta pela data da venda; mês mais curto vai até o último dia dele). É o número que o Boletim do Rodrigo compara. */
+      var temAteDia = function (m) { return m.ate === null && m.ate_dia !== undefined && m.ate_dia !== null; };
+      var celD = function (m, v) { return temAteDia(m) ? '<td class="r num">' + (v === null || v === undefined ? '<span class="grey">—</span>' : nf(v)) + '</td>' : ''; };
       var celO = function (l) {
         if (!l) return '<td class="r num grey">—</td><td class="r num grey">—</td><td class="r num grey">—</td>';
         var cv = l.custo_venda !== null ? '<b>' + brl(l.custo_venda) + '</b>'
@@ -668,14 +672,20 @@ tr.sub td{color:var(--muted)}
       var rotM = function (m) { return MESES_MIN[Number(m.mes.slice(5, 7)) - 1] + (m.ate ? ' até ' + dm(m.ate) : ''); };
       var lo = '';
       nomes.forEach(function (n) {
-        lo += '<tr><td>' + esc(n) + '</td>' + ms.map(function (m) { return celO(m.linhas.filter(function (l) { return l.origem === n; })[0]); }).join('') + '</tr>';
+        lo += '<tr><td>' + esc(n) + '</td>' + ms.map(function (m) {
+          var l = m.linhas.filter(function (x) { return x.origem === n; })[0];
+          return celD(m, l ? l.vendas_ate_dia : 0) + celO(l);
+        }).join('') + '</tr>';
       });
-      lo += '<tr class="sub"><td>Vendas sem anúncio no Pocket</td>' + ms.map(function (m) { return '<td class="r num">' + nf(m.vendas_sem_anuncio) + '</td><td></td><td></td>'; }).join('') + '</tr>';
+      lo += '<tr class="sub"><td>Vendas sem anúncio no Pocket</td>' + ms.map(function (m) { return celD(m, m.sem_anuncio_ate_dia) + '<td class="r num">' + nf(m.vendas_sem_anuncio) + '</td><td></td><td></td>'; }).join('') + '</tr>';
+      if (ms.some(function (m) { return m.migracoes; }))
+        lo += '<tr class="sub"><td>Migrações (não passam pelo Pocket)</td>' + ms.map(function (m) { return celD(m, m.migracoes_ate_dia) + '<td class="r num">' + nf(m.migracoes || 0) + '</td><td></td><td></td>'; }).join('') + '</tr>';
       h += '<div class="panel"><div class="head"><h2>Custo por venda, pela origem declarada no Pocket</h2><span class="stamp">desde ' + dm(co.desde) + '</span></div>' +
-        '<div class="scroll"><table><thead><tr><th rowspan="2">Origem</th>' + ms.map(function (m) { return '<th colspan="3" class="r">' + esc(rotM(m)) + '</th>'; }).join('') + '</tr><tr>' +
-        ms.map(function () { return '<th class="r">Vendas</th><th class="r">Gasto (R$)</th><th class="r">Custo por venda</th>'; }).join('') + '</tr></thead><tbody>' + lo + '</tbody></table></div>' +
+        '<div class="scroll"><table><thead><tr><th rowspan="2">Origem</th>' + ms.map(function (m) { return '<th colspan="' + (temAteDia(m) ? 4 : 3) + '" class="r">' + esc(rotM(m)) + '</th>'; }).join('') + '</tr><tr>' +
+        ms.map(function (m) { return (temAteDia(m) ? '<th class="r">Até ' + dm(m.ate_dia) + '</th><th class="r">Vendas no mês</th>' : '<th class="r">Vendas</th>') + '<th class="r">Gasto (R$)</th><th class="r">Custo por venda</th>'; }).join('') + '</tr></thead><tbody>' + lo + '</tbody></table></div>' +
         '<div class="small muted">A origem é a que o vendedor declarou no Anúncio de Venda; o gasto é o da planilha de mídia, na mesma lista de origens, rateado por dia quando a semana vira o mês. É assim que a mídia sem QR (outdoor, panfleto, rádio, busdoor) ganha custo. ' +
-        '"Sem gasto lançado" = o gasto ainda não está na planilha (o offline está sendo recadastrado pelo formulário). Meta Ads do vendedor é verba do próprio vendedor e não entra. Rádio e Captação própria entraram na lista do Pocket em 01/10 e 11/10; as de setembro vêm da revisão de origens feita com os vendedores.</div></div>';
+        '"Sem gasto lançado" = o gasto ainda não está na planilha (o offline está sendo recadastrado pelo formulário). Meta Ads do vendedor é verba do próprio vendedor e não entra. Rádio e Captação própria entraram na lista do Pocket em 01/10 e 11/10; as de setembro vêm da revisão de origens feita com os vendedores. ' +
+        'A coluna "Até DD/MM" do mês anterior conta as vendas até o mesmo dia do mês vigente, para comparar os dois meses no mesmo ponto. Migração é cliente da base trocando de produto: não passa pelo Anúncio de Venda.</div></div>';
     }
 
     h += comercialHtml(P.comercial, r.hoje);
@@ -1082,16 +1092,30 @@ tr.sub td{color:var(--muted)}
                   baixos: cor.filter(function (c) { return c.r1 < 0.4; }) };
     }
 
-    // pergunta da semana: a origem do Pocket com a maior variação de vendas entre o mês anterior e o vigente
-    if (meses.length >= 2) {
-      var nomes = [], melhor = null;
-      meses.slice(0, 2).forEach(function (m) { m.linhas.forEach(function (l) { if (nomes.indexOf(l.origem) < 0) nomes.push(l.origem); }); });
-      nomes.forEach(function (n) {
-        var a = origem(meses[1], n), b = origem(meses[0], n);
-        var va = a ? a.vendas || 0 : 0, vb = b ? b.vendas || 0 : 0;
-        if (!melhor || Math.abs(vb - va) > Math.abs(melhor.mes - melhor.ant)) melhor = { origem: n, ant: va, mes: vb };
+    /* (23/10, v2 do protótipo) ORIGEM DAS VENDAS: por origem do Pocket, mês vigente até o dia · mês anterior até o mesmo dia
+       (o corte que o Cofre expõe, ate_dia) · mês anterior fechado. E a pergunta da semana sai da maior variação contra o
+       mês anterior ATÉ O MESMO DIA, nunca contra o mês fechado. */
+    var mv = meses[0], ma = meses[1];
+    if (mv && ma && ma.ate_dia) {
+      var nomes = [];
+      [mv, ma].forEach(function (m) { m.linhas.forEach(function (l) { if (nomes.indexOf(l.origem) < 0) nomes.push(l.origem); }); });
+      var linhasO = nomes.map(function (n) {
+        var b = origem(mv, n), a = origem(ma, n);
+        return { o: n, mes: b ? b.vendas || 0 : 0, antDia: a ? a.vendas_ate_dia || 0 : 0, ant: a ? a.vendas || 0 : 0 };
       });
-      if (melhor && melhor.mes !== melhor.ant) d.variacao = melhor;
+      var melhor = null;
+      linhasO.forEach(function (x) { if (!melhor || Math.abs(x.mes - x.antDia) > Math.abs(melhor.mes - melhor.antDia)) melhor = x; });
+      linhasO.push({ o: 'Sem anúncio no Pocket', mes: mv.vendas_sem_anuncio || 0, antDia: ma.sem_anuncio_ate_dia || 0, ant: ma.vendas_sem_anuncio || 0 });
+      d.origens = {
+        mesAtual: MESES_MIN[Number(mv.mes.slice(5, 7)) - 1], mesAnt: MESES_MIN[Number(ma.mes.slice(5, 7)) - 1],
+        dia: Number(String(mv.ate || mv.ate_dia || '').slice(8, 10)),
+        linhas: linhasO.filter(function (x) { return x.mes || x.antDia || x.ant; })
+                       .map(function (x, i) { x.i = i; return x; })
+                       .sort(function (a, b) { return (b.mes - a.mes) || (a.i - b.i); }),
+        migracoes: mv.migracoes || 0,
+        pocket: (mv.vendas_anunciadas || 0) + (mv.vendas_sem_anuncio || 0)
+      };
+      if (melhor && melhor.mes !== melhor.antDia) d.variacao = { origem: melhor.o, ant: melhor.antDia, mes: melhor.mes, dia: d.origens.dia };
     }
 
     // ressalvas — cada uma pela regra do protótipo
@@ -1114,7 +1138,7 @@ tr.sub td{color:var(--muted)}
   function bolPerguntaSugerida(d) {
     var m = d.variacao;
     if (!m) return '';
-    return 'As vendas por ' + m.origem + ' ' + (m.mes < m.ant ? 'caíram' : 'subiram') + ' de ' + m.ant + ' no mês passado para ' + m.mes + ' neste mês. O que mudou?';
+    return 'As vendas por ' + m.origem + ' ' + (m.mes < m.ant ? 'caíram' : 'subiram') + ' de ' + m.ant + ' para ' + m.mes + ', comparando até o dia ' + m.dia + ' de cada mês. O que mudou?';
   }
 
   function bolTexto(d, pergunta) {
@@ -1147,6 +1171,19 @@ tr.sub td{color:var(--muted)}
       L.push('*Custo:* ' + partes.join(' ') + (d.ress.offline ? ' Ainda falta o custo da mídia offline.' : ''), '');
     } else if (d.custoCampanhas) {
       L.push('*Custo:* ' + d.custoCampanhas.map(function (x) { return x.canal + ', ' + r0(x.sql) + ' por lead qualificado'; }).join('; ') + '.', '');
+    }
+    if (d.origens && d.origens.linhas.length) {
+      var og = d.origens;
+      L.push('*Origem das vendas (declarada pelo vendedor):*');
+      L.push(og.mesAtual + ' até ' + og.dia + ' · ' + og.mesAnt + ' até ' + og.dia + ' · ' + og.mesAnt + ' fechado');
+      og.linhas.forEach(function (x) { L.push(x.o + ': ' + x.mes + ' · ' + x.antDia + ' · ' + x.ant); });
+      if (og.migracoes) L.push(og.migracoes + (og.migracoes > 1 ? ' migrações, que não passam' : ' migração, que não passa') + ' pelo Pocket.');
+      if (d.vendas) {   // só onde há realizado (o Parque): a diferença que sobra depois da migração
+        var resto = d.vendas.realizado - og.pocket - og.migracoes;
+        if (resto > 0) L.push(resto + (resto > 1 ? ' vendas ainda sem' : ' venda ainda sem') + ' origem no Pocket.');
+        else if (resto < 0) L.push('O Pocket tem ' + (-resto) + (resto < -1 ? ' vendas' : ' venda') + ' a mais que o realizado.');
+      }
+      L.push('');
     }
     if (BOL_ATENDIMENTO && d.atend) {
       var a = d.atend, t = '*Atendimento:* ' + Math.round(a.total * 100) + '% dos leads recebem o primeiro contato em até 2 horas.';
