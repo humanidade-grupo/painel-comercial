@@ -861,6 +861,16 @@ tr.sub td{color:var(--muted)}
     return g + '</svg><div class="small muted">Linha sólida: realizado até o dia. Faixa hachurada: o previsto para o mês, como a tela mostrava em cada dia; tracejado: o ponto central. Linha clara: a meta.</div>';
   }
 
+  /* (23/10) A REGRA DE CONTAGEM do tempo até o 1º registro — UMA fonte para a nota da tela e para o Boletim do Rodrigo.
+     Hoje o Cofre copia as horas que a auditoria de segunda grava, na regra antiga (seg–sex, 8h–18h). A regra de 22/10
+     (todos os dias, 8h–18h; o corretor sem o dia de folga) entra quando o Cofre calcular e mandar `regra: 'todos_os_dias'`
+     no bloco comercial — aí a nota e o boletim viram juntos, sem mexer aqui. */
+  function regraAtend(com) {
+    return com && com.regra === 'todos_os_dias'
+      ? { nota: 'contado todos os dias, das 8h às 18h (o número de cada corretor não conta o dia de folga dele)', boletim: '(contado todos os dias, das 8h às 18h)' }
+      : { nota: 'em horas úteis (seg–sex, 8h–18h)', boletim: '(contado em horas úteis, de segunda a sexta, 8h–18h)' };
+  }
+
   function comercialHtml(com, hoje) {
     var h = '<div class="panel"><div class="head"><h2>Atendimento comercial · leads A, B e N</h2><span class="stamp">' +
       (com && com.de ? dm(com.de) + ' a ' + dm(com.ate) + ' · ' + com.semanas.length + ' semana(s)' : 'auditoria de segunda') + '</span></div>';
@@ -879,7 +889,7 @@ tr.sub td{color:var(--muted)}
       : ' Desde ' + dm(com.registro_obrigatorio_desde) + ', tentativa sem registro no Facilita conta como não feita.';
     return h + '<div class="scroll"><table><thead><tr><th>Corretor (no envio)</th><th class="r">Leads</th><th class="r">1º contato em até 2h</th><th class="r">Mediana até o 1º registro</th><th class="r">Sem registro</th><th class="r">Alertas</th></tr></thead><tbody>' +
       com.corretores.map(function (c) { return lin(c, false); }).join('') + lin(com.total, true) + '</tbody></table></div>' +
-      '<div class="small muted">Da entrada no Facilita ao 1º registro do corretor, em horas úteis (seg–sex, 8h–18h). Corretor = o dono do negócio no envio da SATI.' + regra + '</div></div>';
+      '<div class="small muted">Da entrada no Facilita ao 1º registro do corretor, ' + regraAtend(com).nota + '. Corretor = o dono do negócio no envio da SATI.' + regra + '</div></div>';
   }
 
   /* ══════════ (12/10) o (?) de cada quadro — pedido do Ricardo ══════════
@@ -1033,7 +1043,6 @@ tr.sub td{color:var(--muted)}
      Monta o texto SÓ com o que a tela já carregou (a última resposta da rota): nenhuma chamada nova, nenhuma conta além de
      arredondar e da razão Google ÷ Meta. Só copia — não envia, não grava. No texto: "lead qualificado" (classe A); nunca
      "SQL" nem "MQL". Linha sem dado (a Estrela não tem meta nem previsão) sai do texto em vez de mostrar zero. */
-  var BOL_ATENDIMENTO = false;   // ligar só quando a nota do atendimento usar a regra de 22/10 (todos os dias, 8h–18h)
   var BOL_OFFLINE = /outdoor|panfleta|r[aá]dio|busdoor|painel de led|evento/i;
   var ultimoR = null, bolAberto = false;
 
@@ -1083,11 +1092,12 @@ tr.sub td{color:var(--muted)}
       if (camp.length) d.custoCampanhas = camp.map(function (c) { return { canal: c.canal, sql: c.custo.custo_sql }; });
     }
 
-    // atendimento (bloco desligado pela constante): total em até 2h, corretores ≥ 70% e < 40% (com 5 leads ou mais)
+    /* atendimento (23/10, ligado): da tabela "Atendimento comercial" — o total "em até 2h" e os corretores com 70% ou mais e
+       com menos de 40%, sem "(sem corretor)" e sem quem tem menos de 5 leads; a regra de contagem é a mesma da nota da tela */
     var com = E.comercial;
     if (com && com.total && com.total.r1_n) {
-      var cor = (com.corretores || []).filter(function (c) { return c.r1_n >= 5 && c.corretor !== '(sem corretor)'; });
-      d.atend = { total: com.total.r1,
+      var cor = (com.corretores || []).filter(function (c) { return c.leads >= 5 && c.r1_n && c.corretor !== '(sem corretor)'; });
+      d.atend = { total: com.total.r1, regra: regraAtend(com).boletim,
                   altos: cor.filter(function (c) { return c.r1 >= 0.7; }),
                   baixos: cor.filter(function (c) { return c.r1 < 0.4; }) };
     }
@@ -1185,8 +1195,8 @@ tr.sub td{color:var(--muted)}
       }
       L.push('');
     }
-    if (BOL_ATENDIMENTO && d.atend) {
-      var a = d.atend, t = '*Atendimento:* ' + Math.round(a.total * 100) + '% dos leads recebem o primeiro contato em até 2 horas.';
+    if (d.atend) {
+      var a = d.atend, t = '*Atendimento:* ' + Math.round(a.total * 100) + '% dos leads recebem o primeiro contato em até 2 horas ' + a.regra + '.';
       if (a.altos.length) t += ' ' + lista(a.altos.map(function (x) { return x.corretor; })) + (a.altos.length > 1 ? ' passam' : ' passa') + ' de 70%.';
       if (a.baixos.length) {
         var pcts = a.baixos.map(function (x) { return Math.round(x.r1 * 100); });
@@ -1220,8 +1230,8 @@ tr.sub td{color:var(--muted)}
       chk(rs.offline, 'Falta o custo offline', 'origem offline com "sem gasto lançado" no custo por venda do Pocket') +
       chk(rs.semanaNaoLida, 'Semana ainda não lida', 'a última semana completa (' + dm(d.ultCompleta) + ') ainda sem leitura de qualidade') +
       chk(rs.atrasados.length > 0, 'Dado atrasado', rs.atrasados.length ? 'cinza na Saúde do dado: ' + rs.atrasados.map(function (f) { return f.rotulo; }).join(', ') : 'algum item da Saúde do dado cinza');
-    $('bolBlocos').innerHTML = '<div class="bol-chk ' + (BOL_ATENDIMENTO ? 'on' : 'off') + '"><span class="dot"></span><div><b>Atendimento · ' + (BOL_ATENDIMENTO ? 'ligado' : 'desligado') +
-      '</b><small>Só entra quando a nota da tela usar a regra de 22/10 (todos os dias, 8h–18h). Até lá o bloco fica fora do texto.</small></div></div>';
+    $('bolBlocos').innerHTML = '<div class="bol-chk ' + (d.atend ? 'on' : 'off') + '"><span class="dot"></span><div><b>Atendimento · ' + (d.atend ? 'no texto' : 'sem dado') +
+      '</b><small>Contagem pela regra da nota da tela: ' + esc(regraAtend((ultimoR[d.emp] || {}).comercial).boletim.replace(/^\(|\)$/g, '')) + '.</small></div></div>';
     $('bolTitulo').textContent = '📨 Boletim do Rodrigo · ' + (d.emp === 'ps' ? 'Parque da Saudade' : 'Estrela Urbanidade');
   }
 
