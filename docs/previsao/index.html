@@ -230,6 +230,28 @@ tr.sub td{color:var(--muted)}
 .gatebox button{font:600 14px var(--f-head);border:0;border-radius:4px;padding:8px;background:var(--ink);color:var(--panel);cursor:pointer}
 .gatebox .erro{color:var(--bad);font-size:12.5px;min-height:16px}
 
+/* (23/10) o Boletim do Rodrigo: botão no topo e o quadro do protótipo aprovado (artefato UAniHGgh…) — monta o texto
+   com os números que a tela já carregou; só copia, não envia nem grava */
+.btBol{font:600 13px var(--f-body);border:1px solid var(--hl);background:var(--hl);color:#1a1205;border-radius:6px;padding:5px 12px;cursor:pointer}
+.btBol:disabled{opacity:.45;cursor:default}
+.btBol[aria-expanded="true"]{background:transparent;color:var(--hl)}
+.btBol:focus-visible,.bolBt:focus-visible,#bolTexto:focus-visible,#bolPergunta:focus-visible{outline:2px solid var(--hl);outline-offset:2px}
+.bol{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:16px}
+.bol-l,.bol-r{display:grid;gap:10px;align-content:start;min-width:0}
+.bol label{display:grid;gap:5px;font-size:12px;color:var(--muted)}
+#bolPergunta{width:100%;font:14px var(--f-body);color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:8px 10px}
+#bolTexto{width:100%;min-height:340px;resize:vertical;font:14px/1.55 var(--f-body);color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:12px}
+.bol-acoes{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.bolBt{font:600 13px var(--f-body);border:1px solid var(--line);background:var(--off-soft);color:var(--ink);border-radius:6px;padding:7px 12px;cursor:pointer}
+.bolBt.pri{background:var(--hl);border-color:var(--hl);color:#1a1205}
+.bol-st{font-size:12px;color:var(--ok);min-height:16px}
+.bol-tag{font:600 11px var(--f-num);letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.bol-chk{display:grid;grid-template-columns:auto 1fr;gap:10px;align-items:start;padding:8px 10px;border:1px solid var(--line);border-radius:6px;background:var(--off-soft);font-size:13px}
+.bol-chk .dot{margin-top:5px}
+.bol-chk.on .dot{background:var(--hl)} .bol-chk.off .dot{background:var(--off)}
+.bol-chk small{display:block;color:var(--muted);font-size:12px}
+@media (max-width:1000px){.bol{grid-template-columns:minmax(0,1fr)}}
+
 /* A GUARDA DO [hidden] (regra da casa): toda classe que declara `display` ganha o par. */
 .gate[hidden],.panel[hidden],.aviso[hidden],.fresh[hidden],.layer[hidden],.g2[hidden],.g57[hidden],.g75[hidden],
 .tabs[hidden],.offbox[hidden],.tip[hidden],section[hidden]{display:none!important}
@@ -260,6 +282,7 @@ tr.sub td{color:var(--muted)}
   <div class="topo">
     <a class="voltar" href="../">← Painel Comercial</a>
     <a class="voltar" href="https://claude.ai/artifact/WK7tVgqjCtsRSmCzPLr2Ei" target="_blank" rel="noopener" title="Abre o Manual da Previsão de Vendas numa aba nova (exige estar logado no Claude com acesso à página)">📘 Manual da tela ↗</a>
+    <button class="btBol" id="btBoletim" type="button" aria-expanded="false" aria-controls="boletim" disabled title="Monta o texto da semana com os números desta tela, para copiar e colar. Não envia nada.">📨 Boletim do Rodrigo</button>
   </div>
 
   <div class="bar">
@@ -277,6 +300,30 @@ tr.sub td{color:var(--muted)}
       <button role="tab" id="tab-eu" aria-selected="false" aria-controls="view-eu" type="button">Estrela Urbanidade</button>
     </div>
   </div>
+
+  <section class="panel" id="boletim" aria-labelledby="bolTitulo" hidden>
+    <div class="head"><h2 id="bolTitulo">📨 Boletim do Rodrigo</h2><span class="chip" id="bolLeitura"></span></div>
+    <div class="bol">
+      <div class="bol-l">
+        <label for="bolPergunta">Pergunta da semana · sugestão do fato com maior variação, edite antes de copiar
+          <input type="text" id="bolPergunta" autocomplete="off"></label>
+        <label for="bolTexto">Texto pronto · formatação do WhatsApp (*negrito*); pode editar aqui
+          <textarea id="bolTexto" spellcheck="false"></textarea></label>
+        <div class="bol-acoes">
+          <button class="bolBt pri" id="bolCopiar" type="button">Copiar texto</button>
+          <button class="bolBt" id="bolRefazer" type="button">Refazer a partir da tela</button>
+          <span class="bol-st" id="bolStatus" role="status"></span>
+        </div>
+      </div>
+      <div class="bol-r">
+        <span class="bol-tag">Ressalvas automáticas</span>
+        <div id="bolRessalvas" style="display:grid;gap:8px"></div>
+        <span class="bol-tag">Blocos</span>
+        <div id="bolBlocos" style="display:grid;gap:8px"></div>
+        <p class="small muted" style="margin:0">Só copia: nada é enviado nem gravado. Os números são os que esta tela carregou.</p>
+      </div>
+    </div>
+  </section>
 
   <div id="estado"><p class="espera">Lendo o Facilita e a mídia…</p></div>
   <section id="view-ps" role="tabpanel" aria-labelledby="tab-ps" style="display:grid;gap:14px" hidden></section>
@@ -971,6 +1018,191 @@ tr.sub td{color:var(--muted)}
     return h;
   }
 
+  /* ══════════ (23/10) o Boletim do Rodrigo ══════════
+     Protótipo aprovado pelo Ricardo: claude.ai/artifact/UAniHGgh5cMHJ6MamnpAc1 (layout, formato e "de onde vem cada linha").
+     Monta o texto SÓ com o que a tela já carregou (a última resposta da rota): nenhuma chamada nova, nenhuma conta além de
+     arredondar e da razão Google ÷ Meta. Só copia — não envia, não grava. No texto: "lead qualificado" (classe A); nunca
+     "SQL" nem "MQL". Linha sem dado (a Estrela não tem meta nem previsão) sai do texto em vez de mostrar zero. */
+  var BOL_ATENDIMENTO = false;   // ligar só quando a nota do atendimento usar a regra de 22/10 (todos os dias, 8h–18h)
+  var BOL_OFFLINE = /outdoor|panfleta|r[aá]dio|busdoor|painel de led|evento/i;
+  var ultimoR = null, bolAberto = false;
+
+  var r0 = function (v) { return 'R$ ' + Math.round(v).toLocaleString('pt-BR'); };
+  var lista = function (a) { return a.length < 2 ? a.join('') : a.slice(0, -1).join(', ') + ' e ' + a[a.length - 1]; };
+  function isoMais(iso, n) {
+    var d = new Date(Date.UTC(+iso.slice(0, 4), +iso.slice(5, 7) - 1, +iso.slice(8, 10) + n));
+    return d.toISOString().slice(0, 10);
+  }
+  function segundaDe(iso) {
+    var d = new Date(Date.UTC(+iso.slice(0, 4), +iso.slice(5, 7) - 1, +iso.slice(8, 10)));
+    return isoMais(iso, -((d.getUTCDay() + 6) % 7));
+  }
+
+  /* Tudo o que o texto usa, lido da resposta já carregada. emp = 'ps' | 'eu'. */
+  function bolDados(r, emp) {
+    var E = r[emp], cap = E.captacao || {}, c2 = E.camada2 || null, d = { emp: emp };
+    d.titulo = emp === 'ps' ? 'Comercial Parque' : 'Comercial Estrela';
+    d.semana = segundaDe(r.hoje);
+    d.leitura = E.vendas_atualizado_em || r.atualizado_em;
+
+    // vendas: realizado, meta, previsto · "até" = véspera da leitura quando ela é antes das 6h
+    if (E.realizado !== undefined && E.realizado !== null && E.meta) {
+      var lv = String(E.vendas_atualizado_em || '');
+      d.ate = lv ? (Number(lv.slice(11, 13)) < 6 ? isoMais(lv.slice(0, 10), -1) : lv.slice(0, 10)) : r.hoje;
+      d.vendas = { realizado: E.realizado, meta: E.meta, prev: c2 && c2.previsto ? c2.previsto : null };
+      var ha = isoMais(r.hoje, -7), hist = (c2 && c2.historico && c2.historico.mes_atual) || [];
+      hist.forEach(function (x) { if (x.data === ha && x.central !== null && x.central !== undefined) d.vendas.semanaPassada = x.central; });
+    }
+
+    // captação: as 2 últimas semanas completas e lidas · o necessário por semana do funil reverso
+    var compl = (cap.semanas || []).filter(function (s) { return s.completa && s.lida; }).slice(-2);
+    if (compl.length) d.captacao = { semanas: compl.map(function (s) { return { s: s.semana, v: s.sql }; }),
+                                     necessario: c2 && c2.reverso ? c2.reverso.por_semana.valor : null };
+
+    // custo: custo por SQL do Meta e do Google (Custo por canal) · custo por venda pelo Pocket (mês vigente e anterior)
+    var canal = function (nome) { return (cap.canais || []).filter(function (c) { return c.canal === nome && c.custo && c.custo.custo_sql > 0; })[0] || null; };
+    var meses = (E.custo_origem && E.custo_origem.meses) || [];
+    var origem = function (m, nome) { return m ? m.linhas.filter(function (l) { return l.origem === nome; })[0] || null : null; };
+    var cm = canal('Meta Ads'), cg = canal('Google (landing page)');
+    if (cm || cg) {
+      d.custo = { meta: cm ? cm.custo.custo_sql : null, google: cg ? cg.custo.custo_sql : null,
+                  metaMes: origem(meses[0], 'Meta Ads'), metaAnt: origem(meses[1], 'Meta Ads'), googleMes: origem(meses[0], 'Google (busca)') };
+    } else {
+      // a Estrela: as campanhas da Comunica Bem, cada uma com o seu custo por lead qualificado
+      var camp = (cap.canais || []).filter(function (c) { return c.custo && c.custo.custo_sql > 0; });
+      if (camp.length) d.custoCampanhas = camp.map(function (c) { return { canal: c.canal, sql: c.custo.custo_sql }; });
+    }
+
+    // atendimento (bloco desligado pela constante): total em até 2h, corretores ≥ 70% e < 40% (com 5 leads ou mais)
+    var com = E.comercial;
+    if (com && com.total && com.total.r1_n) {
+      var cor = (com.corretores || []).filter(function (c) { return c.r1_n >= 5 && c.corretor !== '(sem corretor)'; });
+      d.atend = { total: com.total.r1,
+                  altos: cor.filter(function (c) { return c.r1 >= 0.7; }),
+                  baixos: cor.filter(function (c) { return c.r1 < 0.4; }) };
+    }
+
+    // pergunta da semana: a origem do Pocket com a maior variação de vendas entre o mês anterior e o vigente
+    if (meses.length >= 2) {
+      var nomes = [], melhor = null;
+      meses.slice(0, 2).forEach(function (m) { m.linhas.forEach(function (l) { if (nomes.indexOf(l.origem) < 0) nomes.push(l.origem); }); });
+      nomes.forEach(function (n) {
+        var a = origem(meses[1], n), b = origem(meses[0], n);
+        var va = a ? a.vendas || 0 : 0, vb = b ? b.vendas || 0 : 0;
+        if (!melhor || Math.abs(vb - va) > Math.abs(melhor.mes - melhor.ant)) melhor = { origem: n, ant: va, mes: vb };
+      });
+      if (melhor && melhor.mes !== melhor.ant) d.variacao = melhor;
+    }
+
+    // ressalvas — cada uma pela regra do protótipo
+    var fQ = frescorDe(E, 'qualidade'), ultCompleta = isoMais(d.semana, -7);
+    var offline = [];
+    meses.slice(0, 2).forEach(function (m) { m.linhas.forEach(function (l) {
+      if (BOL_OFFLINE.test(l.origem) && l.gasto === null && offline.indexOf(l.origem) < 0) offline.push(l.origem);
+    }); });
+    d.ress = {
+      emValidacao: !!(c2 && c2.selo && c2.selo.em_validacao),
+      offline: offline.length > 0,
+      semanaNaoLida: !!(fQ && (!fQ.semana || fQ.semana < ultCompleta)),
+      atrasados: (E.frescor || []).filter(function (f) { return f.estado === 'atrasado'; })
+    };
+    d.ultCompleta = ultCompleta;
+    d.proxima = r.proxima_leitura;
+    return d;
+  }
+
+  function bolPerguntaSugerida(d) {
+    var m = d.variacao;
+    if (!m) return '';
+    return 'As vendas por ' + m.origem + ' ' + (m.mes < m.ant ? 'caíram' : 'subiram') + ' de ' + m.ant + ' no mês passado para ' + m.mes + ' neste mês. O que mudou?';
+  }
+
+  function bolTexto(d, pergunta) {
+    var L = [];
+    L.push('*' + d.titulo + ' · semana de ' + dm(d.semana) + '*', '');
+    if (d.vendas) {
+      var v = d.vendas, p = v.prev;
+      L.push('*Vendas:* ' + v.realizado + ' de ' + v.meta + ' até ' + dm(d.ate) + '.' +
+        (p ? ' Estimativa para o mês: ' + p.baixo + ' a ' + p.alto + ', com ' + p.valor + ' no centro' + (d.ress.emValidacao ? ' (estimativa ainda em validação)' : '') + '.' : '') +
+        (v.semanaPassada !== undefined ? ' Há uma semana, o centro era ' + v.semanaPassada + '.' : ''), '');
+    }
+    if (d.captacao) {
+      var s = d.captacao.semanas, ult = s[s.length - 1].v, nec = d.captacao.necessario;
+      var linha = '*Captação:* os leads qualificados foram ' + lista(s.map(function (x) { return String(x.v); })) + ' ' +
+        (s.length > 1 ? 'nas semanas de ' : 'na semana de ') + lista(s.map(function (x) { return dm(x.s); })) + '.';
+      if (nec) linha += ' Para bater a meta, precisamos de cerca de ' + nec + ' por semana. ' +
+        (ult >= nec ? 'Estamos acima.' : ult >= nec * 0.9 ? 'Estamos perto, ainda abaixo.' : 'Estamos abaixo.');
+      L.push(linha);
+      if (d.ress.semanaNaoLida) L.push('A semana de ' + dm(d.ultCompleta) + ' será lida na segunda.');
+      L.push('');
+    }
+    if (d.custo) {
+      var c = d.custo, partes = [];
+      if (c.meta) partes.push('Meta, ' + r0(c.meta) + ' por lead qualificado' +
+        (c.metaMes && c.metaMes.custo_venda ? '; ' + r0(c.metaMes.custo_venda) + ' de mídia por venda neste mês' +
+          (c.metaAnt && c.metaAnt.custo_venda ? ' (mês passado: ' + r0(c.metaAnt.custo_venda) + ')' : '') : '') + '.');
+      if (c.google) partes.push('Google, ' + r0(c.google) + ' por lead qualificado' +
+        (c.meta ? ', ' + Math.round(c.google / c.meta) + ' vezes o Meta' : '') +
+        (c.googleMes && c.googleMes.vendas && c.googleMes.custo_venda ? '; ' + c.googleMes.vendas + ' venda' + (c.googleMes.vendas > 1 ? 's' : '') + ' no mês, a ' + r0(c.googleMes.custo_venda) + (c.googleMes.vendas > 1 ? ' cada' : '') : '') + '.');
+      L.push('*Custo:* ' + partes.join(' ') + (d.ress.offline ? ' Ainda falta o custo da mídia offline.' : ''), '');
+    } else if (d.custoCampanhas) {
+      L.push('*Custo:* ' + d.custoCampanhas.map(function (x) { return x.canal + ', ' + r0(x.sql) + ' por lead qualificado'; }).join('; ') + '.', '');
+    }
+    if (BOL_ATENDIMENTO && d.atend) {
+      var a = d.atend, t = '*Atendimento:* ' + Math.round(a.total * 100) + '% dos leads recebem o primeiro contato em até 2 horas.';
+      if (a.altos.length) t += ' ' + lista(a.altos.map(function (x) { return x.corretor; })) + (a.altos.length > 1 ? ' passam' : ' passa') + ' de 70%.';
+      if (a.baixos.length) {
+        var pcts = a.baixos.map(function (x) { return Math.round(x.r1 * 100); });
+        t += ' ' + lista(a.baixos.map(function (x) { return x.corretor; })) + (a.baixos.length > 1 ? ' ficam entre ' + Math.min.apply(null, pcts) + '% e ' + Math.max.apply(null, pcts) + '%.' : ' fica em ' + pcts[0] + '%.');
+      }
+      L.push(t, '');
+    }
+    if (d.ress.atrasados.length) {
+      L.push('_Atenção: ' + lista(d.ress.atrasados.map(function (f) { return f.rotulo + (f.dias !== null && f.dias !== undefined ? ' (' + f.dias + ' dias)' : ''); })) +
+        (d.ress.atrasados.length > 1 ? ' estão atrasados' : ' está atrasado') + '; os números que dependem ' + (d.ress.atrasados.length > 1 ? 'deles' : 'dele') + ' podem estar velhos._', '');
+    }
+    if (pergunta) L.push('*Pergunta da semana:* ' + pergunta);
+    while (L.length && L[L.length - 1] === '') L.pop();
+    return L.join('\n');
+  }
+
+  function bolAba() { return $('tab-eu').getAttribute('aria-selected') === 'true' ? 'eu' : 'ps'; }
+
+  function bolMontar(refazer) {
+    if (!ultimoR) return;
+    var d = bolDados(ultimoR, bolAba());
+    if (refazer) $('bolPergunta').value = bolPerguntaSugerida(d);
+    $('bolTexto').value = bolTexto(d, $('bolPergunta').value.trim());
+    $('bolLeitura').textContent = 'montado com a leitura de ' + dmh(d.leitura);
+    var chk = function (on, titulo, regra) {
+      return '<div class="bol-chk ' + (on ? 'on' : 'off') + '"><span class="dot"></span><div><b>' + esc(titulo) + ' · ' + (on ? 'ligada' : 'desligada') + '</b><small>' + esc(regra) + '</small></div></div>';
+    };
+    var rs = d.ress;
+    $('bolRessalvas').innerHTML =
+      chk(rs.emValidacao, 'Estimativa em validação', 'selo "em validação" do bloco 2 ligado') +
+      chk(rs.offline, 'Falta o custo offline', 'origem offline com "sem gasto lançado" no custo por venda do Pocket') +
+      chk(rs.semanaNaoLida, 'Semana ainda não lida', 'a última semana completa (' + dm(d.ultCompleta) + ') ainda sem leitura de qualidade') +
+      chk(rs.atrasados.length > 0, 'Dado atrasado', rs.atrasados.length ? 'cinza na Saúde do dado: ' + rs.atrasados.map(function (f) { return f.rotulo; }).join(', ') : 'algum item da Saúde do dado cinza');
+    $('bolBlocos').innerHTML = '<div class="bol-chk ' + (BOL_ATENDIMENTO ? 'on' : 'off') + '"><span class="dot"></span><div><b>Atendimento · ' + (BOL_ATENDIMENTO ? 'ligado' : 'desligado') +
+      '</b><small>Só entra quando a nota da tela usar a regra de 22/10 (todos os dias, 8h–18h). Até lá o bloco fica fora do texto.</small></div></div>';
+    $('bolTitulo').textContent = '📨 Boletim do Rodrigo · ' + (d.emp === 'ps' ? 'Parque da Saudade' : 'Estrela Urbanidade');
+  }
+
+  $('btBoletim').addEventListener('click', function () {
+    bolAberto = !bolAberto;
+    $('boletim').hidden = !bolAberto;
+    $('btBoletim').setAttribute('aria-expanded', bolAberto);
+    if (bolAberto) { $('bolStatus').textContent = ''; bolMontar(true); $('bolTexto').focus(); }
+  });
+  $('bolPergunta').addEventListener('input', function () { bolMontar(false); });
+  $('bolRefazer').addEventListener('click', function () { bolMontar(true); $('bolStatus').textContent = 'Texto refeito com os números da tela.'; });
+  $('bolCopiar').addEventListener('click', function () {
+    var t = $('bolTexto').value;
+    var ok = function () { $('bolStatus').textContent = 'Copiado. Cole no WhatsApp ou no e-mail.'; };
+    var manual = function () { $('bolTexto').focus(); $('bolTexto').select(); $('bolStatus').textContent = 'Texto selecionado: use Ctrl+C.'; };
+    try { navigator.clipboard.writeText(t).then(ok, manual); } catch (e) { manual(); }
+  });
+
   /* ══════════ abas ══════════ */
   var TABS = [['tab-ps', 'view-ps'], ['tab-eu', 'view-eu']];
   function mostrar(tab) {
@@ -980,10 +1212,12 @@ tr.sub td{color:var(--muted)}
       $(q[1]).hidden = !on;
     });
     try { localStorage.setItem(CHAVE_ABA, tab); } catch (e) {}
+    if (bolAberto) { $('bolStatus').textContent = ''; bolMontar(true); }   // (23/10) o boletim segue a aba
   }
   TABS.forEach(function (p) { $(p[0]).addEventListener('click', function () { mostrar(p[0]); }); });
 
   function desenhar(r) {
+    ultimoR = r; $('btBoletim').disabled = false;
     $('view-ps').innerHTML = parque(r);
     $('view-eu').innerHTML = estrela(r);
     ajFechar(); ajudar(document);
