@@ -1409,7 +1409,7 @@ function renderVen(){
   const estFlag=L.some(v=>v.est);
   $('#kVen').innerHTML=
     kpiTile('Vendas',fN(n))+
-    kpiTile('VGV',fR$(vgv))+
+    kpiTile('VGV',vgv>=1e8?'R$ '+fMi(vgv):fR$(vgv),vgv>=1e8?fR$(vgv):'')+   // a série legado passa de R$ 100 mi e não cabe no cartão
     kpiTile('Ticket médio',n?fR$(vgv/n):'—')+
     kpiTile('Área vendida',fN(ar,0)+' m²'+(estFlag?' *':''),estFlag?'* inclui A52 estimado (350 m²)':'')+
     kpiTile('Metragem média',cA.length?fN(ar/cA.length,0)+' m²':'—')+
