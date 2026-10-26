@@ -463,6 +463,9 @@ align-items:center;gap:3px;cursor:pointer;min-width:0}
 
 <!-- ================= ESTOQUE ================= -->
 <section class="panel" id="pEst">
+  <!-- (25/10/2026, passo B) Nota de conferência do estoque vindo do CRM. Montada do
+       bloco `estoque_fonte` do Cofre — nenhum número dela fica escrito aqui. -->
+  <div class="notes" id="notaEst" hidden></div>
   <div class="filters" id="fEst"></div>
   <div class="kpis" id="kEst"></div>
   <div class="grid2">
@@ -488,8 +491,8 @@ align-items:center;gap:3px;cursor:pointer;min-width:0}
        estoque (propriedade, fase, base de valor não existem na venda): mostra todas. -->
   <div class="grid2" style="grid-template-columns:repeat(auto-fill,minmax(min(430px,100%),1fr))"><div class="card">
     <h3>Descontos — nº de vendas por faixa</h3>
-    <p class="note">Todas as vendas da planilha (jan/25–jun/26) — os filtros acima são do estoque e não se aplicam aqui.
-      Faixas do % de desconto da col. H. "Não informado" = vendas sem o campo (jan–abr/25 e lotes gêmeos).</p>
+    <p class="note">Vendas de 2025 e 2026 da série (legado) — os filtros acima são do estoque e não se aplicam aqui.
+      Faixas do % de desconto (PERC do Mega; o da planilha onde o Mega não tem). "Não informado" = sem desconto nas duas fontes.</p>
     <div class="legend"><span><span class="k" style="background:var(--s1)"></span>2025</span>
       <span><span class="k" style="background:var(--s2)"></span>2026</span></div>
     <div id="chDescFEst"></div>
@@ -1240,6 +1243,34 @@ const fe=mkFilters($('#fEst'),[
   {key:'base',label:'Base de valor',opts:BASE,radio:true},
 ],renderEst);
 
+/* (25/10, passo B) NOTA DE CONFERÊNCIA do estoque: o à-venda é o do CRM, a planilha
+   só cobre os lotes fora dele. Divergência vira nota — nenhum lote sai por causa dela. */
+(function notaEst(){
+  const F=DATA.estoque_fonte, el=$('#notaEst');
+  if(!el||!F||F.aba!=='Estoque_Facilita_EU')return;
+  const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  const ps=F.porSituacao||{}, dv=F.divergencias||{};
+  const tipos=['SO_NA_PLANILHA','TERCEIROS_NAO_DISPONIVEL','SO_NO_FACILITA','RESERVADO_NO_CRM','VALOR_DIFERENTE','AREA_DIFERENTE','SEM_PRECO_NO_CRM','SEM_DISPONIBILIDADE']
+    .filter(t=>dv[t]).map(t=>`${t} ${fN(dv[t])}`).join(' · ');
+  const dif=(F.vgv_eu||0)-(F.vgv_eu_digitado||0);
+  const li=[
+    `<b>O estoque à venda agora é o do CRM (Facilita):</b> ${fN(F.crm)} lotes`+
+      ` (${Object.keys(ps).map(k=>fN(ps[k])+' '+esc(k.toLowerCase())).join(' · ')}), espelho da conferência das 4h`+
+      (F.espelho_em?` de ${esc(F.espelho_em)}`:'')+`. A planilha tem ${fN(F.planilha_lotes)}; a diferença está catalogada na aba <code>Divergencias_EU</code> do Cofre da Estrela`+
+      (tipos?` (${tipos}`+(F.conferencia_em?`, contagem de ${esc(F.conferencia_em)}`:'')+`)`:'')+` — é para <b>conferir</b>, não para corrigir o Painel de volta.`+
+      (F.conferencia_em&&F.espelho_em&&F.conferencia_em.slice(0,10)<F.espelho_em.slice(0,10)?` <b>⚠ O catálogo de divergências é mais velho que o espelho</b> (${esc(F.conferencia_em)} × ${esc(F.espelho_em)}): os lotes da tela são os do CRM de hoje; a lista de diferenças, não.`:''),
+    `<b>${fN(F.ponte)} lotes ainda vêm da planilha</b> (fora do CRM, coluna Fonte = "planilha — ainda não no CRM"): ${(F.ponte_lotes||[]).map(esc).join(' · ')}. VGV E/U deles: ${fR$(F.ponte_vgv_eu||0)}.`,
+    `<b>Valor E/U é conta:</b> preço vivo do CRM × % E/U da <code>Atributos_EU</code>, não o número digitado. Total E/U agora ${fR$(F.vgv_eu||0)}; o digitado na planilha soma ${fR$(F.vgv_eu_digitado||0)}`+
+      (Math.abs(dif)>=1?` (diferença de ${dif>0?'+':'−'}${fR$(Math.abs(dif))}: preço vivo × digitado e os lotes que mudaram de situação).`:' — iguais.'),
+    `<b>Fase</b> vem da <code>Atributos_EU</code>: o CRM marca "1" em todas as unidades e não carrega a fase.`,
+  ];
+  if((F.sem_atributos||[]).length) li.push(`<b>⚠ ${fN(F.sem_atributos.length)} lote(s) à venda no CRM sem linha na Atributos_EU</b> — entram com % E/U desconhecido (Valor E/U 0): ${F.sem_atributos.map(esc).join(' · ')}.`);
+  if((F.duplicadas||[]).length) li.push(`<b>⚠ Lote da planilha que também está no CRM:</b> ${F.duplicadas.map(esc).join(' · ')} — contado duas vezes.`);
+  if(F.ultimo_erro) li.push(`<b>⚠ A última conferência das 4h falhou depois de gravar o espelho:</b> ${esc(F.ultimo_erro)}.`);
+  el.innerHTML='<details><summary><b>Nota de conferência — estoque do CRM</b></summary><ul>'+li.map(x=>'<li>'+x+'</li>').join('')+'</ul></details>';
+  el.hidden=false;
+})();
+
 function estFiltrado(){
   return E.filter(l=>fe.emp.includes(l.emp)&&fe.prop.includes(pgrupo(l))
     &&fe.fase.includes(l.fase||'Sem fase')&&fe.uso.includes(l.uso));}
@@ -1342,7 +1373,7 @@ function drawEstTable(L){
   $('#nEstTbl').textContent=`(${fN(L.length)} terrenos)`;
   const t=$('#tEst');t.innerHTML='';
   const thead=t.createTHead().insertRow();
-  ['Empreendimento','Unidade','Propriedade','Fase','Uso','Área (m²)','% E/U','Valor total','Valor E/U','R$/m²','Origem']
+  ['Empreendimento','Unidade','Propriedade','Fase','Uso','Área (m²)','% E/U','Valor total','Valor E/U','R$/m²',E.some(l=>l.fonte)?'Fonte':'Origem']
     .forEach((h,i)=>{const th=document.createElement('th');th.textContent=h;
       if(i>=5&&i<=9)th.className='num';thead.appendChild(th);});
   const tb=t.createTBody();
@@ -1350,11 +1381,13 @@ function drawEstTable(L){
   ord.forEach(l=>{
     const r=tb.insertRow();
     const cells=[l.emp,l.unidade,l.prop,l.fase||'—',l.uso==='Misto'?'Uso misto':l.uso,
-      fN(l.area,2),fN(l.pct*100,0)+'%',fR$(l.vt),fR$(l.veu),fR$(l.vt/l.area),
+      fN(l.area,2),l.pct==null?'—':fN(l.pct*100,0)+'%',fR$(l.vt),fR$(l.veu),l.area?fR$(l.vt/l.area):'—',
+      // (25/10) com o estoque do CRM a coluna diz de onde veio o lote
+      l.fonte==='crm'?'CRM · '+(l.sit||''):l.fonte==='planilha'?'planilha — ainda não no CRM':
       l.origem==='informado'?'informado*':'arquivo'];
     cells.forEach((c,i)=>{const td=r.insertCell();td.textContent=c;
       if(i>=5&&i<=9)td.className='num';
-      if(i===10&&l.origem==='informado')td.className='muted';});
+      if(i===10&&(l.origem==='informado'||l.fonte==='planilha'))td.className='muted';});
   });
 }
 
@@ -1394,7 +1427,8 @@ const fv=mkFilters($('#fVen'),[
   if(dup.length) li.push(`<b>⚠ ${fN(dup.length)} venda(s) da planilha sem contrato têm o mesmo valor de um contrato do Mega no mesmo empreendimento</b> — pode ser a mesma venda contada duas vezes (o lote é escrito de outro jeito nas duas fontes). Estão no total; a conferir: `+
     dup.map(x=>`${esc(abrev(x.emp))} ${esc(x.lote)} (${esc(x.mes)}, ${fR$(x.vgv)}) × contrato ${x.contratos.map(esc).join(' / ')}`).join(' · ')+'.');
   if(S.planilha_mudou) li.push(`<b>⚠ A planilha de vendas mudou depois da última carga</b> (${fN(S.planilha_na_carga)} linhas na carga, ${fN(S.planilha_agora)} agora) — a venda nova só entra aqui quando a <code>carregarVendasEU</code> rodar de novo.`);
-  el.innerHTML='<b>Nota de conferência — série histórica (legado)</b><ul>'+li.map(x=>'<li>'+x+'</li>').join('')+'</ul>';
+  // (25/10) colapsada por padrão — abre no clique
+  el.innerHTML='<details><summary><b>Nota de conferência — série histórica (legado)</b></summary><ul>'+li.map(x=>'<li>'+x+'</li>').join('')+'</ul></details>';
   el.hidden=false;
 })();
 
@@ -1606,7 +1640,7 @@ const fs=mkFilters($('#fSin'),[
   {key:'pg',label:'Propriedade dos terrenos',opts:PGRUPOS,off:['Terceiros']},
 ],renderSin);
 const HELP={
- 'Estoque à venda':'Lotes deste empreendimento que passam no filtro de propriedade e estão disponíveis para venda. A Fase 2 do Vale (não lançada) fica de fora. Fonte: foto de estoque de 01/07/2026 + uso misto informado.',
+ 'Estoque à venda':'Lotes deste empreendimento que passam no filtro de propriedade e estão disponíveis para venda. A Fase 2 do Vale (não lançada) fica de fora. Fonte (desde 25/10/2026): lotes à venda no CRM Facilita + os lotes que o CRM ainda não tem, da planilha.',
  'VGV de tabela':'Soma do preço cheio de tabela dos lotes filtrados — quanto o estoque renderia vendido a tabela, sem desconto, independentemente de quem é o dono do lote.',
  'VGV parte E/U':'Fatia da E/U dentro do VGV de tabela: 100% dos lotes exclusivos + o percentual da E/U nos compartilhados (63% no Bosque, 81% no Parque, 67% em parte do Lago). Lotes exclusivos de sócio (incl. permutantes do Alta Business) contam R$ 0 aqui.',
  'R$/m² de tabela':'VGV de tabela ÷ área total dos lotes filtrados. É o preço médio por m² que a tabela atual está pedindo pelo estoque.',
