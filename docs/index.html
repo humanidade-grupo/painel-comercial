@@ -502,6 +502,9 @@ align-items:center;gap:3px;cursor:pointer;min-width:0}
 
 <!-- ================= VENDAS ================= -->
 <section class="panel" id="pVen">
+  <!-- (25/10/2026) Nota de conferência da série legado (Vendas_EU). O texto é montado
+       do bloco `serie` que o Cofre manda — nenhum número dela fica escrito aqui. -->
+  <div class="notes" id="notaVen" hidden></div>
   <div class="filters" id="fVen"></div>
   <div class="kpis" id="kVen"></div>
   <div class="card">
@@ -512,14 +515,14 @@ align-items:center;gap:3px;cursor:pointer;min-width:0}
   <div class="grid2">
     <div class="card">
       <h3>Descontos — média por empreendimento</h3>
-      <p class="note">Média simples dos descontos informados (col. H) por empreendimento e ano; vendas sem registro ficam de fora.</p>
+      <p class="note">Média simples dos descontos por empreendimento e ano (PERC do Mega; o da planilha onde o Mega não tem); vendas sem registro ficam de fora.</p>
       <div class="legend"><span><span class="k" style="background:var(--s1)"></span>2025</span>
         <span><span class="k" style="background:var(--s2)"></span>2026</span></div>
       <div id="chDesc"></div>
     </div>
     <div class="card">
       <h3>Descontos — nº de vendas por faixa</h3>
-      <p class="note">Faixas do % de desconto da col. H. "Não informado" = vendas sem o campo (jan–abr/25 e lotes gêmeos).</p>
+      <p class="note">Faixas do % de desconto (PERC do Mega; o da planilha onde o Mega não tem). "Não informado" = contrato sem desconto nas duas fontes.</p>
       <div class="legend"><span><span class="k" style="background:var(--s1)"></span>2025</span>
         <span><span class="k" style="background:var(--s2)"></span>2026</span></div>
       <div id="chDescF"></div>
@@ -1357,7 +1360,9 @@ function drawEstTable(L){
 
 /* ================= VENDAS ================= */
 const EMPV=[...new Set(V.map(v=>v.emp))];
-const ANOS=['2025','2026'];
+/* (25/10) Os anos vêm do dado: a série legado (Vendas_EU) começa em 2020. Os quatro
+   gráficos de pares de barras seguem comparando 2025 × 2026. */
+const ANOS=[...new Set(V.filter(v=>v.ano).map(v=>String(v.ano)))].sort();
 const MODS=[...new Set(V.map(v=>v.mod))];
 const fv=mkFilters($('#fVen'),[
   {key:'ano',label:'Ano',opts:ANOS},
@@ -1365,6 +1370,33 @@ const fv=mkFilters($('#fVen'),[
   {key:'uso',label:'Uso',opts:['Residencial','Misto'],off:['Misto']},
   {key:'mod',label:'Cond. de pagamento',opts:MODS},
 ],renderVen);
+
+/* (25/10) NOTA DE CONFERÊNCIA da série legado. O que gera dúvida vira nota, não
+   corte: nenhuma linha sai do total por causa do que está escrito aqui. */
+(function notaVen(){
+  const S=DATA.serie, el=$('#notaVen');
+  if(!el||!S||S.aba!=='Vendas_EU')return;
+  const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  const pf=S.porFonte||{}, nH=pf['histórico']||0, nP=pf['planilha']||0, nF=pf['facilita']||0;
+  const dF=S.descFonte||{};
+  const mig=(S.migracao||[]).map(x=>`${fN(x.n)} em ${x.dia.split('-').reverse().join('/')}`).join(' · ');
+  const atip=(S.atipicos||[]).map(x=>`contrato ${esc(x.contrato)} (${esc(abrev(x.emp))} ${esc(x.lote)}, ${esc(x.mes)}): ${fN(x.desc*100,2)}%`).join(' · ');
+  const li=[
+    `<b>Legado.</b> Estas vendas são a série unificada do Cofre (<code>Vendas_EU</code>): ${fN(nH)} contratos do histórico do Mega desde 2020`+
+      (nP?` + ${fN(nP)} venda(s) da planilha sem contrato no Mega (Fonte = planilha)`:'')+(nF?` + ${fN(nF)} do Facilita`:'')+
+      ` = <b>${fN(S.total)}</b>. Distratos e permutas estão no total, como na aba Histórico; a coluna "Fonte · status" da tabela mostra cada um. Com todos os filtros em "Todos", o nº e o VGV batem com o "contratado" do Histórico${nP?' mais as da planilha':''}.`,
+    `<b>Datas antes de 2025 são, em grande parte, carga de migração</b>`+(mig?` (${mig})`:'')+` — o ritmo por mês antes de 2025 reflete cadastro no Mega, não venda.`,
+    `<b>Canal de Venda e Bloco só existem nas ${fN(S.comCanal||0)} vendas que casaram com a planilha</b> (e nas dela sem contrato); nas demais ficam em branco.`,
+    `<b>Desconto</b> = PERC do Mega em ${fN(dF.mega||0)} contratos; o da planilha em ${fN(dF.planilha||0)}; sem desconto em ${fN(dF.sem||0)}.`+
+      (atip?` <b>A conferir na origem</b> (acima de 50% ou negativo): ${atip}.`:''),
+  ];
+  const dup=S.duplicadas||[];
+  if(dup.length) li.push(`<b>⚠ ${fN(dup.length)} venda(s) da planilha sem contrato têm o mesmo valor de um contrato do Mega no mesmo empreendimento</b> — pode ser a mesma venda contada duas vezes (o lote é escrito de outro jeito nas duas fontes). Estão no total; a conferir: `+
+    dup.map(x=>`${esc(abrev(x.emp))} ${esc(x.lote)} (${esc(x.mes)}, ${fR$(x.vgv)}) × contrato ${x.contratos.map(esc).join(' / ')}`).join(' · ')+'.');
+  if(S.planilha_mudou) li.push(`<b>⚠ A planilha de vendas mudou depois da última carga</b> (${fN(S.planilha_na_carga)} linhas na carga, ${fN(S.planilha_agora)} agora) — a venda nova só entra aqui quando a <code>carregarVendasEU</code> rodar de novo.`);
+  el.innerHTML='<b>Nota de conferência — série histórica (legado)</b><ul>'+li.map(x=>'<li>'+x+'</li>').join('')+'</ul>';
+  el.hidden=false;
+})();
 
 function venFiltrado(){return V.filter(v=>fv.ano.includes(String(v.ano))&&fv.emp.includes(v.emp)&&fv.uso.includes(v.uso)&&fv.mod.includes(v.mod));}
 
@@ -1487,7 +1519,9 @@ function drawPrzChart(L){
 function drawVenChart(L,sel){
   const box=$(sel||'#chVen');box.innerHTML='';
   const meses=[];
-  for(let a=2025;a<=Math.floor(YM_FIM/100);a++)for(let m=1;m<=12;m++){
+  // (25/10) desde o primeiro ano filtrado — a série legado vai a 2020; 2025 se vazio
+  const a0=L.length?Math.min(...L.filter(v=>v.ano).map(v=>v.ano)):2025;
+  for(let a=a0;a<=Math.floor(YM_FIM/100);a++)for(let m=1;m<=12;m++){
     if(a*100+m>YM_FIM)break;meses.push(a*100+m);}
   const agg=meses.map(ym=>{const g=L.filter(v=>v.ym===ym);
     return {ym,n:g.length,vgv:g.reduce((s,v)=>s+v.vgv,0),
@@ -1544,7 +1578,7 @@ function drawVenTable(L){
   $('#nVenTbl').textContent=`(${fN(L.length)} vendas)`;
   const t=$('#tVen');t.innerHTML='';
   const thead=t.createTHead().insertRow();
-  ['Mês','Empreendimento','Uso','Unid.','Canal','VGV','Área (m²)','R$/m²','Desc.','Modalidade','Condição original']
+  ['Mês','Empreendimento','Uso','Unid.','Canal','VGV','Área (m²)','R$/m²','Desc.','Modalidade','Condição original','Bloco','Fonte · status']
     .forEach((h,i)=>{const th=document.createElement('th');th.textContent=h;
       if(i>=5&&i<=8)th.className='num';thead.appendChild(th);});
   const tb=t.createTBody();
@@ -1554,10 +1588,11 @@ function drawVenTable(L){
       v.area?fN(v.area,2)+(v.est?' *':''):'—',
       v.rm2?fR$(v.rm2):'—',
       v.desc===null||v.desc===undefined?'—':fN(v.desc*100,0)+'%',
-      v.mod,v.cond||'—']
+      v.mod,v.cond||'—',v.bloco||'—',
+      [v.fonte,v.tipo==='Permuta'?'permuta':'',v.status].filter(Boolean).join(' · ')||'—']
     .forEach((c,i)=>{const td=r.insertCell();td.textContent=c;
       if(i>=5&&i<=8)td.className='num';
-      if(i===10)td.className='muted';});
+      if(i>=10)td.className='muted';});
   });
 }
 
