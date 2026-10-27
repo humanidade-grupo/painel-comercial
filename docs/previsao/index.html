@@ -563,7 +563,13 @@ tr.sub td{color:var(--muted)}
     if (cap.avisos && cap.avisos.length) h += '<div class="aviso"><b>Aviso.</b> ' + cap.avisos.map(esc).join(' ') + '</div>';
 
     var sQ = velho(fQ), proxima = r.proxima_leitura;
-    var avisoQ = sQ ? '<b>Dado atrasado.</b> Último 1º contato lido: ' + dm(fQ && fQ.data) + ' (' + (fQ && fQ.dias !== null ? fQ.dias + ' dias' : 'nunca') + '). A semana de ' + dm(cap.semanas[cap.semanas.length - 1].semana) + ' chega na leitura de ' + dm(proxima) + '.'
+    /* (27/10) A frase diz QUAL semana faltou (semana fechada, de segunda a domingo, ainda não lida por inteiro) e, à parte,
+       quando sai a próxima leitura. Antes dizia a semana corrente, que ainda nem acabou. */
+    var faltou = [];
+    if (fQ && fQ.data) for (var wk = segundaDe(fQ.data); isoMais(wk, 6) < r.hoje; wk = isoMais(wk, 7)) if (isoMais(wk, 6) > fQ.data) faltou.push(wk);
+    var txtFaltou = faltou.length === 0 ? '' : faltou.length === 1 ? ' A semana de ' + dm(faltou[0]) + ' não foi lida.'
+      : ' As semanas de ' + faltou.map(dm).join(', ').replace(/, ([^,]*)$/, ' e $1') + ' não foram lidas.';
+    var avisoQ = sQ ? '<b>Dado atrasado.</b> Último 1º contato lido: ' + dm(fQ && fQ.data) + ' (' + (fQ && fQ.dias !== null ? fQ.dias + ' dias' : 'nunca') + ').' + txtFaltou + ' Próxima leitura: segunda, ' + dm(proxima) + '.'
                     : 'Em dia. Último 1º contato lido: ' + dm(fQ.data) + '.';
     var ref = c2.reverso ? c2.reverso.por_semana.valor : null;
     var maxS = teto(Math.max.apply(null, cap.semanas.map(function (s) { return s.sql; }).concat([ref || 0, 1])) * 1.1);
@@ -744,7 +750,7 @@ tr.sub td{color:var(--muted)}
         cat += '<tr class="risk"><td><b>Vendas ainda em Contrato · podem cair</b><span class="rg">já contam no realizado · não soma no previsto</span></td>' +
           '<td>' + rk.etapas.map(function (e) { return esc(e.etapa) + ' ' + nf(e.n); }).join(' · ') + '</td>' +
           '<td class="r num">' + nf(rk.negocios) + '</td><td class="r num">' + convR + '</td>' +
-          '<td class="r num">' + (rk.negocios ? '−' + faixa(Math.floor(pc_.baixo), Math.ceil(pc_.alto)) + '<span class="rg">podem não fechar · central ' + fxR(pc_.valor) + '</span>' : '<span class="grey">—</span>') + '</td></tr>';
+          '<td class="r num">' + (rk.negocios ? faixa(Math.max(0, Math.floor(pc_.baixo)), Math.max(0, Math.ceil(pc_.alto))) + '<span class="rg">podem não fechar · central ' + fxR(pc_.valor) + '</span>' : '<span class="grey">—</span>') + '</td></tr>';
         return;
       }
       var conv = c.etapas.map(function (e) {
