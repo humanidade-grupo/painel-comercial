@@ -951,7 +951,7 @@ tr.sub td{color:var(--muted)}
         var l = E.captacao && E.captacao.lvr, rv = E.camada2 && E.camada2.reverso;
         if (!l || !tem(l.variacao)) return null;
         return 'Última semana ' + lv(nf(l.sql)) + '; média das 3 anteriores ' + lv(nf(l.media_anteriores, 1)) + '; variação ' +
-          lv((l.variacao > 0 ? '+' : '') + pc(l.variacao, 0)) + (rv ? '; necessário ' + lv(nf(rv.por_semana.valor)) : '') + '.';
+          lv((l.variacao > 0 ? '+' : '') + pc(l.variacao, 0).replace('-', '−')) + (rv ? '; necessário ' + lv(nf(rv.por_semana.valor)) : '') + '.';
       } },
     { re: /^SQL (e custo )?por canal/,
       oque: 'De onde vêm os leads qualificados.',
