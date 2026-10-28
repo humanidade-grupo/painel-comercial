@@ -108,6 +108,28 @@ html.embutido .voltar{display:none}
 #ajPop{position:fixed;z-index:30;max-width:min(360px,calc(100vw - 32px));background:var(--ink);color:var(--bg);padding:10px 12px;
   border-radius:6px;font-size:13px;line-height:1.45;box-shadow:0 8px 28px rgba(0,0,0,.45)}
 #ajPop[hidden]{display:none}
+/* (27/10) o tour da tela: fundo escurecido, o quadro em destaque, o cartão do passo (no canto; no centro sem quadro; preso embaixo em tela estreita) */
+#tourDim{position:fixed;inset:0;background:rgba(4,7,10,.62);z-index:40}
+#tourDim[hidden],#tourCard[hidden]{display:none}
+.panel.tour-hl{position:relative;z-index:41;border-color:var(--hl);box-shadow:0 0 0 3px var(--hl),0 10px 40px rgba(0,0,0,.6)}
+#tourCard{position:fixed;z-index:42;right:16px;bottom:16px;width:min(420px,calc(100vw - 32px));max-height:calc(100vh - 32px);overflow:auto;
+  background:var(--panel);border:1px solid var(--hl);border-radius:12px;padding:16px;display:grid;gap:10px;box-shadow:0 12px 40px rgba(0,0,0,.6)}
+#tourCard.centro{right:50%;bottom:50%;transform:translate(50%,50%)}
+@media (max-width:700px){#tourCard,#tourCard.centro{left:8px;right:8px;bottom:8px;width:auto;transform:none;max-height:60vh}}
+#tourCard h2{font-size:18px}
+.tr-passo{font:600 11px var(--f-num);letter-spacing:.06em;color:var(--muted);text-transform:uppercase}
+.tr-barra{height:4px;background:var(--line);border-radius:2px;overflow:hidden} .tr-barra i{display:block;height:100%;background:var(--hl)}
+.tr-corpo{display:grid;gap:4px} .tr-corpo p{margin:0}
+.tr-l{font:600 11px var(--f-num);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-top:6px}
+.tr-l.ex{color:var(--hl)} .tr-l.ler{color:var(--ok)}
+.tr-corpo .lv{font-family:var(--f-num);font-variant-numeric:tabular-nums;font-size:12px;font-weight:600}
+.tr-termos{display:grid;gap:4px;margin-top:4px;padding-left:10px;border-left:2px solid var(--line);font-size:13px}
+.tr-nav{display:flex;gap:8px;justify-content:space-between;flex-wrap:wrap;align-items:center}
+.tr-bt{font:600 13px var(--f-body);border:1px solid var(--line);background:transparent;color:var(--ink);border-radius:6px;padding:6px 12px;cursor:pointer}
+.tr-bt.pri{background:var(--hl);border-color:var(--hl);color:#1a1205}
+.tr-bt:disabled{opacity:.4;cursor:default}
+.tr-bt:focus-visible{outline:2px solid var(--hl);outline-offset:2px}
+@media (prefers-reduced-motion:no-preference){.panel.tour-hl{transition:box-shadow .2s}}
 /* (12/10) o funil para frente */
 .wf{display:grid;gap:2px}
 .wf-r{display:grid;grid-template-columns:minmax(120px,190px) 1fr 52px;gap:10px;align-items:center}
@@ -285,6 +307,7 @@ tr.sub td{color:var(--muted)}
     <a class="voltar" href="../">← Painel Comercial</a>
     <a class="voltar" href="https://claude.ai/artifact/WK7tVgqjCtsRSmCzPLr2Ei" target="_blank" rel="noopener" title="Abre o Manual da Previsão de Vendas numa aba nova (exige estar logado no Claude com acesso à página)">📘 Manual da tela ↗</a>
     <button class="btBol" id="btBoletim" type="button" aria-expanded="false" aria-controls="boletim" disabled title="Monta o texto da semana com os números desta tela, para copiar e colar. Não envia nada.">📨 Boletim do Rodrigo</button>
+    <button class="btBol" id="btTour" type="button" disabled title="Passa por cada quadro da aba aberta, com o que é, o exemplo de hoje e como ler. Não grava nada.">▶ Tour da tela</button>
   </div>
 
   <div class="bar">
@@ -346,6 +369,18 @@ tr.sub td{color:var(--muted)}
 </div>
 <div class="tip" id="tip" hidden></div>
 <div id="ajPop" role="tooltip" hidden></div>
+<div id="tourDim" hidden></div>
+<div id="tourCard" role="dialog" aria-modal="true" aria-labelledby="tourTitulo" hidden>
+  <span id="tourPasso" class="tr-passo"></span>
+  <div class="tr-barra"><i id="tourBarra"></i></div>
+  <h2 id="tourTitulo"></h2>
+  <div id="tourCorpo" class="tr-corpo"></div>
+  <div class="tr-nav">
+    <button class="tr-bt" id="tourSair" type="button">Sair</button>
+    <span><button class="tr-bt" id="tourAnt" type="button">← Anterior</button> <button class="tr-bt pri" id="tourProx" type="button">Próximo →</button>
+      <button class="tr-bt" id="tourRefazer" type="button" hidden>Refazer</button> <button class="tr-bt pri" id="tourFechar" type="button" hidden>Fechar</button></span>
+  </div>
+</div>
 
 <script>
 (function () {
@@ -1088,14 +1123,19 @@ tr.sub td{color:var(--muted)}
       ex: null }
   ];
   var ajAberto = null, ajFixo = false;
-  function ajMostrar(btn) {
-    var pop = $('ajPop'), d = btn._aj, ex = null;
+  /* (27/10) O conteúdo de um (?) — a fonte única do balão e do tour da tela. */
+  function ajConteudo(btn) {
+    var d = btn._aj, ex = null;
     if (d.ex && ultimoR) {
       var emp = btn.closest('#view-eu') ? 'eu' : 'ps';
       try { ex = d.ex(ultimoR[emp] || {}, ultimoR); } catch (e) { ex = null; }   // dado que falta não quebra a ajuda: o exemplo sai
     }
-    pop.innerHTML = '<b>O que é</b><p>' + esc(d.oque) + '</p>' + (ex ? '<b class="ex">Exemplo de hoje</b><p>' + ex + '</p>' : '') +
-      '<b class="ler">Como ler</b><p>' + esc(d.ler) + '</p>';
+    return { oque: d.oque, ex: ex, ler: d.ler };
+  }
+  function ajMostrar(btn) {
+    var pop = $('ajPop'), c = ajConteudo(btn);
+    pop.innerHTML = '<b>O que é</b><p>' + esc(c.oque) + '</p>' + (c.ex ? '<b class="ex">Exemplo de hoje</b><p>' + c.ex + '</p>' : '') +
+      '<b class="ler">Como ler</b><p>' + esc(c.ler) + '</p>';
     pop.hidden = false;
     var r = btn.getBoundingClientRect(), w = pop.offsetWidth, hgt = pop.offsetHeight;
     var x = Math.max(16, Math.min(r.left - 8, window.innerWidth - w - 16));
@@ -1136,6 +1176,80 @@ tr.sub td{color:var(--muted)}
   document.addEventListener('keydown', function (ev) { if (ev.key === 'Escape' && ajAberto) { var b = ajAberto; ajFechar(); b.focus(); } });
   window.addEventListener('scroll', function () { if (ajAberto && !ajFixo) ajFechar(); }, { passive: true });
   ajudar(document);
+
+  /* ══════════ (27/10) o TOUR DA TELA — protótipo aprovado pelo Ricardo: claude.ai/artifact/YE6eg8o3JasPDEZMojArQq ══════════
+     Passo 1 (boas-vindas) e o último (fechamento): texto fixo do protótipo. Passo 2 (como classificamos): a frase de mercado
+     é fixa; as definições vêm do painel Termos desta tela (lidas do DOM), para mudarem sozinhas quando os Termos mudarem.
+     Do passo 3 em diante: um quadro por passo, na ordem da tela, com o MESMO conteúdo do (?) — ajConteudo(), a mesma fonte;
+     nenhum texto copiado. Só os quadros da aba aberta (a Estrela pula o que não mostra) e só os que têm (?); as faixas de
+     camada ("1 · Captação", "2 · Previsão") não são quadro e ficam fora. Nada é gravado nem enviado. */
+  var tour = { passos: [], i: 0, hl: null, volta: null };
+  var semMovimento = function () { return window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches; };
+  function tourPassos() {
+    var view = $('view-ps').hidden ? $('view-eu') : $('view-ps');
+    var p = [{ t: 'Bem-vindo à Previsão de Vendas', html: '<p>A tela responde três perguntas, toda semana:</p><p>1. Vamos bater a meta?<br>2. Quantos leads qualificados faltam?<br>3. Qual canal rende mais venda por real investido?</p>' }];
+    var termos = [].slice.call(document.querySelectorAll('#termos .gloss > div')).filter(function (d) {
+      var b = d.querySelector('b'); return b && /^(Lead|MQL|SQL)$/.test(b.textContent.trim());
+    }).map(function (d) { return '<p>' + d.innerHTML + '</p>'; }).join('');
+    p.push({ t: 'Como classificamos cada conversa', html: '<p>Classificar o lead antes de contar é prática de mercado — Demand Waterfall, etapas do HubSpot, nota por letra do Salesforce. ' +
+      'As letras e os critérios são nossos e medem a conversa, não a pessoa.</p>' + (termos ? '<div class="tr-termos">' + termos + '</div>' : '') });
+    view.querySelectorAll('.panel .head h2').forEach(function (h2) {
+      var b = h2.querySelector('.aj');
+      if (!b || !b._aj) return;
+      var c = ajConteudo(b), panel = h2.closest('.panel');
+      p.push({ t: h2.textContent.replace(/\?$/, '').trim(), el: panel,
+        html: '<b class="tr-l">O que é</b><p>' + esc(c.oque) + '</p>' + (c.ex ? '<b class="tr-l ex">Exemplo de hoje</b><p>' + c.ex + '</p>' : '') +
+              '<b class="tr-l ler">Como ler</b><p>' + esc(c.ler) + '</p>' });
+    });
+    p.push({ t: 'Pronto', html: '<p>Cada (?) da tela repete o que você viu aqui, com o número do dia.</p>', fim: true });
+    return p;
+  }
+  function tourMostrar(n) {
+    var P = tour.passos;
+    tour.i = Math.max(0, Math.min(P.length - 1, n));
+    var s = P[tour.i];
+    if (tour.hl) { tour.hl.classList.remove('tour-hl'); tour.hl = null; }
+    $('tourDim').hidden = false; $('tourCard').hidden = false;
+    $('tourPasso').textContent = 'Passo ' + (tour.i + 1) + ' de ' + P.length;
+    $('tourBarra').style.width = ((tour.i + 1) / P.length * 100) + '%';
+    $('tourTitulo').textContent = s.t;
+    $('tourCorpo').innerHTML = s.html;
+    $('tourAnt').hidden = !!s.fim; $('tourSair').hidden = !!s.fim; $('tourProx').hidden = !!s.fim;
+    $('tourRefazer').hidden = !s.fim; $('tourFechar').hidden = !s.fim;
+    $('tourAnt').disabled = tour.i === 0;
+    var card = $('tourCard');
+    if (s.el) {
+      s.el.classList.add('tour-hl'); tour.hl = s.el; card.classList.remove('centro');
+      s.el.scrollIntoView({ block: 'center', behavior: semMovimento() ? 'auto' : 'smooth' });
+    } else card.classList.add('centro');
+    (s.fim ? $('tourRefazer') : $('tourProx')).focus();
+  }
+  function tourAbrir() {
+    if (!ultimoR) return;
+    ajFechar();
+    tour.volta = document.activeElement;
+    tour.passos = tourPassos();
+    tourMostrar(0);
+  }
+  function tourSair() {
+    if ($('tourCard').hidden) return;
+    if (tour.hl) { tour.hl.classList.remove('tour-hl'); tour.hl = null; }
+    $('tourDim').hidden = true; $('tourCard').hidden = true;
+    ($('btTour')).focus();
+  }
+  $('btTour').addEventListener('click', tourAbrir);
+  $('tourProx').addEventListener('click', function () { tourMostrar(tour.i + 1); });
+  $('tourAnt').addEventListener('click', function () { tourMostrar(tour.i - 1); });
+  $('tourRefazer').addEventListener('click', function () { tourMostrar(0); });
+  $('tourSair').addEventListener('click', tourSair);
+  $('tourFechar').addEventListener('click', tourSair);
+  $('tourDim').addEventListener('click', tourSair);
+  document.addEventListener('keydown', function (ev) {
+    if ($('tourCard').hidden) return;
+    if (ev.key === 'ArrowRight') { ev.preventDefault(); if (!tour.passos[tour.i].fim) tourMostrar(tour.i + 1); }
+    else if (ev.key === 'ArrowLeft') { ev.preventDefault(); tourMostrar(tour.i - 1); }
+    else if (ev.key === 'Escape') { ev.stopPropagation(); tourSair(); }
+  }, true);
 
   function simulador(sim) {
     if (!$('s-body')) return;
@@ -1425,7 +1539,7 @@ tr.sub td{color:var(--muted)}
   TABS.forEach(function (p) { $(p[0]).addEventListener('click', function () { mostrar(p[0]); }); });
 
   function desenhar(r) {
-    ultimoR = r; $('btBoletim').disabled = false;
+    ultimoR = r; $('btBoletim').disabled = false; $('btTour').disabled = false;
     $('view-ps').innerHTML = parque(r);
     $('view-eu').innerHTML = estrela(r);
     ajFechar(); ajudar(document);
