@@ -360,6 +360,8 @@ tr.sub td{color:var(--muted)}
       <div><b>Lead</b> · toda conversa nova. Não é lead (X) e necessidade imediata (N) ficam fora das taxas e dos custos.</div>
       <div><b>MQL</b> · interesse real (classe B), ainda sem pedir o vendedor.</div>
       <div><b>SQL</b> · lead qualificado (classe A): disse o que quer e aceitou o consultor ou a visita.</div>
+      <div><b>C</b> · curioso (classe C): não disse o que busca.</div>
+      <div><b>D</b> · não engajou (classe D): só cumprimentou.</div>
       <div><b>CPL</b> · custo por lead · <b>Custo de mídia por venda</b> · gasto de mídia ÷ vendas. Não é o CAC de mercado, que soma também salários e comissão.</div>
       <div><b>Variação semanal de SQL</b> · a última semana completa contra a média das 3 anteriores. Inspirada no Lead Velocity Rate, que é mensal.</div>
       <div><b>% da meta prevista</b> · previsto ÷ meta. Não é a cobertura de pipeline (valor no funil ÷ o que falta da meta).</div>
@@ -1189,7 +1191,7 @@ tr.sub td{color:var(--muted)}
     var view = $('view-ps').hidden ? $('view-eu') : $('view-ps');
     var p = [{ t: 'Bem-vindo à Previsão de Vendas', html: '<p>A tela responde três perguntas, toda semana:</p><p>1. Vamos bater a meta?<br>2. Quantos leads qualificados faltam?<br>3. Qual canal rende mais venda por real investido?</p>' }];
     var termos = [].slice.call(document.querySelectorAll('#termos .gloss > div')).filter(function (d) {
-      var b = d.querySelector('b'); return b && /^(Lead|MQL|SQL)$/.test(b.textContent.trim());
+      var b = d.querySelector('b'); return b && /^(Lead|MQL|SQL|C|D)$/.test(b.textContent.trim());
     }).map(function (d) { return '<p>' + d.innerHTML + '</p>'; }).join('');
     p.push({ t: 'Como classificamos cada conversa', html: '<p>Classificar o lead antes de contar é prática de mercado — Demand Waterfall, etapas do HubSpot, nota por letra do Salesforce. ' +
       'As letras e os critérios são nossos e medem a conversa, não a pessoa.</p>' + (termos ? '<div class="tr-termos">' + termos + '</div>' : '') });
