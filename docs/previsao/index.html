@@ -274,6 +274,7 @@ tr.sub td{color:var(--muted)}
 .funil em{color:var(--muted);font-style:normal}
 .da-ask{margin:8px 0 0} .da-ask b{color:var(--hl)}
 .da-tab .grey{color:var(--off)}
+.da-tab th .rg{display:block;font:600 10px var(--f-body);text-transform:none;letter-spacing:0;color:var(--hl)}
 .da-per{display:grid;gap:10px;min-width:0} .da-per[hidden]{display:none}
 .offbox strong{color:var(--ink)}
 .chip{display:inline-block;font-size:11px;font-weight:600;padding:1px 7px;border-radius:999px;white-space:nowrap;background:var(--hl-soft);color:var(--hl)}
@@ -594,7 +595,14 @@ tr.sub td{color:var(--muted)}
       if (f.id === 'qualidade' && f.data) txt += ' · último 1º contato lido ' + dm(f.data) + ' (semana de ' + dm(f.semana) + ')';
       if (f.id === 'gasto_meta' && f.data) txt += ' · lançado até ' + dm(f.data);
       if (f.estado === 'nunca' && f.texto_nunca && f.texto_nunca !== 'nunca lançado') txt += ' · ' + esc(f.texto_nunca);
-      if (f.texto) txt += ' · ' + esc(f.texto);
+      /* (28/10, 3ª — Ricardo) "Assinatura dos anúncios": as duas coisas na mesma linha, primeiro a cobrança da agência, depois a falha nossa */
+      if (f.id === 'assinatura') {
+        var pa = [];
+        if (f.sem_assinatura) pa.push(f.sem_assinatura + (f.sem_assinatura === 1 ? ' anúncio sem assinatura' : ' anúncios sem assinatura') + ' (cobrança da agência)');
+        if (f.semanas_sem_anuncio && f.semanas_sem_anuncio.length) pa.push('anúncio dos leads não lido na semana de ' + f.semanas_sem_anuncio.map(dm).join(', ') + ' (falha nossa)');
+        txt += ' · ' + esc(pa.length ? pa.join(' · ') : f.texto);
+      }
+      else if (f.texto) txt += ' · ' + esc(f.texto);
       var lk = PLANILHA_FONTE[f.id] ? '<a class="fonte" href="' + PLANILHA_FONTE[f.id] + '" target="_blank" rel="noopener">abrir planilha ↗</a>' : '';
       h += st + '<span>' + txt + '</span><span class="stamp">' + carimbo + lk + '</span>';
     });
@@ -656,8 +664,11 @@ tr.sub td{color:var(--muted)}
           (a.pergunta ? '<p class="da-ask"><b>Pergunta para a agência:</b> ' + esc(a.pergunta) + '</p>' : '') + '</td></tr>';
       });
     });
-    h += '<div class="scroll da-tab"><table><thead><tr><th>Anúncio</th><th class="r">Gasto (R$)</th><th class="r">Impressões</th><th class="r">CTR</th><th class="r">Freq.</th>' +
-      '<th class="r">Conversas (Meta)</th><th class="r">Rastreio</th><th class="r">Qualif. (A)</th><th class="r">% A</th><th class="r">Custo por A (R$)</th><th class="r">Vendas</th><th>Sinais</th></tr></thead><tbody>' +
+    /* (28/10, 3ª — Ricardo) a nota "sem a semana de DD/MM" no cabeçalho das colunas que a excluem: o número da coluna é o usado no
+       rastreio e no custo por A */
+    var semW = P.semanas_fora.length ? '<span class="rg">sem a semana de ' + P.semanas_fora.map(dm).join(', ') + '</span>' : '';
+    h += '<div class="scroll da-tab"><table><thead><tr><th>Anúncio</th><th class="r">Gasto (R$)' + semW + '</th><th class="r">Impressões' + semW + '</th><th class="r">CTR</th><th class="r">Freq.</th>' +
+      '<th class="r">Conversas (Meta)' + semW + '</th><th class="r">Rastreio</th><th class="r">Qualif. (A)</th><th class="r">% A</th><th class="r">Custo por A (R$)</th><th class="r">Vendas</th><th>Sinais</th></tr></thead><tbody>' +
       linhas + '</tbody></table></div>';
     var notas = [];
     /* (28/10, 2ª — Ricardo) a semana sem "Anúncio ID" sai de TODAS as colunas da linha, para a conta fechar (174 ÷ 184 = 95%);
