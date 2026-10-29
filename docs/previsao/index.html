@@ -168,6 +168,10 @@ html.embutido .voltar{display:none}
 .health .st{font:600 11px var(--f-body);padding:1px 8px;border-radius:999px;white-space:nowrap}
 .health .stamp{text-align:right}
 .health a.fonte{display:block;color:var(--muted);text-decoration:underline;white-space:nowrap}
+/* (30/10) o topo: cada quadro na altura do próprio conteúdo (a Saúde do dado cresceu na fase 2 e a meta ficava com um vão) */
+.g2.topo{align-items:start}
+.health details.cad summary{cursor:pointer;list-style-position:inside}
+.health details.cad ul{margin:6px 0 2px;padding-left:18px;display:grid;gap:3px;color:var(--muted)}
 .st.ok{background:var(--ok-soft);color:var(--ok)}
 .st.old{background:var(--off-soft);color:var(--muted);border:1px dashed var(--off)}
 .st.bad{background:var(--bad-soft);color:var(--bad)}
@@ -706,11 +710,25 @@ tr.sub td{color:var(--muted)}
         if (f.semanas_sem_anuncio && f.semanas_sem_anuncio.length) pa.push('anúncio dos leads não lido na semana de ' + f.semanas_sem_anuncio.map(dm).join(', ') + ' (falha nossa)');
         txt += ' · ' + esc(pa.length ? pa.join(' · ') : f.texto);
       }
+      /* (30/10) os avisos de cadastro numa linha só: o resumo à vista, a lista ao clicar (nenhum aviso some) */
+      else if (f.id === 'cadastro' && f.avisos) txt = cadastroHtml(f);
       else if (f.texto) txt += ' · ' + esc(f.texto);
       var lk = PLANILHA_FONTE[f.id] ? '<a class="fonte" href="' + PLANILHA_FONTE[f.id] + '" target="_blank" rel="noopener">abrir planilha ↗</a>' : '';
       h += st + '<span>' + txt + '</span><span class="stamp">' + carimbo + lk + '</span>';
     });
     return '<div class="health">' + h + '</div>';
+  }
+
+  function cadastroHtml(f) {
+    var a = f.avisos, it = [];
+    var ds = function (l) { return l.map(esc).join(', ').replace(/, ([^,]*)$/, ' e $1'); };
+    if (a.sem_comprovante && a.sem_comprovante.length) it.push(a.sem_comprovante.length + (a.sem_comprovante.length === 1 ? ' venda sem comprovante (Confirmada = NÃO) contada no realizado: ' : ' vendas sem comprovante (Confirmada = NÃO) contadas no realizado: ') + ds(a.sem_comprovante));
+    (a.jazigo_repetido || []).forEach(function (j) { it.push('jazigo ' + esc(j.jazigo) + ' em ' + j.deals.length + ' vendas do mês: ' + ds(j.deals)); });
+    if (a.venda_acima_face && a.venda_acima_face.length) it.push(a.venda_acima_face.length + (a.venda_acima_face.length === 1 ? ' venda' : ' vendas') + ' com Valor Venda acima do Valor Face: ' + ds(a.venda_acima_face));
+    if (a.origem_nao_usar && a.origem_nao_usar.length) it.push('origem "NÃO USAR" no Facilita: ' + ds(a.origem_nao_usar));
+    if (!it.length) return esc(f.rotulo) + (f.texto ? ' · ' + esc(f.texto) : '');
+    return '<details class="cad"><summary>' + esc(f.rotulo) + ' · ' + it.length + (it.length === 1 ? ' aviso' : ' avisos') + '</summary><ul>' +
+      it.map(function (x) { return '<li>' + x + '</li>'; }).join('') + '</ul><span class="muted">Só avisa: o dado se corrige no Facilita.</span></details>';
   }
 
   /* ══════════ (28/10) Desempenho por anúncio — mockup aprovado: claude.ai/artifact/Qe1FiK21T47CVc2UqwoWUn ══════════
@@ -874,7 +892,7 @@ tr.sub td{color:var(--muted)}
       bullet += '<span style="left:' + q * 100 + '%' + (i === 0 ? ';transform:none' : i === 4 ? ';transform:translateX(-100%)' : '') + '">' + nf(esc100 * q) + '</span>';
     });
     bullet += '</div>';
-    h += '<div class="g2"><div class="panel"><div class="head"><h2>' + MESES[mes] + ' · vendas contra a meta</h2><span class="stamp">Facilita · ' + dmh(P.vendas_atualizado_em) + migTxt + '</span></div>' +
+    h += '<div class="g2 topo"><div class="panel"><div class="head"><h2>' + MESES[mes] + ' · vendas contra a meta</h2><span class="stamp">Facilita · ' + dmh(P.vendas_atualizado_em) + migTxt + '</span></div>' +
       '<div class="bullet" role="img" aria-label="Realizado ' + P.realizado + ' de meta ' + (meta || '—') + (prev ? '; previsto entre ' + prev.baixo + ' e ' + prev.alto : '; previsto ainda sem dado') + '">' + bullet + '</div>' +
       '<div class="figs">' +
         '<div class="fig"><span class="l">Realizado</span><span class="v">' + nf(P.realizado) + '</span><span class="s">no mês, até hoje · Executivo' + (migN ? ' · inclui ' + migN + (migN === 1 ? ' migração' : ' migrações') : '') + '</span></div>' +
@@ -1608,7 +1626,7 @@ tr.sub td{color:var(--muted)}
   /* ══════════ Estrela: só a camada 1 ══════════ */
   function estrela(r) {
     var E = r.eu, cap = E.captacao, fQ = frescorDe(E, 'qualidade'), fM = frescorDe(E, 'gasto_meta');
-    var h = '<div class="g2"><div class="panel"><div class="head"><h2>Vendas contra a meta</h2></div>' +
+    var h = '<div class="g2 topo"><div class="panel"><div class="head"><h2>Vendas contra a meta</h2></div>' +
       '<div class="offbox"><strong>Sem dado ainda.</strong> ' + esc(E.falta) + ' Com 1 a 4 vendas por mês, a previsão vai sair como intervalo largo.</div></div>' +
       '<div class="panel"><div class="head"><h2>Saúde do dado</h2><span class="stamp">mais de ' + r.regra_dias_velho + ' dias = cinza</span></div>' + saudeHtml(E) + '</div></div>';
     h += '<div class="layer"><h2>1 · Captação e custo</h2><span class="desc">a única camada que a Estrela tem hoje</span></div>';
