@@ -46,7 +46,7 @@
 :root{
   --bg:#0f151b; --panel:#17202a; --ink:#e6ebf0; --muted:#9aa7b4; --line:#2a3642; --grid:#222d38;
   --act:#d5dde5; --act-soft:#5c6874; --plan:#e6ebf0;
-  --hl:#f2a72e; --hl-soft:#2e2412;
+  --hl:#f2a72e; --hl-soft:#2e2412; --info:#8fb3d9;
   --bad:#ef7b72; --bad-soft:#3a1d1b; --ok:#6cc58f; --ok-soft:#173326; --off:#7d8894; --off-soft:#212b35;
   --f-head:"Barlow Semi Condensed","Arial Narrow",system-ui,sans-serif;
   --f-body:"Source Sans 3",system-ui,-apple-system,"Segoe UI",sans-serif;
@@ -118,7 +118,7 @@ html.embutido .voltar{display:none}
 .aj{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;margin-left:7px;padding:0;border-radius:50%;
   border:1px solid var(--muted);background:transparent;color:var(--muted);font:600 11px/1 var(--f-body);cursor:help;vertical-align:2px}
 .aj:hover,.aj:focus-visible,.aj[aria-expanded="true"]{background:var(--ink);border-color:var(--ink);color:var(--bg);outline:none}
-#ajPop{position:fixed;z-index:30;max-width:min(360px,calc(100vw - 32px));background:var(--ink);color:var(--bg);padding:10px 12px;
+#ajPop{position:fixed;z-index:60;max-width:min(360px,calc(100vw - 32px));background:var(--ink);color:var(--bg);padding:10px 12px;
   border-radius:6px;font-size:13px;line-height:1.45;box-shadow:0 8px 28px rgba(0,0,0,.45)}
 #ajPop[hidden]{display:none}
 /* (27/10) o tour da tela: fundo escurecido, o quadro em destaque, o cartão do passo (no canto; no centro sem quadro; preso embaixo em tela estreita) */
@@ -329,9 +329,67 @@ tr.sub td{color:var(--muted)}
 .bol-chk small{display:block;color:var(--muted);font-size:12px}
 @media (max-width:1000px){.bol{grid-template-columns:minmax(0,1fr)}}
 
+/* (29/10) a VISÃO RÁPIDA — mockup aprovado pelo Ricardo: claude.ai/artifact/6GLk7YGkH34TSrNroykDEC (desde a publicação,
+   registro). O painel ao fundo escurece; o modal tem a faixa da meta no topo, a grade 2×2 e os selos no rodapé, numa tela
+   só em computador: o modal tem a altura da janela (até 820px) e os gráficos ocupam o que sobra, sem rolagem. Abaixo de
+   820px de largura (ou de 560px de altura) empilha e o modal rola. */
+.acao.quente{background:var(--hl);border-color:var(--hl);color:#1a1205} .acao.quente svg{color:#1a1205}
+.acao.quente:hover{background:#f5b851} .acao.quente:hover svg{color:#1a1205}
+#vr{position:fixed;inset:0;z-index:45;background:rgba(5,8,11,.72);display:grid;place-items:center;padding:16px}
+.vr-m{width:min(1120px,100%);height:min(100%,820px);background:var(--panel);border:1px solid var(--line);border-radius:10px;box-shadow:0 24px 60px rgba(0,0,0,.5);
+  display:grid;grid-template-rows:auto auto minmax(0,1fr) auto;overflow:hidden}
+.vr-mh{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;padding:14px 18px 10px;border-bottom:1px solid var(--line)}
+.vr-tt{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px}
+.vr-tt h2{font-size:22px;text-transform:none;letter-spacing:0}
+.vr-mh p{margin:4px 0 0;color:var(--muted);max-width:120ch;font-size:13px}
+.vr-live{display:inline-flex;align-items:center;gap:6px;font:11px var(--f-num);color:var(--ok);background:var(--ok-soft);border-radius:999px;padding:2px 8px}
+.vr-live i{width:7px;height:7px;border-radius:50%;background:var(--ok)}
+.vr-x{background:none;border:1px solid var(--line);color:var(--muted);border-radius:5px;width:32px;height:32px;font-size:18px;line-height:1;cursor:pointer;flex:none}
+.vr-x:hover{color:var(--ink);border-color:var(--ink)}
+.vr-goal{display:grid;grid-template-columns:minmax(0,280px) minmax(0,1fr);gap:22px;align-items:center;padding:10px 18px;border-bottom:1px solid var(--line);background:#1d2833}
+.vr-q{font:600 12px var(--f-head);text-transform:uppercase;letter-spacing:.07em;color:var(--muted)}
+.vr-big{font:600 32px/1.05 var(--f-num)} .vr-big small{font-size:15px;color:var(--muted);font-weight:400}
+.vr-ver{display:inline-block;margin-top:4px;font-size:12.5px;font-weight:600;border-radius:4px;padding:2px 8px;background:var(--hl-soft);color:var(--hl)}
+.vr-ver.ok{background:var(--ok-soft);color:var(--ok)}
+.vr-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));grid-template-rows:repeat(2,minmax(0,1fr));gap:1px;background:var(--line);min-height:0}
+.vr-c{background:var(--panel);padding:10px 18px;display:grid;grid-template-rows:auto auto minmax(0,1fr) auto;gap:6px;min-width:0;min-height:0}
+.vr-hd{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap}
+.vr-hd .stamp{font-size:11px}
+.vr-ans{font-size:13.5px} .vr-ans b{font-family:var(--f-num);font-weight:600}
+.vr-lk{font-size:12px;color:var(--hl);text-decoration:none;justify-self:start;align-self:end}
+.vr-lk:hover{text-decoration:underline}
+.vr-x:focus-visible,.vr-lk:focus-visible{outline:2px solid var(--hl);outline-offset:2px}
+.vr-plot{position:relative;min-height:0;min-width:0}
+.vr-plot .vr-svg{position:absolute;inset:0}
+.vr-svg{display:block;width:100%;height:100%}
+.vr-goal .vr-svg{height:auto;max-height:84px}
+.vr-svg text{font-family:var(--f-num);fill:var(--muted);font-size:10px}
+.vr-svg .lbl{fill:var(--ink);font-family:var(--f-body);font-size:11px}
+.vr-svg .val{fill:var(--ink);font-size:11px;font-weight:600}
+.vr-sem{display:grid;place-items:center;text-align:center;min-height:0;border:1px dashed var(--off);border-radius:6px;background:var(--off-soft);color:var(--muted);font-size:13px;padding:10px}
+.vr-sem b{color:var(--ink);display:block}
+.vr-ft{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;padding:9px 18px;border-top:1px solid var(--line);font-size:12px}
+.vr-seal{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:2px 9px;font-weight:600}
+.vr-seal.ok{background:var(--ok-soft);color:var(--ok)} .vr-seal.warn{background:var(--hl-soft);color:var(--hl)} .vr-seal.off{background:var(--off-soft);color:var(--muted)}
+.vr-ft .vr-sp{margin-left:auto;color:var(--muted);font-size:11.5px}
+.panel.vr-alvo{box-shadow:0 0 0 2px var(--hl)} #view-ps .panel{scroll-margin-top:14px}
+@media (prefers-reduced-motion:no-preference){.vr-m{animation:vrUp .18s ease-out}@keyframes vrUp{from{transform:translateY(8px);opacity:.6}to{transform:none;opacity:1}}
+  .panel.vr-alvo{transition:box-shadow .3s}}
+@media (max-width:820px),(max-height:560px){
+  #vr{overflow:auto;place-items:start center}
+  .vr-m{height:auto}
+  .vr-grid{grid-template-rows:none}
+  .vr-plot{height:150px}
+  .vr-sem{min-height:84px}
+}
+@media (max-width:820px){
+  .vr-goal,.vr-grid{grid-template-columns:minmax(0,1fr)}
+  .vr-ft .vr-sp{margin-left:0}
+}
+
 /* A GUARDA DO [hidden] (regra da casa): toda classe que declara `display` ganha o par. */
 .gate[hidden],.panel[hidden],.aviso[hidden],.fresh[hidden],.layer[hidden],.g2[hidden],.g57[hidden],.g75[hidden],
-.tabs[hidden],.offbox[hidden],.tip[hidden],section[hidden]{display:none!important}
+.tabs[hidden],.offbox[hidden],.tip[hidden],section[hidden],#vr[hidden]{display:none!important}
 
 @media (max-width:1000px){.g2,.g57,.g75,.sim{grid-template-columns:minmax(0,1fr)}.gloss{grid-template-columns:minmax(0,1fr)}}
 @media (max-width:560px){.figs{grid-template-columns:repeat(2,minmax(0,1fr))}.ch{grid-template-columns:minmax(96px,1fr) minmax(0,1.4fr) 56px}.ch .hide-s{display:none}.ch.ads{grid-template-columns:minmax(96px,1fr) minmax(0,1.4fr) 40px}.plot,.xa{gap:5px}}
@@ -359,6 +417,7 @@ tr.sub td{color:var(--muted)}
   <div class="topo">
     <a class="voltar" href="../">← Painel Comercial</a>
     <nav class="acoes" aria-label="Atalhos da Previsão">
+      <button class="acao quente" id="btVisao" type="button" aria-haspopup="dialog" aria-controls="vr" disabled title="Os números principais do Parque, ao vivo, numa tela só. Não é a foto da reunião de sexta."><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="3.5" fill="currentColor"/></svg>Visão rápida</button>
       <a class="acao" href="https://claude.ai/artifact/WK7tVgqjCtsRSmCzPLr2Ei" target="_blank" rel="noopener" title="Abre o Manual da Previsão de Vendas numa aba nova (exige estar logado no Claude com acesso à página)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5z"/><path d="M4 20.5A2.5 2.5 0 0 1 6.5 18H20v3H6.5"/></svg>Manual da tela<span class="ext" aria-hidden="true">↗</span></a>
       <a class="acao" href="reuniao/" title="A página da reunião de sexta: a foto da semana, fechada toda quinta às 16h, com os combinados e as anotações."><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/></svg>Reunião de resultados</a>
       <!-- (29/10) a Governança da equipe mora aqui (equipe/). Só aparece onde há o token das Configurações ou o da Equipe:
@@ -448,6 +507,10 @@ tr.sub td{color:var(--muted)}
     <span><button class="tr-bt" id="tourAnt" type="button">← Anterior</button> <button class="tr-bt pri" id="tourProx" type="button">Próximo →</button>
       <button class="tr-bt" id="tourRefazer" type="button" hidden>Refazer</button> <button class="tr-bt pri" id="tourFechar" type="button" hidden>Fechar</button></span>
   </div>
+</div>
+<!-- (29/10) a Visão rápida: o conteúdo é montado a cada abertura (vrMontar), com o dado já carregado -->
+<div id="vr" hidden>
+  <section class="vr-m" id="vrModal" role="dialog" aria-modal="true" aria-labelledby="vrTitulo"></section>
 </div>
 
 <script>
@@ -1334,6 +1397,15 @@ tr.sub td{color:var(--muted)}
       ex: function () {
         return simUlt ? 'Meta ' + lv(nf(simUlt.meta)) + ' → ' + lv(nf(simUlt.comprar)) + ' qualificados a comprar no Meta ≈ R$ ' + lv(nf(simUlt.inv)) + '.' : null;
       } },
+    { re: /^Visão rápida/,
+      oque: 'Os números principais do Parque numa tela só: meta, ritmo, qualificados, onde a demanda se perde, custo por canal e se dá para confiar no dado. É o dado de agora, não a foto da reunião de sexta.',
+      ler: 'Cada bloco abre com a resposta em uma frase; o gráfico embaixo mostra de onde ela sai. "Ver … →" leva ao quadro do painel com o detalhe. Bloco sem dado diz "sem dado ainda".',
+      ex: function (E, r) {
+        var pv = E.camada2 && E.camada2.previsto, hh = String((r && r.atualizado_em) || '').slice(11, 16);
+        if (!E.meta || !tem(E.realizado)) return null;
+        return (hh ? 'Lido às ' + lv(hh.replace(':', 'h')) + ': ' : '') + lv(nf(E.realizado)) + ' de ' + lv(nf(E.meta)) + ' vendas' +
+          (pv ? ', projeção de ' + lv(nf(pv.baixo)) + ' a ' + lv(nf(pv.alto)) : '') + '.';
+      } },
     { re: /^Termos/,
       oque: 'O glossário dos termos de mercado usados na tela.',
       ler: 'Lead, MQL (classe B), SQL (classe A) e CPL seguem o Demand Waterfall (Forrester) e a Receita Previsível. Onde a conta da tela é diferente da de mercado, o nome diz o que ela é: custo de mídia por venda (não CAC), % da meta prevista (não cobertura de pipeline), variação semanal de SQL (o LVR de mercado é mensal).',
@@ -1368,7 +1440,7 @@ tr.sub td{color:var(--muted)}
     ajAberto = null;
   }
   function ajudar(raiz) {
-    raiz.querySelectorAll('.panel .head h2, .layer h2').forEach(function (h2) {
+    raiz.querySelectorAll('.panel .head h2, .layer h2, .vr-tt h2').forEach(function (h2) {
       if (h2.querySelector('.aj')) return;
       var t = h2.textContent.trim(), d = null;
       for (var i = 0; i < AJUDA.length && !d; i++) if (AJUDA[i].re.test(t)) d = AJUDA[i];
@@ -1669,6 +1741,301 @@ tr.sub td{color:var(--muted)}
     try { navigator.clipboard.writeText(t).then(ok, manual); } catch (e) { manual(); }
   });
 
+  /* ══════════ (29/10) a VISÃO RÁPIDA ══════════
+     Mockup aprovado pelo Ricardo: claude.ai/artifact/6GLk7YGkH34TSrNroykDEC (desde a publicação, registro — regra 8). Mesma
+     ordem de blocos, mesmo tipo de gráfico, mesmos textos. NENHUM número novo: cada bloco redesenha o que a rota
+     ?app=previsao&fn=dados já entrega e um quadro da tela já mostra; a frase de cada bloco só escolhe e compara esses números.
+     Sempre o Parque (a Estrela não tem meta nem funil). Cada bloco se monta sozinho: faltou o dado ou deu erro, ele diz
+     "sem dado ainda" e os outros seguem. Nada é gravado.
+     DIFERENÇAS em relação ao mockup (para ninguém "corrigir" de volta):
+      · bloco 2 (vendas por semana): a rota ainda não manda (29/10). A tela já lê ps.vendas_semanas =
+        { necessario_semana, semanas: [{ de, ate, vendas, completa }] } e fica "sem dado ainda" até o Cofre publicar o campo;
+      · bloco 3: as semanas são as que começam no mês (sem nenhuma lida ainda, as 4 últimas); semana não lida fica tracejada;
+      · bloco 4: o funil é o do quadro "Do lead à venda" — a coorte de leads com 30 dias completos, não o mês corrente; o
+        período vai no canto do bloco;
+      · bloco 5: canal com gasto e nenhum qualificado aparece como "gasto sem qualificado"; até 5 linhas;
+      · todo bloco tem o "ver … →", inclusive o 1 (previsão por categoria) e o 6 (saúde do dado). */
+  var VR_ALVO = { cat: /^Previsão por categoria/, meta: /vendas contra a meta/i, rev: /^Funil reverso/, funil: /^Do lead à venda/,
+                  custo: /^Custo por canal/, saude: /^Saúde do dado/ };
+  var vrSem = function (txt) { return '<div class="vr-sem"><span><b>sem dado ainda</b>' + esc(txt) + '</span></div>'; };
+  var vrLk = function (alvo, txt) { return '<a class="vr-lk" href="#" data-vr-alvo="' + alvo + '">' + esc(txt) + ' →</a>'; };
+  var vrCurto = function (s, n) { s = String(s || ''); return s.length > n ? s.slice(0, n - 1) + '…' : s; };
+  function vrCelula(q, unid, corpo, lk) {
+    return '<div class="vr-c"><div class="vr-hd"><span class="vr-q">' + q + '</span><span class="stamp">' + unid + '</span></div>' + corpo + lk + '</div>';
+  }
+  /* Um bloco que quebra vira "sem dado ainda"; a função devolve { ans, svg: function (W, H) } ou uma frase (o motivo do
+     vazio). O gráfico é desenhado DEPOIS de o modal abrir, na medida em pixels da vaga (vrDesenhar): assim o texto do
+     gráfico fica sempre em 10–11px, em vez de encolher junto com o desenho quando a janela é baixa. */
+  var vrPlots = [];
+  function vrTenta(fn, porque) {
+    var b = null;
+    try { b = fn(); } catch (e) { b = null; }
+    if (!b || typeof b === 'string') return '<span></span>' + vrSem(b || porque);
+    vrPlots.push(b.svg);
+    return '<div class="vr-ans">' + b.ans + '</div><div class="vr-plot" data-vr-plot="' + (vrPlots.length - 1) + '"></div>';
+  }
+  function vrDesenhar() {
+    $('vrModal').querySelectorAll('[data-vr-plot]').forEach(function (el) {
+      var W = Math.max(220, Math.round(el.clientWidth)), H = Math.max(70, Math.round(el.clientHeight));
+      try { el.innerHTML = vrPlots[+el.getAttribute('data-vr-plot')](W, H); }
+      catch (e) { el.innerHTML = vrSem('o gráfico não montou'); }
+    });
+  }
+
+  /* colunas por semana contra uma linha tracejada (blocos 2 e 3): uma escala só, do 0 ao teto redondo */
+  function vrColunas(data, ref, refRot, cor, aria, W, H) {
+    var x0 = 30, x1 = W - 6, yT = 18, yB = H - 18, n = data.length;
+    // o teto do eixo: o maior valor (ou a linha) arredondado para cima no meio-degrau (51 → 55, 22,6 → 25, 43 → 45)
+    var mx = Math.max.apply(null, data.map(function (d) { return d.v || 0; }).concat([ref || 0, 1]));
+    var dg = Math.pow(10, Math.floor(Math.log10(mx))) / 2; mx = Math.max(1, Math.ceil(mx / dg) * dg);
+    var Y = function (v) { return yB - v / mx * (yB - yT); };
+    var slot = (x1 - x0) / n, bw = Math.min(62, slot * 0.66);
+    var g = '<svg class="vr-svg" viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="' + esc(aria) + '">' +
+      '<line x1="' + x0 + '" y1="' + yT + '" x2="' + x1 + '" y2="' + yT + '" stroke="var(--line)"/><line x1="' + x0 + '" y1="' + yB + '" x2="' + x1 + '" y2="' + yB + '" stroke="var(--line)"/>' +
+      '<text x="24" y="' + (yB + 3) + '" text-anchor="end">0</text><text x="24" y="' + (yT + 4) + '" text-anchor="end">' + nf(mx, mx % 1 ? 1 : 0) + '</text>';
+    data.forEach(function (d, i) {
+      var cx = x0 + slot * i + slot / 2, x = cx - bw / 2;
+      if (d.v === null) {
+        g += '<rect x="' + x.toFixed(1) + '" y="' + yT + '" width="' + bw.toFixed(1) + '" height="' + (yB - yT) + '" fill="none" stroke="var(--off)" stroke-dasharray="4 3"/>' +
+          '<text x="' + cx.toFixed(1) + '" y="' + ((yT + yB) / 2 + 3) + '" text-anchor="middle">não lida</text>';
+      } else {
+        var y = Y(d.v);
+        g += '<rect x="' + x.toFixed(1) + '" y="' + y.toFixed(1) + '" width="' + bw.toFixed(1) + '" height="' + (yB - y).toFixed(1) + '" fill="' + cor + '"' + (d.part ? ' opacity=".55"' : '') + '/>' +
+          '<text class="val" x="' + cx.toFixed(1) + '" y="' + (y - 5).toFixed(1) + '" text-anchor="middle">' + nf(d.v) + '</text>';
+      }
+      g += '<text x="' + cx.toFixed(1) + '" y="' + (H - 4) + '" text-anchor="middle">' + esc(d.x) + '</text>';
+    });
+    if (tem(ref) && ref > 0) {
+      var yr = Y(ref);
+      g += '<line x1="' + x0 + '" y1="' + yr.toFixed(1) + '" x2="' + x1 + '" y2="' + yr.toFixed(1) + '" stroke="var(--ok)" stroke-width="2" stroke-dasharray="5 4"/>' +
+        '<text x="' + (x1 - 2) + '" y="' + (yr - 4).toFixed(1) + '" text-anchor="end" fill="var(--ok)">' + esc(refRot) + '</text>';
+    }
+    return g + '</svg>';
+  }
+
+  // 1 · Vamos bater a meta? — realizado, a faixa projetada (com o centro) e a meta, na mesma régua
+  function vr1(P) {
+    var pv = P.camada2 && P.camada2.previsto, meta = P.meta, real = P.realizado;
+    if (!tem(real)) return '<div><div class="vr-q">1 · Vamos bater a meta?</div></div>' + vrSem('o realizado do mês não veio');
+    var top = Math.max(meta || 0, pv ? pv.alto : 0, real, 1), L = 600;
+    var X = function (v) { return Math.min(L, v / top * L); };
+    var vered = !pv ? ['', 'projeção ainda sem dado'] : !meta ? ['', 'sem meta para comparar'] :
+      pv.alto < meta ? ['', 'abaixo da meta'] : pv.baixo > meta ? ['ok', 'acima da meta'] : ['', 'dentro da meta'];
+    var xr = X(real), xm = meta ? X(meta) : null;
+    var s = '<svg class="vr-svg" viewBox="0 0 640 74" role="img" aria-label="' + esc('Realizado ' + real + (pv ? ', projeção entre ' + pv.baixo + ' e ' + pv.alto + ' com centro ' + pv.valor : '') + (meta ? ', meta ' + meta : '')) + '">' +
+      '<rect x="0" y="22" width="' + L + '" height="20" rx="3" fill="var(--grid)"/>' +
+      '<rect x="0" y="22" width="' + xr.toFixed(1) + '" height="20" rx="3" fill="var(--hl)"/>';
+    if (pv) {
+      var xb = X(pv.baixo), xa = X(pv.alto), xc = X(pv.valor);
+      s += '<rect x="' + xb.toFixed(1) + '" y="26" width="' + Math.max(2, xa - xb).toFixed(1) + '" height="12" rx="2" fill="var(--hl)" opacity=".35"/>' +
+        '<line x1="' + xc.toFixed(1) + '" y1="18" x2="' + xc.toFixed(1) + '" y2="46" stroke="var(--ink)" stroke-width="2"/>' +
+        '<text class="val" x="' + Math.max(48, Math.min(L - 48, xc)).toFixed(1) + '" y="12" text-anchor="middle">' + nf(pv.valor) + ' projetado</text>';
+    }
+    if (xm !== null) s += '<line x1="' + xm.toFixed(1) + '" y1="12" x2="' + xm.toFixed(1) + '" y2="52" stroke="var(--ok)" stroke-width="2" stroke-dasharray="3 3"/>' +
+      '<text x="' + Math.min(L, xm + 26).toFixed(1) + '" y="64" text-anchor="end" fill="var(--ok)">meta ' + nf(meta) + '</text>';
+    s += '<text x="0" y="64">0</text>';
+    // o rótulo do realizado: embaixo da barra; perto da meta, dentro da barra (para não encavalar)
+    if (xm !== null && Math.abs(xm - xr) < 90 && xr > 70) s += '<text class="val" x="' + (xr - 6).toFixed(1) + '" y="36" text-anchor="end" style="fill:#1a1205">' + nf(real) + ' hoje</text>';
+    else s += '<text class="val" x="' + Math.max(28, Math.min(L - 30, xr)).toFixed(1) + '" y="64" text-anchor="middle">' + nf(real) + ' hoje</text>';
+    if (pv) {
+      var xf = (X(pv.baixo) + X(pv.alto)) / 2;
+      if (Math.abs(xf - xr) > 80 && (xm === null || Math.abs(xf - xm) > 80)) s += '<text x="' + xf.toFixed(1) + '" y="64" text-anchor="middle">faixa ' + nf(pv.baixo) + '–' + nf(pv.alto) + '</text>';
+    }
+    s += '</svg>';
+    return '<div><div class="vr-q">1 · Vamos bater a meta?</div>' +
+      '<div class="vr-big">' + nf(real) + ' <small>' + (meta ? 'de ' + nf(meta) + ' vendas' : 'vendas · sem meta na Config') + '</small></div>' +
+      '<div class="vr-ver' + (vered[0] ? ' ' + vered[0] : '') + '">' + (pv ? 'Projeção ' + nf(pv.baixo) + ' a ' + nf(pv.alto) + ' · ' : '') + vered[1] + '</div> ' +
+      vrLk('cat', 'ver a previsão por categoria') + '</div>' + s;
+  }
+
+  // 2 · O ritmo de vendas está bom? — espera o campo ps.vendas_semanas do Cofre
+  function vr2(P) {
+    var vs = P.vendas_semanas;
+    if (!vs || !vs.semanas || !vs.semanas.length) return 'as vendas por semana ainda não vêm do Cofre';
+    var data = vs.semanas.map(function (w) {
+      var rot = String(w.de || '').slice(8, 10) + '–' + String(w.ate || '').slice(8, 10) + (w.completa ? '' : '*');
+      return { x: rot, v: tem(w.vendas) ? w.vendas : null, part: !w.completa };
+    });
+    var ref = vs.necessario_semana, melhor = Math.max.apply(null, data.map(function (d) { return d.v || 0; }));
+    return {
+      ans: (tem(ref) ? 'Precisaria de <b>' + nf(ref, 1) + '</b> por semana. ' : '') + 'A melhor semana fez <b>' + nf(melhor) + '</b>.',
+      svg: function (W, H) { return vrColunas(data, ref, 'necessário ' + nf(ref, 1), 'var(--hl)', 'Vendas por semana do mês: ' + data.map(function (d) { return d.v === null ? '—' : d.v; }).join(', ') + (tem(ref) ? ', contra ' + nf(ref, 1) + ' necessárias' : ''), W, H); }
+    };
+  }
+
+  // 3 · Quantos qualificados faltam? — SQL por semana contra o necessário do Funil reverso
+  function vr3(P) {
+    var cap = P.captacao, rv = P.camada2 && P.camada2.reverso;
+    var ws = (cap.semanas || []).filter(function (w) { return String(w.semana).slice(0, 7) === P.mes; });
+    if (!ws.some(function (w) { return w.lida; })) ws = (cap.semanas || []).slice(-4);
+    if (!ws.length) return 'nenhuma semana de qualificados lida';
+    var data = ws.map(function (w) { return { x: dm(w.semana) + (w.lida && !w.completa ? '*' : ''), v: w.lida ? w.sql : null, part: w.lida && !w.completa }; });
+    var ref = rv && rv.por_semana ? rv.por_semana.valor : null;
+    var ult = ws.filter(function (w) { return w.lida; }).pop(), ans = '';
+    if (tem(ref)) ans += 'A meta pede <b>' + nf(ref) + '</b> por semana. ';
+    if (ult) {
+      ans += 'A última semana lida (' + dm(ult.semana) + (ult.completa ? '' : ', parcial') + ') trouxe <b>' + nf(ult.sql) + '</b>';
+      if (tem(ref)) { var d = ref - ult.sql; ans += d > 0 ? ', <b>' + nf(d) + ' a menos</b>.' : d < 0 ? ', <b>' + nf(-d) + ' a mais</b>.' : ', exatamente o necessário.'; }
+      else ans += '. O necessário por semana ainda não foi calculado.';
+    }
+    return { ans: ans, svg: function (W, H) { return vrColunas(data, ref, 'necessário ' + nf(ref), 'var(--info)', 'Qualificados por semana: ' + data.map(function (d) { return d.v === null ? 'não lida' : d.v; }).join(', ') + (tem(ref) ? ', contra ' + ref + ' necessários' : ''), W, H); } };
+  }
+
+  // 4 · Onde a demanda se perde? — o funil do quadro "Do lead à venda", com a % entre etapas e a maior queda
+  function vr4(P) {
+    var cs = P.captacao.cascata;
+    if (!cs || !cs.leads) return 'o funil de demanda ainda não tem leads com 30 dias';
+    var et = [['leads', cs.leads], ['com interesse', cs.qualificados], ['qualificados', cs.sql], ['vendas', cs.vendas_sql]];
+    var pass = [cs.passagem.lead_qualificado, cs.passagem.qualificado_sql, cs.passagem.sql_venda && cs.passagem.sql_venda.valor];
+    var pior = -1;
+    pass.forEach(function (p, i) { if (tem(p) && (pior < 0 || p < pass[pior])) pior = i; });
+    var fmt = function (p) { return pc(p, p < 0.1 ? 1 : 0); };
+    var svg = function (W, H) {
+      var passo = H / 4, bh = Math.min(22, passo - 5), L = W - 110 - 90;   // 90 à direita: o número e a %
+      var s = '<svg class="vr-svg" viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="' + esc('Funil: ' + et.map(function (e) { return e[1] + ' ' + e[0]; }).join(', ')) + '">';
+      et.forEach(function (e, i) {
+        var y = i * passo + (passo - bh) / 2, ty = (y + bh / 2 + 4).toFixed(1), w = Math.max(3, e[1] / cs.leads * L);
+        s += '<rect x="110" y="' + y.toFixed(1) + '" width="' + w.toFixed(1) + '" height="' + bh.toFixed(1) + '" rx="2" fill="' + (i === 3 ? 'var(--hl)' : 'var(--info)') + '"' + (i < 3 ? ' opacity="' + [0.35, 0.55, 0.8][i] + '"' : '') + '/>' +
+          '<text class="lbl" x="102" y="' + ty + '" text-anchor="end">' + e[0] + '</text>' +
+          '<text class="val" x="' + (110 + w + 8).toFixed(1) + '" y="' + ty + '">' + nf(e[1]) + '</text>';
+        if (i > 0) s += '<text x="' + (W - 2) + '" y="' + ty + '" text-anchor="end"' + (i - 1 === pior ? ' fill="var(--hl)" font-weight="600"' : '') + '>' + (tem(pass[i - 1]) ? fmt(pass[i - 1]) : '—') + '</text>';
+      });
+      return s + '</svg>';
+    };
+    return { ans: pior < 0 ? 'A passagem entre as etapas ainda não foi calculada.' :
+      'A maior queda está entre <b>' + et[pior][0] + '</b> e <b>' + et[pior + 1][0] + '</b>: passam <b>' + fmt(pass[pior]) + '</b>.', svg: svg };
+  }
+
+  // 5 · Qual canal rende mais? — custo por qualificado do quadro "Custo por canal", do mais barato ao mais caro
+  function vr5(P) {
+    var cn = P.captacao.canais || [];
+    var com = cn.filter(function (c) { return c.custo && c.custo.custo_sql > 0; }).sort(function (a, b) { return a.custo.custo_sql - b.custo.custo_sql; });
+    var sem = cn.filter(function (c) { return !c.so_gasto && !(c.custo && c.custo.custo_sql > 0); });
+    if (!com.length && !sem.length) return 'nenhum canal com leads no período';
+    var rows = com.concat(sem).slice(0, 5), mx = com.length ? teto(com[com.length - 1].custo.custo_sql) : 1;
+    var svg = function (W, H) {
+      var passo = H / rows.length, bh = Math.min(20, passo - 4), L = W - 100 - 60;   // 60 à direita: o "R$ 999"
+      var s = '<svg class="vr-svg" viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="' + esc('Custo por qualificado: ' + com.map(function (c) { return c.canal + ' R$ ' + nf(c.custo.custo_sql); }).join(', ')) + '">';
+      rows.forEach(function (c, i) {
+        var y = i * passo + (passo - bh) / 2, ty = (y + bh / 2 + 4).toFixed(1);
+        s += '<text class="lbl" x="92" y="' + ty + '" text-anchor="end"><title>' + esc(c.canal) + '</title>' + esc(vrCurto(c.canal, 15)) + '</text>';
+        if (c.custo && c.custo.custo_sql > 0) {
+          var w = Math.max(3, c.custo.custo_sql / mx * L);
+          s += '<rect x="100" y="' + y.toFixed(1) + '" width="' + w.toFixed(1) + '" height="' + bh.toFixed(1) + '" rx="2" fill="' + (i === 0 ? 'var(--ok)' : 'var(--hl)') + '"/>' +
+            '<text class="val" x="' + (100 + w + 8).toFixed(1) + '" y="' + ty + '">R$ ' + nf(c.custo.custo_sql) + '</text>';
+        } else {
+          var por = c.custo ? 'gasto sem qualificado' : c.gasto_midia ? 'gasto sem campanha casada' : 'sem custo lançado';
+          s += '<rect x="100" y="' + y.toFixed(1) + '" width="' + L.toFixed(1) + '" height="' + bh.toFixed(1) + '" rx="2" fill="none" stroke="var(--line)" stroke-dasharray="4 3"/><text x="110" y="' + ty + '">' + por + '</text>';
+        }
+      });
+      return s + '</svg>';
+    };
+    var semG = sem.filter(function (c) { return !c.custo && !c.gasto_midia; }).map(function (c) { return esc(c.canal); });
+    var ans = com.length ? 'O <b>' + esc(com[0].canal) + '</b> traz qualificado mais barato: <b>R$ ' + nf(com[0].custo.custo_sql) + '</b>' +
+      (com.length > 1 ? ', contra R$ ' + nf(com[com.length - 1].custo.custo_sql) + ' no ' + esc(com[com.length - 1].canal) : '') + '.' : 'Nenhum canal com custo por qualificado ainda.';
+    if (semG.length) ans += ' ' + lista(semG.slice(0, 3)) + (semG.length > 3 ? ' e mais ' + (semG.length - 3) : '') + ' sem custo lançado.';
+    return { ans: ans, svg: svg };
+  }
+
+  // 6 · Posso confiar? — a Saúde do dado, os contratos que podem cair e a última leitura das conversas
+  function vr6(P) {
+    var selo = function (tom, txt) { return '<span class="vr-seal ' + tom + '">● ' + esc(txt) + '</span>'; };
+    var h = '';
+    try {
+      var ruins = (P.frescor || []).filter(function (f) { return f.estado !== 'em_dia'; }).map(function (f) { return f.rotulo; });
+      h += ruins.length ? selo('warn', 'Dado: ' + lista(ruins.slice(0, 3)) + (ruins.length > 3 ? ' e mais ' + (ruins.length - 3) : '') + (ruins.length > 1 ? ' pedem atenção' : ' pede atenção'))
+                        : selo('ok', 'Dado: todas as fontes em dia');
+    } catch (e) { h += selo('off', 'Dado: sem dado ainda'); }
+    try {
+      var rk = P.camada2.risco_contrato;
+      if (!rk) h += selo('off', 'Contratos: sem dado ainda');
+      else if (!rk.negocios) h += selo('ok', 'Contratos: nenhuma venda do mês em Contrato');
+      else {
+        var lo = Math.max(0, Math.floor(rk.podem_cair.baixo)), hi = Math.max(0, Math.ceil(rk.podem_cair.alto));
+        h += selo(hi ? 'warn' : 'ok', 'Contratos: ' + (lo === hi ? nf(lo) : nf(lo) + ' a ' + nf(hi)) + ' de ' + nf(rk.negocios) + ' podem cair');
+      }
+    } catch (e) { h += selo('off', 'Contratos: sem dado ainda'); }
+    var fQ = frescorDe(P, 'qualidade');
+    h += !fQ || !fQ.data ? selo('off', 'Leitura das conversas: sem dado ainda')
+       : fQ.estado === 'em_dia' ? selo('ok', 'Leitura das conversas em dia (' + dm(fQ.data) + ')')
+       : selo('warn', 'Leitura das conversas atrasada (' + dm(fQ.data) + (tem(fQ.dias) ? ', ' + fQ.dias + ' dias' : '') + ')');
+    return h;
+  }
+
+  function vrMontar(r) {
+    vrPlots = [];
+    var P = r.ps, hh = String(r.atualizado_em || '').slice(11, 16).replace(':', 'h');
+    var cap = P.captacao, m1 = (cap.canais || []).filter(function (c) { return c.custo; })[0], cs = cap.cascata;
+    var bloco1 = '';
+    try { bloco1 = vr1(P); } catch (e) { bloco1 = '<div><div class="vr-q">1 · Vamos bater a meta?</div></div>' + vrSem('a meta e a projeção não vieram'); }
+    return '<header class="vr-mh"><div><div class="vr-tt"><h2 id="vrTitulo">Visão rápida</h2>' +
+        (hh ? '<span class="vr-live"><i></i>ao vivo · atualizado às ' + esc(hh) + '</span>' : '') + '</div>' +
+        '<p>Parque da Saudade. Os números que respondem a três perguntas: vamos bater a meta, quantos qualificados faltam e onde vale investir. ' +
+        'Não é a foto da reunião de sexta: é o dado de agora. O detalhe de cada bloco está no painel ao fundo.</p></div>' +
+        '<button class="vr-x" id="vrX" type="button" aria-label="Fechar a visão rápida">×</button></header>' +
+      '<div class="vr-goal">' + bloco1 + '</div>' +
+      '<div class="vr-grid">' +
+        vrCelula('2 · O ritmo de vendas está bom?', 'vendas por semana', vrTenta(function () { return vr2(P); }, 'as vendas por semana não vieram'), vrLk('meta', 'ver o placar no painel')) +
+        vrCelula('3 · Quantos qualificados faltam?', 'qualificados (A) por semana', vrTenta(function () { return vr3(P); }, 'os qualificados por semana não vieram'), vrLk('rev', 'ver o funil reverso')) +
+        vrCelula('4 · Onde a demanda se perde?', cs && cs.de ? 'leads de ' + dm(cs.de) + ' a ' + dm(cs.ate) : 'funil de demanda', vrTenta(function () { return vr4(P); }, 'o funil de demanda não veio'), vrLk('funil', 'ver o funil de demanda')) +
+        vrCelula('5 · Qual canal rende mais?', 'custo por qualificado' + (m1 ? ' · ' + dm(m1.custo.de) + ' a ' + dm(m1.custo.ate) : ''), vrTenta(function () { return vr5(P); }, 'o custo por canal não veio'), vrLk('custo', 'ver custo por canal e por anúncio')) +
+      '</div>' +
+      '<footer class="vr-ft"><span class="vr-q">6 · Posso confiar?</span>' + vr6(P) + vrLk('saude', 'ver a saúde do dado') +
+        '<span class="vr-sp">* semana parcial · Esc fecha</span></footer>';
+  }
+
+  function vrAbrir() {
+    if (!ultimoR) return;
+    ajFechar();
+    $('vrModal').innerHTML = vrMontar(ultimoR);
+    ajudar($('vrModal'));
+    $('vr').hidden = false; document.body.style.overflow = 'hidden';
+    vrDesenhar();
+    $('btVisao').setAttribute('aria-expanded', 'true');
+    $('vrX').focus();
+  }
+  function vrFechar() {
+    if ($('vr').hidden) return;
+    ajFechar();
+    $('vr').hidden = true; document.body.style.overflow = '';
+    $('btVisao').setAttribute('aria-expanded', 'false');
+    $('btVisao').focus({ preventScroll: true });
+  }
+  // "ver … →": fecha, volta para a aba do Parque e rola até o quadro, que pisca a borda por um instante
+  function vrIr(alvo) {
+    vrFechar();
+    if ($('view-ps').hidden) mostrar('tab-ps');
+    var re = VR_ALVO[alvo], el = null;
+    $('view-ps').querySelectorAll('.panel .head h2').forEach(function (h2) { if (!el && re.test(h2.textContent.trim())) el = h2.closest('.panel'); });
+    if (!el) return;
+    el.scrollIntoView({ block: 'start', behavior: semMovimento() ? 'auto' : 'smooth' });
+    el.classList.add('vr-alvo');
+    setTimeout(function () { el.classList.remove('vr-alvo'); }, 1800);
+  }
+  $('btVisao').addEventListener('click', vrAbrir);
+  var vrEspera = null;
+  window.addEventListener('resize', function () {
+    if ($('vr').hidden) return;
+    clearTimeout(vrEspera); vrEspera = setTimeout(vrDesenhar, 120);
+  });
+  $('vr').addEventListener('click', function (ev) {
+    if (ev.target === $('vr')) { vrFechar(); return; }
+    var a = ev.target.closest && ev.target.closest('[data-vr-alvo]');
+    if (a) { ev.preventDefault(); vrIr(a.getAttribute('data-vr-alvo')); return; }
+    if (ev.target.closest && ev.target.closest('#vrX')) vrFechar();
+  });
+  // Esc fecha (se um (?) estiver aberto, o Esc fecha só ele); Tab não sai do modal
+  document.addEventListener('keydown', function (ev) {
+    if ($('vr').hidden) return;
+    if (ev.key === 'Escape') { if (ajAberto) return; ev.stopPropagation(); vrFechar(); return; }
+    if (ev.key !== 'Tab') return;
+    var f = [].slice.call($('vrModal').querySelectorAll('button, a[href]'));
+    if (!f.length) return;
+    var i = f.indexOf(document.activeElement);
+    if (ev.shiftKey && i <= 0) { ev.preventDefault(); f[f.length - 1].focus(); }
+    else if (!ev.shiftKey && (i === -1 || i === f.length - 1)) { ev.preventDefault(); f[0].focus(); }
+  }, true);
+
   /* ══════════ abas ══════════ */
   var TABS = [['tab-ps', 'view-ps'], ['tab-eu', 'view-eu']];
   function mostrar(tab) {
@@ -1683,7 +2050,7 @@ tr.sub td{color:var(--muted)}
   TABS.forEach(function (p) { $(p[0]).addEventListener('click', function () { mostrar(p[0]); }); });
 
   function desenhar(r) {
-    ultimoR = r; $('btBoletim').disabled = false; $('btTour').disabled = false;
+    ultimoR = r; $('btBoletim').disabled = false; $('btTour').disabled = false; $('btVisao').disabled = false;
     $('view-ps').innerHTML = parque(r);
     $('view-eu').innerHTML = estrela(r);
     ajFechar(); ajudar(document);
