@@ -64,8 +64,21 @@ h2{font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:.06em}
 .stamp{font-family:var(--f-num);font-size:11px;color:var(--muted)}
 .muted{color:var(--muted)} .small{font-size:12px}
 .voltar{color:var(--muted);text-decoration:none;font-size:13px}
-/* (12/10) a linha do topo: voltar ao Painel e o Manual da Previsão (página de estudo, privada no claude.ai) */
-.topo{display:flex;flex-wrap:wrap;gap:6px 18px;align-items:baseline}
+/* (12/10) a linha do topo: voltar ao Painel à esquerda; (29/10, Ricardo) os atalhos num grupo só, à direita, todos com
+   a mesma cara — Manual, Reunião, Governança da equipe, Boletim e Tour. Embutida no Painel, o "voltar" some e o grupo fica
+   à direita do mesmo jeito (margin-left:auto). */
+.topo{display:flex;flex-wrap:wrap;gap:8px 18px;align-items:center;justify-content:space-between}
+.acoes{display:flex;flex-wrap:wrap;gap:6px;justify-content:flex-end;margin-left:auto}
+.acao{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 11px;font:600 13px var(--f-body);color:var(--ink);
+  background:var(--panel);border:1px solid var(--line);border-radius:6px;text-decoration:none;cursor:pointer;white-space:nowrap}
+.acao svg{width:14px;height:14px;flex:0 0 auto;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;color:var(--muted)}
+.acao .ext{color:var(--muted);font-size:12px}
+.acao:hover{border-color:var(--hl)} .acao:hover svg{color:var(--hl)}
+.acao[aria-expanded="true"]{border-color:var(--hl);background:var(--hl-soft);color:var(--hl)} .acao[aria-expanded="true"] svg{color:var(--hl)}
+.acao:disabled{opacity:.45;cursor:default} .acao:disabled:hover{border-color:var(--line)}
+.acao:focus-visible{outline:2px solid var(--hl);outline-offset:2px}
+.acao[hidden]{display:none}
+@media (max-width:620px){.acoes{justify-content:flex-start;margin-left:0}}
 .voltar:hover,.voltar:focus-visible{color:var(--ink)}
 html.embutido .voltar{display:none}
 .panel{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:14px;display:grid;gap:10px;align-content:start;min-width:0}
@@ -298,11 +311,8 @@ tr.sub td{color:var(--muted)}
 
 /* (23/10) o Boletim do Rodrigo: botão no topo e o quadro do protótipo aprovado (artefato UAniHGgh…) — monta o texto
    com os números que a tela já carregou; só copia, não envia nem grava */
-.btBol{font:600 13px var(--f-body);border:1px solid var(--hl);background:var(--hl);color:#1a1205;border-radius:6px;padding:5px 12px;cursor:pointer}
-.btBol:disabled{opacity:.45;cursor:default}
-a.btBol{text-decoration:none;display:inline-block}   /* (28/10) o link da Reunião de resultados, com a cara do botão */
-.btBol[aria-expanded="true"]{background:transparent;color:var(--hl)}
-.btBol:focus-visible,.bolBt:focus-visible,#bolTexto:focus-visible,#bolPergunta:focus-visible{outline:2px solid var(--hl);outline-offset:2px}
+/* (29/10) o botão do Boletim (e os outros atalhos do topo) agora é .acao, na linha do topo */
+.bolBt:focus-visible,#bolTexto:focus-visible,#bolPergunta:focus-visible{outline:2px solid var(--hl);outline-offset:2px}
 .bol{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:16px}
 .bol-l,.bol-r{display:grid;gap:10px;align-content:start;min-width:0}
 .bol label{display:grid;gap:5px;font-size:12px;color:var(--muted)}
@@ -348,11 +358,23 @@ a.btBol{text-decoration:none;display:inline-block}   /* (28/10) o link da Reuni�
 <div class="wrap">
   <div class="topo">
     <a class="voltar" href="../">← Painel Comercial</a>
-    <a class="voltar" href="https://claude.ai/artifact/WK7tVgqjCtsRSmCzPLr2Ei" target="_blank" rel="noopener" title="Abre o Manual da Previsão de Vendas numa aba nova (exige estar logado no Claude com acesso à página)">📘 Manual da tela ↗</a>
-    <a class="btBol" href="reuniao/" title="A página da reunião de sexta: a foto da semana, fechada toda quinta às 16h, com os combinados e as anotações.">📋 Reunião de resultados</a>
-    <button class="btBol" id="btBoletim" type="button" aria-expanded="false" aria-controls="boletim" disabled title="Monta o texto da última semana fechada (Reunião de resultados), para copiar e colar. Não envia nada.">📨 Boletim do Rodrigo</button>
-    <button class="btBol" id="btTour" type="button" disabled title="Passa por cada quadro da aba aberta, com o que é, o exemplo de hoje e como ler. Não grava nada.">▶ Tour da tela</button>
+    <nav class="acoes" aria-label="Atalhos da Previsão">
+      <a class="acao" href="https://claude.ai/artifact/WK7tVgqjCtsRSmCzPLr2Ei" target="_blank" rel="noopener" title="Abre o Manual da Previsão de Vendas numa aba nova (exige estar logado no Claude com acesso à página)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5z"/><path d="M4 20.5A2.5 2.5 0 0 1 6.5 18H20v3H6.5"/></svg>Manual da tela<span class="ext" aria-hidden="true">↗</span></a>
+      <a class="acao" href="reuniao/" title="A página da reunião de sexta: a foto da semana, fechada toda quinta às 16h, com os combinados e as anotações."><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/></svg>Reunião de resultados</a>
+      <!-- (29/10) a Governança da equipe mora aqui (equipe/). Só aparece onde há o token das Configurações ou o da Equipe:
+           é só do Ricardo e do Rodrigo, e a rota ?app=equipe recusa o token de gestão de qualquer jeito. -->
+      <a class="acao" href="equipe/" id="lkEquipe" hidden title="Placar da equipe, OTE em simulação, alertas e o caderno de cada vendedor. Só Ricardo e Rodrigo."><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 19a5.5 5.5 0 0 1 11 0"/><path d="M16 5.2a3 3 0 0 1 0 5.6M17.5 14.2A5.5 5.5 0 0 1 20.5 19"/></svg>Governança da equipe</a>
+      <button class="acao" id="btBoletim" type="button" aria-expanded="false" aria-controls="boletim" disabled title="Monta o texto da última semana fechada (Reunião de resultados), para copiar e colar. Não envia nada."><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3.5 6.5 12 13l8.5-6.5"/></svg>Boletim do Rodrigo</button>
+      <button class="acao" id="btTour" type="button" disabled title="Passa por cada quadro da aba aberta, com o que é, o exemplo de hoje e como ler. Não grava nada."><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M10 8.5v7l5.5-3.5z"/></svg>Tour da tela</button>
+    </nav>
   </div>
+  <script>
+  (function () {   // a porta da Governança da equipe: só no aparelho com o token das Configurações ou o da Equipe
+    var t = '';
+    try { t = localStorage.getItem('hub_token_config') || localStorage.getItem('hub_token_equipe') || ''; } catch (e) {}
+    if (t) document.getElementById('lkEquipe').hidden = false;
+  })();
+  </script>
 
   <div class="bar">
     <div>

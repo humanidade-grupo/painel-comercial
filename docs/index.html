@@ -415,11 +415,8 @@ align-items:center;gap:3px;cursor:pointer;min-width:0}
        tem o token PRÓPRIO dela (hub_token_config) — quem entra com o token de gestão, que é de três
        pessoas, nem vê a aba; e a rota ?app=config recusa esse token de qualquer jeito. -->
   <button class="tab" role="tab" aria-selected="false" data-p="pPSConfig" type="button" id="abaConfig" style="display:none">Configurações</button>
-  <!-- EQUIPE (28/10/26): a Governança da equipe, só do Ricardo e do Rodrigo. Nasce ESCONDIDA e só aparece no aparelho
-       que tem o token das Configurações (hub_token_config) ou o da Equipe (hub_token_equipe) — o token de gestão, que é
-       de três pessoas, não abre a página: a rota ?app=equipe o recusa. A primeira vez, o Rodrigo abre ./equipe/ direto
-       e digita o token dele; dali em diante a aba aparece aqui. -->
-  <button class="tab" role="tab" aria-selected="false" data-p="pPSEquipe" type="button" id="abaEquipe" style="display:none">Equipe</button>
+  <!-- EQUIPE: a Governança da equipe saiu deste menu em 29/10/26 (Ricardo) e mora dentro da Previsão de Vendas
+       (./previsao/equipe/, botão no topo da Previsão). -->
 </div>
 
 <div class="tabs" id="tabsEU" role="tablist">
@@ -793,9 +790,6 @@ align-items:center;gap:3px;cursor:pointer;min-width:0}
 <section class="panel ps" id="pPSConfig">
   <iframe id="fConfig" data-src="./configuracoes/" title="Configurações — Parque da Saudade" style="width:100%;border:0;display:block;min-height:70vh"></iframe>
 </section>
-<section class="panel ps" id="pPSEquipe">
-  <iframe id="fEquipe" data-src="./equipe/" title="Governança da equipe — Parque da Saudade" style="width:100%;border:0;display:block;min-height:70vh"></iframe>
-</section>
 <section class="panel ps" id="pPSPerfil">
   <iframe id="fPerfil" data-src="./perfil-cliente/" title="Quem compra no Parque da Saudade" style="width:100%;border:0;display:block;min-height:70vh"></iframe>
 </section>
@@ -1060,12 +1054,6 @@ border-radius:5px;border:1px solid rgba(251,191,36,.45);color:var(--warn)}
    é a rota, que só aceita o token do Ricardo —; é só para ninguém mais ver uma porta que não abre.
    Script à parte, logo depois do rodapé: o código do Parque só roda depois que os dados chegam, e a
    aba tem de aparecer mesmo com o portão de token de gestão aberto. */
-(function(){
-  /* (28/10) Equipe: a mesma lógica — a aba só aparece onde há o token das Configurações ou o da Equipe. */
-  var eq = '';
-  try { eq = localStorage.getItem('hub_token_config') || localStorage.getItem('hub_token_equipe') || ''; } catch(e){}
-  if (eq) document.getElementById('abaEquipe').style.display = '';
-})();
 (function(){
   var tem = '';
   try { tem = localStorage.getItem('hub_token_config') || ''; } catch(e){}
