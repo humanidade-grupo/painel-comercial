@@ -618,9 +618,9 @@ tr.sub td{color:var(--muted)}
       pc(r, 0) + ' <i><b class="' + cls + '" style="width:' + Math.max(2, Math.min(100, r * 100)) + '%"></b></i></span>';
   }
   function daSinais(lista) { return (lista || []).map(function (x) { return '<span class="sg ' + x.tom + '">' + esc(x.texto) + '</span>'; }).join(''); }
-  function daFunil(a) {
+  function daFunil(a, semFora) {
     var p = [[nf(a.impressoes), 'impressões']];
-    if (a.cliques_link !== null) p.push([nf(a.cliques_link), 'cliques no link']);
+    if (a.cliques_link !== null && !semFora) p.push([nf(a.cliques_link), 'cliques no link']);   // os cliques são da janela inteira
     p.push([nf(a.conversas), 'conversas'], [nf(a.lidas), 'lidas com o anúncio'], [nf(a.interesse), 'com interesse'], [nf(a.a), 'qualificados'], [nf(a.vendas), a.vendas === 1 ? 'venda' : 'vendas']);
     return '<div class="funil">' + p.map(function (x) { return '<span>' + x[0] + ' <em>' + x[1] + '</em></span>'; }).join('→') + '</div>';
   }
@@ -652,7 +652,7 @@ tr.sub td{color:var(--muted)}
           '<td class="r num">' + (a.custo_a === null ? '<span class="grey">—</span>' : brl(a.custo_a)) + '</td>' +
           '<td class="r num">' + (a.lidas ? nf(a.vendas) : '<span class="grey">—</span>') + '</td>' +
           '<td class="sg-c">' + daSinais(a.sinais) + '</td></tr>' +
-          '<tr class="det" id="' + id + '" hidden><td colspan="12">' + daFunil(a) +
+          '<tr class="det" id="' + id + '" hidden><td colspan="12">' + daFunil(a, P.semanas_fora.length > 0) +
           (a.pergunta ? '<p class="da-ask"><b>Pergunta para a agência:</b> ' + esc(a.pergunta) + '</p>' : '') + '</td></tr>';
       });
     });
@@ -660,7 +660,10 @@ tr.sub td{color:var(--muted)}
       '<th class="r">Conversas (Meta)</th><th class="r">Rastreio</th><th class="r">Qualif. (A)</th><th class="r">% A</th><th class="r">Custo por A (R$)</th><th class="r">Vendas</th><th>Sinais</th></tr></thead><tbody>' +
       linhas + '</tbody></table></div>';
     var notas = [];
-    if (P.semanas_fora.length) notas.push('<b>Rastreio, % A e custo por A sem a semana de ' + P.semanas_fora.map(dm).join(', ') + '</b>: nenhum lead do Meta dela veio com o anúncio — falha da leitura, não da agência. Gasto, impressões e conversas contam a semana inteira.');
+    /* (28/10, 2ª — Ricardo) a semana sem "Anúncio ID" sai de TODAS as colunas da linha, para a conta fechar (174 ÷ 184 = 95%);
+       o que saiu fica dito aqui. CTR, frequência e status são da janela inteira (a leitura do Meta por janela não pula semana). */
+    if (P.semanas_fora.length) notas.push('<b>Sem a semana de ' + P.semanas_fora.map(dm).join(', ') + ' em todas as colunas</b>: nenhum lead do Meta dela veio com o anúncio — falha da leitura, não da agência. Ficaram de fora R$ ' +
+      brl(P.fora_semanas.gasto) + ' de gasto e ' + nf(P.fora_semanas.conversas) + ' conversas. CTR, frequência e status são da janela inteira.');
     if (!P.leitura_meta) notas.push('CTR, frequência e status aguardam a leitura do Meta desta janela (a cada 2 horas).');
     if (P.fora.gasto > 0) notas.push('Fora do quadro: R$ ' + brl(P.fora.gasto) + ' em campanhas do Meta que não abrem conversa (' + P.fora.campanhas.map(esc).join(' · ') + ').');
     notas.push('CTR = cliques no link ÷ impressões. Rastreio = leads lidos com o anúncio ÷ conversas iniciadas no Meta. Vendas = vendas dos leads do anúncio pelo nº do negócio, com a regra da conversão por classe. Toque no anúncio para ver o funil e a pergunta para a agência.');
