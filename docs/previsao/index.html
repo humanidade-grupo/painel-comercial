@@ -484,7 +484,7 @@ tr.sub td{color:var(--muted)}
     <div class="gloss">
       <div><b>Lead</b> · toda conversa nova. Não é lead (X) e necessidade imediata (N) ficam fora das taxas e dos custos.</div>
       <div><b>MQL</b> · interesse real (classe B), ainda sem pedir o vendedor.</div>
-      <div><b>SQL</b> · lead qualificado (classe A): disse o que quer e aceitou o consultor ou a visita.</div>
+      <div id="termoSQL"><b>SQL</b> · lead qualificado (classe A): disse o que quer e aceitou o consultor ou a visita.</div>
       <div><b>C</b> · curioso (classe C): não disse o que busca.</div>
       <div><b>D</b> · não engajou (classe D): só cumprimentou.</div>
       <div><b>CPL</b> · custo por lead · <b>Custo de mídia por venda</b> · gasto de mídia ÷ vendas. Não é o CAC de mercado, que soma também salários e comissão.</div>
@@ -523,7 +523,18 @@ tr.sub td{color:var(--muted)}
     gasto_meta: 'https://docs.google.com/spreadsheets/d/19ww3vXa_cmKrZBAZjWVHcfnZg5eLEjnspz7CAkmiIxo/edit#gid=524344341'
   };
   var CHAVE_TOKEN = 'hub_token_gestao';   // o mesmo do Painel — não duplicar
-  var CHAVE_ABA = 'previsao_aba';         // conveniência do aparelho: a última empresa aberta
+  var CHAVE_ABA = 'previsao_aba';
+  /* (29/10, auditoria T6/T7) canal que não tem custo por natureza (não há verba a lançar) × canal com custo ainda não lançado */
+  var CANAL_ORGANICO = ['Sem campanha', 'Link da bio'];
+  var CANAL_CURTO = { 'Google (landing page)': 'Google', 'Meta Ads — campanhas sem lead': 'Meta sem lead' };
+  /* (29/10, auditoria P6) a régua nova: a partir de 06/11/2026 o SQL é quem aceitou a visita. A troca acontece sozinha na data
+     (o Tour lê este mesmo texto); antes dela, o Termos já avisa. */
+  (function () {
+    var d = new Date(), hojeIso = d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2), el = document.getElementById('termoSQL');
+    if (!el) return;
+    el.innerHTML = hojeIso >= '2026-11-06' ? '<b>SQL</b> · lead qualificado (classe A): disse o que quer e aceitou a visita (régua de 06/11/2026).'
+      : '<b>SQL</b> · lead qualificado (classe A): disse o que quer e aceitou o consultor ou a visita. A partir de 06/11/2026: quem aceitou a visita.';
+  })();         // conveniência do aparelho: a última empresa aberta
   var MESES = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
   var MESES_MIN = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
   var $ = function (id) { return document.getElementById(id); };
@@ -616,7 +627,8 @@ tr.sub td{color:var(--muted)}
 
   /* ══════════ peças de desenho (as do protótipo) ══════════ */
   function frescorDe(emp, id) { for (var i = 0; i < emp.frescor.length; i++) if (emp.frescor[i].id === id) return emp.frescor[i]; return null; }
-  function velho(f) { return !f || f.estado !== 'em_dia'; }
+  // (29/10, auditoria R1) "incompleto" (semana faltando no meio) e "aviso" (cadastro) avisam na Saúde do dado, mas não acinzentam o quadro
+  function velho(f) { return !f || (f.estado !== 'em_dia' && f.estado !== 'incompleto' && f.estado !== 'aviso'); }
 
   function freshLinha(ok, html) {
     return '<div class="fresh ' + (ok ? 'ok' : 'old') + '"><span class="dot"></span><span>' + html + '</span></div>';
@@ -681,6 +693,7 @@ tr.sub td{color:var(--muted)}
       if (f.estado === 'em_dia') { st = '<span class="st ok">em dia</span>'; carimbo = f.data && f.data.length > 10 ? dmh(f.data) : dm(f.data); }
       else if (f.estado === 'atrasado') { st = '<span class="st old">atrasado</span>'; carimbo = f.dias === null || f.dias === undefined ? (f.data ? dm(f.data) : '—') : f.dias + ' dias'; }
       else if (f.estado === 'incompleto') st = '<span class="st bad">incompleto</span>';
+      else if (f.estado === 'aviso') st = '<span class="st old">aviso</span>';
       else if (f.estado === 'sem_meta') st = '<span class="st bad">sem meta</span>';
       else st = '<span class="st bad">' + (f.texto_nunca === 'nenhuma conta da Estrela acessível' ? 'sem conta' : 'nunca lançado') + '</span>';
       if (f.id === 'qualidade' && f.data) txt += ' · último 1º contato lido ' + dm(f.data) + ' (semana de ' + dm(f.semana) + ')';
@@ -770,7 +783,8 @@ tr.sub td{color:var(--muted)}
       brl(P.fora_semanas.gasto) + ' de gasto e ' + nf(P.fora_semanas.conversas) + ' conversas. CTR, frequência e status são da janela inteira.');
     if (!P.leitura_meta) notas.push('CTR, frequência e status aguardam a leitura do Meta desta janela (a cada 2 horas).');
     if (P.fora.gasto > 0) notas.push('Fora do quadro: R$ ' + brl(P.fora.gasto) + ' em campanhas do Meta que não abrem conversa (' + P.fora.campanhas.map(esc).join(' · ') + ').');
-    notas.push('CTR = cliques no link ÷ impressões. Rastreio = leads lidos com o anúncio ÷ conversas iniciadas no Meta. Vendas = vendas dos leads do anúncio pelo nº do negócio, com a regra da conversão por classe. Toque no anúncio para ver o funil e a pergunta para a agência.');
+    if (P.lidas_sem_conversa) notas.push(nf(P.lidas_sem_conversa) + (P.lidas_sem_conversa === 1 ? ' lead lido' : ' leads lidos') + ' com o anúncio em semana sem conversas lançadas na planilha de mídia ficaram fora do rastreio (a semana sem gasto não tem com o que comparar).');
+    notas.push('CTR = cliques no link ÷ impressões. Rastreio = leads lidos com o anúncio ÷ conversas iniciadas no Meta, só nas semanas com conversas lançadas, no máximo 100%. Vendas = vendas dos leads do anúncio pelo nº do negócio, com a regra da conversão por classe. Toque no anúncio para ver o funil e a pergunta para a agência.');
     det += '<div class="small muted">' + notas.join(' ') + '</div>';
     return h + '<details class="da-det"><summary>Ver os ' + n + (n === 1 ? ' anúncio' : ' anúncios') + ', por campanha</summary>' + det + '</details>';
   }
@@ -845,6 +859,9 @@ tr.sub td{color:var(--muted)}
     var h = '';
 
     // ---------- mês contra a meta
+    // (29/10, auditoria D1) o realizado inclui a migração lançada à mão (aba Migracoes): o carimbo diz quantas
+    var migN = P.custo_origem && P.custo_origem.meses && P.custo_origem.meses[0] && P.custo_origem.meses[0].mes === P.mes ? P.custo_origem.meses[0].migracoes || 0 : 0;
+    var migTxt = migN ? ' · inclui ' + migN + (migN === 1 ? ' migração' : ' migrações') : '';
     var prev = c2.previsto, cob = c2.cobertura, meta = P.meta;
     var esc100 = teto(Math.max(meta || 0, prev ? prev.alto : 0, P.realizado || 0, 1));
     var pos = function (v) { return Math.min(100, v / esc100 * 100); };
@@ -857,10 +874,10 @@ tr.sub td{color:var(--muted)}
       bullet += '<span style="left:' + q * 100 + '%' + (i === 0 ? ';transform:none' : i === 4 ? ';transform:translateX(-100%)' : '') + '">' + nf(esc100 * q) + '</span>';
     });
     bullet += '</div>';
-    h += '<div class="g2"><div class="panel"><div class="head"><h2>' + MESES[mes] + ' · vendas contra a meta</h2><span class="stamp">Facilita · ' + dmh(P.vendas_atualizado_em) + '</span></div>' +
+    h += '<div class="g2"><div class="panel"><div class="head"><h2>' + MESES[mes] + ' · vendas contra a meta</h2><span class="stamp">Facilita · ' + dmh(P.vendas_atualizado_em) + migTxt + '</span></div>' +
       '<div class="bullet" role="img" aria-label="Realizado ' + P.realizado + ' de meta ' + (meta || '—') + (prev ? '; previsto entre ' + prev.baixo + ' e ' + prev.alto : '; previsto ainda sem dado') + '">' + bullet + '</div>' +
       '<div class="figs">' +
-        '<div class="fig"><span class="l">Realizado</span><span class="v">' + nf(P.realizado) + '</span><span class="s">no mês, até hoje · Executivo</span></div>' +
+        '<div class="fig"><span class="l">Realizado</span><span class="v">' + nf(P.realizado) + '</span><span class="s">no mês, até hoje · Executivo' + (migN ? ' · inclui ' + migN + (migN === 1 ? ' migração' : ' migrações') : '') + '</span></div>' +
         '<div class="fig' + (meta ? '' : ' off') + '"><span class="l">Meta</span><span class="v">' + (meta ? nf(meta) : '—') + '</span><span class="s">' + (meta ? 'jazigos' : 'sem meta na Config') + '</span></div>' +
         (prev ? '<div class="fig"><span class="l">Previsto</span><span class="v">' + faixa(prev.baixo, prev.alto) + '</span><span class="s">ponto central ' + prev.valor + (c2.selo.em_validacao ? ' · em validação' : '') + '</span></div>'
               : '<div class="fig off"><span class="l">Previsto</span><span class="v">—</span><span class="s">camada 2, ' + (c2.calculado_em ? 'em validação' : 'taxas ainda não calculadas') + '</span></div>') +
@@ -913,7 +930,7 @@ tr.sub td{color:var(--muted)}
       h += '<div class="panel"><div class="head"><h2>Do lead à venda · funil de demanda</h2><span class="stamp">leads de ' + dm(cs.de) + ' a ' + dm(cs.ate) + ' · com ' + cs.dias + ' dias completos</span></div>' +
         '<div class="wf">' + fh + '</div>' +
         '<div class="small muted">Do lead à venda: ' + pc(cs.passagem.lead_venda, 1) + ' (' + (cs.vendas_sql + cs.vendas_outros) + ' vendas em ' + nf(cs.leads) + ' leads), contando ' + cs.vendas_outros +
-        ' venda(s) de leads que não chegaram a SQL. Só leads com 1º contato há ' + cs.dias + ' dias ou mais, para todos terem tido o mesmo tempo de virar venda; ficaram fora ' +
+        ' venda(s) de leads que não chegaram a SQL. A venda casa pelo nº do negócio, ou pelo negócio novo de mesmo telefone ou cliente em até 90 dias, se o vendedor recadastrou (a mesma regra da Conversão por classe). Só leads com 1º contato há ' + cs.dias + ' dias ou mais, para todos terem tido o mesmo tempo de virar venda; ficaram fora ' +
         cs.fora.x + ' que não são lead e ' + cs.fora.n + ' de necessidade imediata.</div></div>';
     }
 
@@ -951,14 +968,14 @@ tr.sub td{color:var(--muted)}
           '</td><td class="r num">' + brl(u.cpl) + '</td><td class="r num"><b>' + brl(u.custo_sql) + '</b></td><td class="r num">' + (u.cac === null ? '—' : brl(u.cac)) + '</td></tr>';
         return;
       }
-      linhas += '<tr><td>' + esc(c.canal) + '</td><td class="dash">' + (c.gasto_midia ? 'R$ ' + brl(c.gasto_midia) + ' sem campanha casada' : 'sem gasto lançado') + '</td><td class="r num">' + nf(c.leads) +
+      linhas += '<tr><td>' + esc(c.canal) + '</td><td class="dash">' + (c.gasto_midia ? 'R$ ' + brl(c.gasto_midia) + ' sem campanha casada' : (CANAL_ORGANICO.indexOf(c.canal) >= 0 ? 'sem custo (orgânico)' : 'custo não lançado')) + '</td><td class="r num">' + nf(c.leads) +
         '</td><td class="r num">' + nf(c.sql) + '</td><td class="dash">—</td><td class="dash">—</td><td class="dash">—</td></tr>';
     });
     h += '<div class="panel' + (sM ? ' stale' : '') + '"><div class="head"><h2>Custo por canal</h2><span class="stamp">' + per + '</span></div>' +
       freshLinha(!sM, sM ? '<b>Dado atrasado.</b> Gasto Meta lançado até ' + dm(fM && fM.data) + '.' + (velho(frescorDe(P, 'gasto_google')) ? ' Google sem gasto lançado.' : '') : 'Em dia. Gasto Meta lançado até ' + dm(fM.data) + '.') +
       '<div class="scroll"><table><thead><tr><th>Canal</th><th class="r">Gasto (R$)</th><th class="r">Leads</th><th class="r">SQL</th><th class="r">CPL</th><th class="r">Custo por SQL</th><th class="r">Custo de mídia por venda</th></tr></thead><tbody>' +
       linhas + '</tbody></table></div>' +
-      '<div class="small muted">Leads e SQL só das semanas com gasto lançado. Custo de mídia por venda = gasto ÷ vendas dos leads do canal (pelo nº do negócio no Facilita), não a origem declarada no Pocket.</div></div>';
+      '<div class="small muted">Leads e SQL só das semanas com gasto lançado. O SQL lido com o nome do conjunto de anúncios ("Cadastro | Aberto | …") conta na campanha do Meta dona dos anúncios, pelo Anúncio ID. Custo de mídia por venda = gasto ÷ vendas dos leads do canal (pelo nº do negócio no Facilita), não a origem declarada no Pocket. "Sem custo (orgânico)" = canal sem verba a lançar; "custo não lançado" = há verba, mas o gasto não está na planilha de mídia.</div></div>';
 
     // (28/10) Desempenho por anúncio — substitui o "Custo por SQL · anúncios do Meta" (o campo captacao.anuncios segue na rota)
     h += anunciosHtml(cap.desempenho_anuncios, 'ps', sM || sQ);
@@ -1004,6 +1021,7 @@ tr.sub td{color:var(--muted)}
       '<span class="desc">sempre em intervalo; o intervalo estreita a cada semana lida' +
       (c2.selo.margem_pp !== null ? ' · margem hoje ±' + nf(c2.selo.margem_pp, 1) + ' pp' + (c2.selo.margem_max_pp === null ? ' (limite ainda não definido)' : ', limite ' + nf(c2.selo.margem_max_pp, 1) + ' pp') : '') +
       (c2.selo.em_validacao && c2.selo.motivo ? ' · ' + esc(c2.selo.motivo) : '') +
+      (c2.selo.aviso_regua ? ' · <b>' + esc(c2.selo.aviso_regua) + '</b>' : '') +
       (!c2.selo.em_validacao && c2.selo.meses_ok && c2.selo.meses_ok.length ? ' · faixa acertou em ' + c2.selo.meses_ok.map(function (m) { return MESES_MIN[Number(m.slice(5, 7)) - 1]; }).join(', ') : '') +
       '</span></div>';
     if (!c2.calculado_em) h += '<div class="offbox"><strong>As taxas ainda não foram calculadas.</strong> Elas saem na primeira rodada de atualização do servidor (de 2 em 2 horas) depois da publicação.</div>';
@@ -1073,7 +1091,8 @@ tr.sub td{color:var(--muted)}
     });
     var rc = c2.sql_recentes, vr = c2.vendedor_restante, sim = c2.simulador;
     if (rc) cat += '<tr><td><b>SQL recentes</b></td><td>captados nas 2 últimas semanas, fora do funil acima</td><td class="r num">' + nf(rc.sql) + '</td><td class="r num">' +
-      (sim.conv ? faixa(sim.conv.baixo, sim.conv.alto, function (x) { return pc(x, 0); }) + '<span class="rg">no que falta do mês</span>' : '—') + '</td><td class="r num">' + faixa(Math.floor(rc.baixo), Math.ceil(rc.alto)) + '<span class="rg">central ' + fx(rc.valor) + '</span></td></tr>';
+      (rc.conv && rc.conv.valor !== null && rc.conv.valor !== undefined ? faixa(rc.conv.baixo, rc.conv.alto, function (x) { return pc(x, rc.conv.alto < 0.1 ? 1 : 0); }) + '<span class="rg">em ' + nf(c2.horizonte_dias) + ' dias, o que falta do mês</span>'
+        : (sim.conv ? faixa(sim.conv.baixo, sim.conv.alto, function (x) { return pc(x, 0); }) + '<span class="rg">em 30 dias</span>' : '—')) + '</td><td class="r num">' + faixa(Math.floor(rc.baixo), Math.ceil(rc.alto)) + '<span class="rg">central ' + fx(rc.valor) + '</span></td></tr>';
     var rb = c2.mql_recentes;
     if (rb && rb.mql) cat += '<tr><td><b>MQL recentes</b></td><td>classe B das 2 últimas semanas, fora do funil acima</td><td class="r num">' + nf(rb.mql) + '</td><td class="r num">' +
       (rb.conv && rb.conv.valor !== null ? faixa(rb.conv.baixo, rb.conv.alto, function (x) { return pc(x, 0); }) + '<span class="rg">no que falta do mês</span>' : '—') +
@@ -1100,14 +1119,16 @@ tr.sub td{color:var(--muted)}
       var dias = hi.mes_atual.slice(-10).reverse();
       hh += '<div class="scroll"><table><thead><tr><th>Dia</th><th class="r">Realizado até o dia</th><th class="r">Previsto para o mês</th><th class="r">Central</th></tr></thead><tbody>' +
         dias.map(function (d) {
-          return '<tr><td>' + dm(d.data) + '</td><td class="r num">' + nf(d.realizado) + '</td><td class="r num">' + (d.baixo === null ? '—' : faixa(d.baixo, d.alto)) + '</td><td class="r num">' + (d.central === null ? '—' : nf(d.central)) + '</td></tr>';
+          return '<tr><td>' + dm(d.data) + (d.calculado ? '<span class="rg">foto das ' + d.calculado.slice(11, 13) + 'h' + d.calculado.slice(14, 16) + '</span>' : '') + '</td><td class="r num">' + nf(d.realizado) + '</td><td class="r num">' + (d.baixo === null ? '—' : faixa(d.baixo, d.alto)) + '</td><td class="r num">' + (d.central === null ? '—' : nf(d.central)) + '</td></tr>';
         }).join('') + '</tbody></table></div>';
     }
     (hi.fechados || []).slice(0, 2).forEach(function (m) {
       hh += '<div class="small"><b>' + esc(MESES_MIN[Number(m.mes.slice(5, 7)) - 1]) + ':</b> fechou com ' + nf(m.final) + ' vendas · a faixa prevista continha o resultado em <b>' + m.dentro + ' de ' + m.dias +
-        '</b> dias · o central errou em média ' + nf(m.erro_medio, 1) + ' vendas' + (m.ultimo_fora ? ' · último dia fora da faixa: ' + dm(m.ultimo_fora) : '') + '.</div>';
+        '</b> dias · o central errou em média ' + nf(m.erro_medio, 1) + ' vendas' + (m.ultimo_fora ? ' · último dia fora da faixa: ' + dm(m.ultimo_fora) : '') + '.' +
+        (m.conta_selo === false ? ' <span class="grey">Não conta para tirar o selo: o registro começou no meio do mês.</span>' : '') + '</div>';
     });
-    h += hh + '<div class="small muted">Cada dia guarda a faixa que a tela mostrava. É a medida de acerto que tira a previsão do "em validação".</div></div>';
+    h += hh + '<div class="small muted">Cada dia guarda a faixa que a tela mostrava (a foto da última rodada do servidor naquele dia; o topo da tela é o dado de agora). É a medida de acerto que tira a previsão do "em validação"' +
+      (c2.selo && c2.selo.acerto_desde ? '; o primeiro mês que conta é ' + MESES_MIN[Number(c2.selo.acerto_desde.slice(5, 7)) - 1] : '') + '.</div></div>';
 
     // conversão por classe do lead (11/10) — a prova 3 da régua (FAROL §4.5)
     var cls = (c2.por_classe || []).filter(function (x) { return x.acumulado && x.acumulado.n; });
@@ -1210,7 +1231,16 @@ tr.sub td{color:var(--muted)}
       '<div class="small muted">Da entrada no Facilita ao 1º registro do corretor, ' + regraAtend(com).nota + '. Corretor = o dono do negócio no envio da SATI.' +
       (nova ? ' A linha Total conta todo lead, todos os dias: é o tempo que o cliente sente. "Entregue de folga" = lead enviado pela SATI num dia de folga do corretor (questão da distribuição, não dele); a escala é a do Pocket' +
         (com.escala_ate ? ', lida até ' + dm(com.escala_ate) : '') + (com.leads_sem_escala ? ' — ' + com.leads_sem_escala + ' lead(s) em dia sem escala contam sem folga' : '') + '.' : '') +
-      regra + '</div></div>';
+      regra + '</div>' + alertasTiposHtml(com) + '</div>';
+  }
+
+  /* (29/10, auditoria T3) a coluna Alertas = leads em que a auditoria de segunda viu alguma regra violada; aqui, por tipo */
+  function alertasTiposHtml(com) {
+    var t = com && com.total && com.total.alertas_tipo, rot = (com && com.alertas_tipos) || [];
+    if (!t || !rot.length) return '';
+    var partes = rot.filter(function (r) { return t[r.id]; }).map(function (r) { return esc(r.rotulo) + ' <b class="num">' + nf(t[r.id]) + '</b>'; });
+    return partes.length ? '<div class="small"><b>Alertas por tipo</b> (leads; um lead pode ter mais de um): ' + partes.join(' · ') + '. ' +
+      '<span class="muted">Alerta = lead em que a auditoria de segunda viu uma regra violada (R1 tempo do 1º registro · R2 tentativas antes de perder por "sem contato" · R3 ligação pedida · R4 motivo de perda × conversa · sem registro do corretor). "Revisita sem alerta novo" e "contrato em andamento" são informativos e também entram na coluna.</span></div>' : '';
   }
 
   /* ══════════ o (?) de cada quadro ══════════
@@ -1267,7 +1297,7 @@ tr.sub td{color:var(--muted)}
         return um(a, true) + (b ? ' ' + um(b, false) : '');
       } },
     { re: /^Do lead à venda/,
-      oque: 'Quantos passam de cada degrau, só com leads de 30 dias ou mais.',
+      oque: 'Quantos passam de cada degrau, só com leads de 30 dias ou mais. A venda casa como na Conversão por classe (inclui o recadastro do vendedor).',
       ler: 'O degrau que mais perde é onde agir primeiro.',
       ex: function (E) {
         var cs = E.captacao && E.captacao.cascata;
@@ -1329,7 +1359,7 @@ tr.sub td{color:var(--muted)}
           (b && tem(b.custo_venda) ? ' ' + mesNome(ms[1].mes).replace(/^./, function (x) { return x.toUpperCase(); }) + ': R$ ' + lv(nf(b.custo_venda)) + '.' : '');
       } },
     { re: /^Atendimento comercial/,
-      oque: 'Quanto tempo o corretor leva para o primeiro contato.',
+      oque: 'Quanto tempo o corretor leva para o primeiro registro no Facilita, e quantos leads tiveram alerta da auditoria de segunda (alguma regra violada: R1 tempo, R2 tentativas, R3 ligação pedida, R4 motivo de perda, sem registro).',
       ler: 'O total é o que o cliente sente. O do corretor desconta a folga. "Entregue de folga" é distribuição, não o corretor.',
       ex: function (E) {
         var c = E.comercial, t = c && c.total;
@@ -1857,8 +1887,15 @@ tr.sub td{color:var(--muted)}
       return { x: rot, v: tem(w.vendas) ? w.vendas : null, part: !w.completa };
     });
     var ref = vs.necessario_semana, melhor = Math.max.apply(null, data.map(function (d) { return d.v || 0; }));
+    /* (29/10, auditoria T5) na última semana do mês o ritmo por semana já não diz nada: diz quanto falta e em quantos dias */
+    var fimMes = '', resta = P.dias_no_mes - P.dia_hoje;
+    if (P.meta > 0 && tem(P.realizado) && resta < 7) {
+      var falta = Math.max(0, P.meta - P.realizado);
+      fimMes = falta === 0 ? 'A meta de <b>' + nf(P.meta) + '</b> já foi batida.' : 'Faltam <b>' + nf(falta) + '</b> vendas ' +
+        (resta === 0 ? 'e hoje é o último dia do mês.' : 'em <b>' + nf(resta) + '</b> ' + (resta === 1 ? 'dia' : 'dias') + ' (depois de hoje). A melhor semana fez <b>' + nf(melhor) + '</b>.');
+    }
     return {
-      ans: (tem(ref) ? 'Precisaria de <b>' + nf(ref, 1) + '</b> por semana. ' : '') + 'A melhor semana fez <b>' + nf(melhor) + '</b>.',
+      ans: (fimMes ? fimMes : (tem(ref) ? 'Precisaria de <b>' + nf(ref, 1) + '</b> por semana. ' : '') + 'A melhor semana fez <b>' + nf(melhor) + '</b>.'),
       svg: function (W, H) { return vrColunas(data, ref, 'necessário ' + nf(ref, 1), 'var(--hl)', 'Vendas por semana do mês: ' + data.map(function (d) { return d.v === null ? '—' : d.v; }).join(', ') + (tem(ref) ? ', contra ' + nf(ref, 1) + ' necessárias' : ''), W, H); }
     };
   }
@@ -1881,15 +1918,30 @@ tr.sub td{color:var(--muted)}
     return { ans: ans, svg: function (W, H) { return vrColunas(data, ref, 'necessário ' + nf(ref), 'var(--info)', 'Qualificados por semana: ' + data.map(function (d) { return d.v === null ? 'não lida' : d.v; }).join(', ') + (tem(ref) ? ', contra ' + ref + ' necessários' : ''), W, H); } };
   }
 
-  // 4 · Onde a demanda se perde? — o funil do quadro "Do lead à venda", com a % entre etapas e a maior queda
+  // 4 · Onde a demanda se perde? — o funil do quadro "Do lead à venda", e cada passagem contra a do mês anterior
+  /* (29/10, auditoria T4) Antes: "a maior queda está entre qualificados e vendas" — é sempre a última etapa, que é sempre a
+     menor, e não ajuda a decidir. Agora: as passagens do mês de 1º contato mais recente (leads com 30 dias) contra as do mês
+     anterior (captacao.cascata_meses, do Cofre). Sem mês anterior comparável, as passagens de hoje, sem veredito. */
   function vr4(P) {
     var cs = P.captacao.cascata;
     if (!cs || !cs.leads) return 'o funil de demanda ainda não tem leads com 30 dias';
     var et = [['leads', cs.leads], ['com interesse', cs.qualificados], ['qualificados', cs.sql], ['vendas', cs.vendas_sql]];
     var pass = [cs.passagem.lead_qualificado, cs.passagem.qualificado_sql, cs.passagem.sql_venda && cs.passagem.sql_venda.valor];
-    var pior = -1;
-    pass.forEach(function (p, i) { if (tem(p) && (pior < 0 || p < pass[pior])) pior = i; });
     var fmt = function (p) { return pc(p, p < 0.1 ? 1 : 0); };
+    var nomes = ['lead → com interesse', 'com interesse → qualificado', 'qualificado → venda'];
+    var cm = P.captacao.cascata_meses || [], ans;
+    if (cm.length >= 2) {
+      var pm = function (c) { return [c.passagem.lead_qualificado, c.passagem.qualificado_sql, c.passagem.sql_venda && c.passagem.sql_venda.valor]; };
+      var a = pm(cm[0]), b = pm(cm[1]), pior = -1;
+      a.forEach(function (x, i) { if (tem(x) && tem(b[i]) && (pior < 0 || (x - b[i]) < (a[pior] - b[pior]))) pior = i; });
+      ans = 'Leads de ' + MESES_MIN[Number(cm[0].mes.slice(5, 7)) - 1] + ' contra ' + MESES_MIN[Number(cm[1].mes.slice(5, 7)) - 1] + ': ' +
+        nomes.map(function (n, i) { return n + ' <b>' + (tem(a[i]) ? fmt(a[i]) : '—') + '</b> (era ' + (tem(b[i]) ? fmt(b[i]) : '—') + ')'; }).join(' · ') +
+        (pior >= 0 && a[pior] < b[pior] ? '. A que mais caiu: <b>' + nomes[pior] + '</b>.' : '. Nenhuma passagem caiu.');
+    } else {
+      ans = nomes.map(function (n, i) { return n + ' <b>' + (tem(pass[i]) ? fmt(pass[i]) : '—') + '</b>'; }).join(' · ') +
+        '. <span class="grey">Ainda sem mês anterior para comparar: os leads começam em 31/08, e a comparação acende quando os de ' +
+        'outubro completarem 30 dias.</span>';
+    }
     var svg = function (W, H) {
       var passo = H / 4, bh = Math.min(22, passo - 5), L = W - 110 - 90;   // 90 à direita: o número e a %
       var s = '<svg class="vr-svg" viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="' + esc('Funil: ' + et.map(function (e) { return e[1] + ' ' + e[0]; }).join(', ')) + '">';
@@ -1898,12 +1950,11 @@ tr.sub td{color:var(--muted)}
         s += '<rect x="110" y="' + y.toFixed(1) + '" width="' + w.toFixed(1) + '" height="' + bh.toFixed(1) + '" rx="2" fill="' + (i === 3 ? 'var(--hl)' : 'var(--info)') + '"' + (i < 3 ? ' opacity="' + [0.35, 0.55, 0.8][i] + '"' : '') + '/>' +
           '<text class="lbl" x="102" y="' + ty + '" text-anchor="end">' + e[0] + '</text>' +
           '<text class="val" x="' + (110 + w + 8).toFixed(1) + '" y="' + ty + '">' + nf(e[1]) + '</text>';
-        if (i > 0) s += '<text x="' + (W - 2) + '" y="' + ty + '" text-anchor="end"' + (i - 1 === pior ? ' fill="var(--hl)" font-weight="600"' : '') + '>' + (tem(pass[i - 1]) ? fmt(pass[i - 1]) : '—') + '</text>';
+        if (i > 0) s += '<text x="' + (W - 2) + '" y="' + ty + '" text-anchor="end">' + (tem(pass[i - 1]) ? fmt(pass[i - 1]) : '—') + '</text>';
       });
       return s + '</svg>';
     };
-    return { ans: pior < 0 ? 'A passagem entre as etapas ainda não foi calculada.' :
-      'A maior queda está entre <b>' + et[pior][0] + '</b> e <b>' + et[pior + 1][0] + '</b>: passam <b>' + fmt(pass[pior]) + '</b>.', svg: svg };
+    return { ans: ans, svg: svg };
   }
 
   // 5 · Qual canal rende mais? — custo por qualificado do quadro "Custo por canal", do mais barato ao mais caro
@@ -1918,22 +1969,24 @@ tr.sub td{color:var(--muted)}
       var s = '<svg class="vr-svg" viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="' + esc('Custo por qualificado: ' + com.map(function (c) { return c.canal + ' R$ ' + nf(c.custo.custo_sql); }).join(', ')) + '">';
       rows.forEach(function (c, i) {
         var y = i * passo + (passo - bh) / 2, ty = (y + bh / 2 + 4).toFixed(1);
-        s += '<text class="lbl" x="92" y="' + ty + '" text-anchor="end"><title>' + esc(c.canal) + '</title>' + esc(vrCurto(c.canal, 15)) + '</text>';
+        s += '<text class="lbl" x="92" y="' + ty + '" text-anchor="end"><title>' + esc(c.canal) + '</title>' + esc(vrCurto(CANAL_CURTO[c.canal] || c.canal, 15)) + '</text>';
         if (c.custo && c.custo.custo_sql > 0) {
           var w = Math.max(3, c.custo.custo_sql / mx * L);
           s += '<rect x="100" y="' + y.toFixed(1) + '" width="' + w.toFixed(1) + '" height="' + bh.toFixed(1) + '" rx="2" fill="' + (i === 0 ? 'var(--ok)' : 'var(--hl)') + '"/>' +
             '<text class="val" x="' + (100 + w + 8).toFixed(1) + '" y="' + ty + '">R$ ' + nf(c.custo.custo_sql) + '</text>';
         } else {
-          var por = c.custo ? 'gasto sem qualificado' : c.gasto_midia ? 'gasto sem campanha casada' : 'sem custo lançado';
+          var por = c.custo ? 'gasto sem qualificado' : c.gasto_midia ? 'gasto sem campanha casada' : CANAL_ORGANICO.indexOf(c.canal) >= 0 ? 'sem custo (orgânico)' : 'custo não lançado';
           s += '<rect x="100" y="' + y.toFixed(1) + '" width="' + L.toFixed(1) + '" height="' + bh.toFixed(1) + '" rx="2" fill="none" stroke="var(--line)" stroke-dasharray="4 3"/><text x="110" y="' + ty + '">' + por + '</text>';
         }
       });
       return s + '</svg>';
     };
-    var semG = sem.filter(function (c) { return !c.custo && !c.gasto_midia; }).map(function (c) { return esc(c.canal); });
+    var semG = sem.filter(function (c) { return !c.custo && !c.gasto_midia && CANAL_ORGANICO.indexOf(c.canal) < 0; }).map(function (c) { return esc(CANAL_CURTO[c.canal] || c.canal); });
+    var org = sem.filter(function (c) { return !c.custo && !c.gasto_midia && CANAL_ORGANICO.indexOf(c.canal) >= 0; }).map(function (c) { return esc(c.canal); });
     var ans = com.length ? 'O <b>' + esc(com[0].canal) + '</b> traz qualificado mais barato: <b>R$ ' + nf(com[0].custo.custo_sql) + '</b>' +
       (com.length > 1 ? ', contra R$ ' + nf(com[com.length - 1].custo.custo_sql) + ' no ' + esc(com[com.length - 1].canal) : '') + '.' : 'Nenhum canal com custo por qualificado ainda.';
-    if (semG.length) ans += ' ' + lista(semG.slice(0, 3)) + (semG.length > 3 ? ' e mais ' + (semG.length - 3) : '') + ' sem custo lançado.';
+    if (semG.length) ans += ' Custo não lançado: ' + lista(semG) + '.';
+    if (org.length) ans += ' Sem custo (orgânico): ' + lista(org) + '.';
     return { ans: ans, svg: svg };
   }
 
