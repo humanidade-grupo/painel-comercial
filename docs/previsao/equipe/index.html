@@ -31,6 +31,8 @@
      Disciplina e Qualidade da venda tinham posições desenhadas à mão que não seguiam regra nenhuma (ex.: 0 e 0 Reservas
      em 5º, 6 sem registro em 3º atrás de dois empatados em 2º);
    · "Sem registro" conta todo lead da aba de atendimento (A, B e N), como a Previsão; os leads N são poucos;
+   · (29/10, complemento do Ricardo) o registro no OTE é PERCENTUAL: % sem registro = leads sem registro ÷ leads A e B
+     recebidos (4 semanas); nota = máx(0, 1 − % ÷ limite), limite de 20% na Equipe_OTE. Saiu "cada lead tira 10 pontos";
    · contratos parados = VENDA JÁ LANÇADA ainda em Contrato ou Aprovação há mais de 30 dias (conferido: são os 3 do
      mockup; negócio em Contrato sem venda lançada fica fora);
    · o "exemplo de hoje" de cada (?) é montado dos números de agora, não fixo — o "o que é" e o "como ler" são os textos
@@ -213,7 +215,7 @@ th .q{width:16px;height:16px;font-size:10px;margin-left:4px}
       <li><b>Quem vê:</b> só o Ricardo e o Rodrigo. O token do Painel não abre esta página. O vendedor vê os números dele num cartão do Pocket, com a média da equipe — nunca o ranking nem os números dos colegas.</li>
       <li><b>De onde vêm os números</b> (nenhum é digitado): vendas, Reservas e descontos do Facilita (a mesma lista do Executivo) · leads A e B, atendimento, sem registro e entregue de folga da Previsão de Vendas (a aba de atendimento e a escala do Pocket) · conversão do qualificado pela regra da conversão por classe da Previsão · contratos parados do histórico de etapas.</li>
       <li><b>Placar:</b> posição de 1 a 5 em cada dimensão, com a média. Valores a menos de 5% um do outro dividem a posição.</li>
-      <li><b>OTE:</b> simulação, não é pagamento. Sete indicadores: vendas, conversão do qualificado, Reserva, atendimento em até 2h, VGV no ato, prazo médio do parcelamento e registro. Os pesos, os alvos e o modo (ativo ou acompanhamento) estão na aba <code>Equipe_OTE</code> do Cofre, que o Ricardo edita. Indicador em acompanhamento aparece sem peso, e o peso dele vai para os ativos na mesma proporção. O "no ato" é o combinado no Facilita para o dia da venda, não o recebido. O OTE é sempre do mês, em qualquer recorte do período.</li>
+      <li><b>OTE:</b> simulação, não é pagamento. Sete indicadores: vendas, conversão do qualificado, Reserva, atendimento em até 2h, VGV no ato, prazo médio do parcelamento e registro. Os pesos, os alvos e o modo (ativo ou acompanhamento) estão na aba <code>Equipe_OTE</code> do Cofre, que o Ricardo edita. Indicador em acompanhamento aparece sem peso, e o peso dele vai para os ativos na mesma proporção. O "no ato" é o combinado no Facilita para o dia da venda, não o recebido. O registro é percentual: leads sem registro ÷ leads A e B recebidos nas últimas 4 semanas; a nota é 1 − esse % ÷ o limite (20%), e com o limite ou mais ela é zero. O OTE é sempre do mês, em qualquer recorte do período.</li>
       <li><b>Monitoramento:</b> cada alerta traz a regra ao lado. Lead entregue em dia de folga é da distribuição, nunca do corretor.</li>
       <li><b>Caderno:</b> feedback, combinado com prazo, treinamento e reconhecimento — sem advertência. Gravado no Cofre (aba <code>Equipe_Caderno</code>); só o Ricardo escreve. Os combinados aparecem para o vendedor no Pocket, com prazo e status.</li>
       <li><b>Período:</b> Semana = a última semana lida do atendimento (segunda a domingo) · Mês = o mês até hoje · 3 meses = o mês e os dois anteriores. O atendimento só existe nas últimas 4 semanas.</li>
@@ -390,7 +392,7 @@ th .q{width:16px;height:16px;font-size:10px;margin-left:4px}
 
   var EM_PCT = { atendimento: 1, conversao: 1, no_ato: 1, prazo: 1 };
   function oteFmt(it) {
-    if (it.id === 'registro') return '−' + nf(it.alvo) + ' por lead sem registro';
+    if (it.id === 'registro') return tem(it.alvo) ? 'limite ' + nf(it.alvo) + '% sem registro' : 'sem limite';
     if (it.id === 'no_ato') return tem(it.alvo) ? 'alvo ' + nf(it.alvo) + '% do VGV' : 'sem alvo';
     if (it.id === 'prazo') return tem(it.alvo) ? 'alvo nota ' + nf(it.alvo) + '%' : 'sem alvo';
     if (EM_PCT[it.id]) return tem(it.alvo) ? 'alvo ' + nf(it.alvo) + '%' : 'sem alvo';
@@ -400,7 +402,7 @@ th .q{width:16px;height:16px;font-size:10px;margin-left:4px}
     if (!tem(it.realizado)) return '—';
     if (it.id === 'no_ato') return nf(it.realizado * 100, 1) + '%';
     if (EM_PCT[it.id]) return pc(it.realizado);
-    if (it.id === 'registro') return nf(it.realizado) + ' sem registro';
+    if (it.id === 'registro') return nf(it.realizado * 100, 1) + '% sem registro' + (tem(it.ab) && it.ab > 0 ? ' (' + it.sem_registro + ' de ' + it.ab + ' A e B)' : '');
     return nf(it.realizado);
   }
   function ote(L) {
@@ -433,7 +435,7 @@ th .q{width:16px;height:16px;font-size:10px;margin-left:4px}
       h += '</tbody></table></div>';
     });
     h += '</div><p class="legend">Barra até ' + pc(teto) + ' (teto); a linha laranja marca 100% do alvo. Cada indicador vale realizado ÷ alvo, com teto de ' + pc(teto) +
-      '; no registro, cada lead sem registro tira ' + nf((cfg.ind.registro || {}).alvo) + ' pontos. Vendas, Reservas, no ato e prazo são do mês; atendimento e registro, das últimas 4 semanas. ' +
+      '; no registro, a nota é 1 − % sem registro ÷ ' + nf((cfg.ind.registro || {}).alvo) + '% (leads sem registro ÷ leads A e B recebidos; com ' + nf((cfg.ind.registro || {}).alvo) + '% ou mais, a nota é zero). Vendas, Reservas, no ato e prazo são do mês; atendimento e registro, das últimas 4 semanas. ' +
       'No ato: o que vence no dia da venda (a Única, a entrada ou a 1ª parcela) ÷ o VGV do mês, combinado no Facilita, não o recebido; à vista com desconto acima de 10% não conta. ' +
       'Prazo: por venda parcelada, cartão 21x = 0 e 12x = 100%, boleto 72x = 0 e 48x = 100%, média pelo valor; Reserva fora. ' +
       (fora.length ? 'Em acompanhamento ou sem dado, sem peso: ' + fora.map(function (id) { return ((cfg.ind[id] || {}).rotulo || id).toLowerCase(); }).join(', ') + '; o peso deles foi redistribuído entre os ativos na mesma proporção. ' : '') +
@@ -556,7 +558,7 @@ th .q{width:16px;height:16px;font-size:10px;margin-left:4px}
             '; o peso deles foi redistribuído entre os ativos na mesma proporção. A conversão do qualificado já é calculada por vendedor no Cofre e entra quando o Ricardo mudar o Modo para "ativo" na aba Equipe_OTE, com um alvo.' : ''),
         l.ote ? l.nome + ': ' + l.ote.itens.filter(function (i) { return !i.fora; }).map(function (i) {   // o formato do mockup
           var curto = { vendas: 'vendas', conversao: 'conversão', atendimento: 'atendimento', reservas: 'Reservas', registro: 'registro', no_ato: 'no ato', prazo: 'prazo' }[i.id];
-          if (i.id === 'registro') return curto + ' ' + pc(i.atingido) + ' × ' + pp(i.peso_efetivo);
+          if (i.id === 'registro') return curto + ' ' + nf(i.realizado * 100, 1) + '% sem registro, limite ' + nf(i.alvo) + '% (' + pc(i.atingido) + ') × ' + pp(i.peso_efetivo);
           return curto + ' ' + oteReal(i) + ' de ' + (EM_PCT[i.id] ? nf(i.alvo) + '%' : nf(i.alvo)) + ' (' + pc(i.atingido) + ') × ' + pp(i.peso_efetivo);
         }).join(' + ') + ' = ' + pc(l.ote.pct) + '.' : '—',
         'Mostra o caminho de cada um até o alvo e onde ele perde pontos. O variável que vale continua sendo o de hoje até o OTE ser aprovado.'],
