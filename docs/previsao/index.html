@@ -273,6 +273,10 @@ tr.sub td{color:var(--muted)}
 .funil span{background:var(--panel);border:1px solid var(--line);border-radius:4px;padding:3px 7px}
 .funil em{color:var(--muted);font-style:normal}
 .da-ask{margin:8px 0 0} .da-ask b{color:var(--hl)}
+.da-det{min-width:0} .da-det > * + *{margin-top:10px}
+.da-det > summary{cursor:pointer;font:600 13px var(--f-body);color:var(--muted);width:max-content;max-width:100%}
+.da-det > summary:hover,.da-det[open] > summary{color:var(--ink)}
+.da-det > summary:focus-visible{outline:2px solid var(--hl);outline-offset:2px}
 .da-tab .grey{color:var(--off)}
 .da-tab th .rg{display:block;font:600 10px var(--f-body);text-transform:none;letter-spacing:0;color:var(--hl)}
 .da-per{display:grid;gap:10px;min-width:0} .da-per[hidden]{display:none}
@@ -640,8 +644,10 @@ tr.sub td{color:var(--muted)}
       '<div class="da-kpi' + (R.abaixo_80 ? ' bad' : '') + '"><span class="v">' + nf(R.abaixo_80) + '</span><span class="l">anúncios com rastreio abaixo de ' + pc(rg.rastreio_ok, 0) + ' (' + rg.min_conversas + '+ conversas)</span></div>' +
       '<div class="da-kpi' + (R.gasto_sem_custo > 0 ? ' warn' : '') + '"><span class="v">R$ ' + nf(R.gasto_sem_custo, 0) + '</span><span class="l">de gasto sem custo por qualificado confiável (os anúncios com rastreio abaixo de ' + pc(rg.rastreio_ok, 0) + ')</span></div>' +
       '<div class="da-kpi"><span class="v">' + (R.melhor ? 'R$ ' + brl(R.melhor.custo_a) : '—') + '</span><span class="l">' + (R.melhor ? 'menor custo por qualificado (' + esc(R.melhor.rotulo) + ')' : 'menor custo por qualificado: nenhum anúncio com ' + rg.min_a + '+ qualificados e rastreio verde') + '</span></div>' +
-      '</div>' +
-      '<p class="da-nota"><b>Leia com cuidado.</b> Muitos anúncios têm menos de ' + rg.min_a + ' qualificados, e com amostra pequena um anúncio pode parecer bom ou ruim por acaso. ' +
+      '</div>';
+    /* (28/10, 4ª — Ricardo) menos informação na tela: só os 4 números à vista; a nota, a tabela dos anúncios e as notas de rodapé
+       ficam num "Ver os N anúncios" recolhido */
+    var det = '<p class="da-nota"><b>Leia com cuidado.</b> Muitos anúncios têm menos de ' + rg.min_a + ' qualificados, e com amostra pequena um anúncio pode parecer bom ou ruim por acaso. ' +
       'Esses aparecem com "amostra pequena" e ficam fora das comparações. O custo por qualificado só aparece quando pelo menos ' + pc(rg.rastreio_ok, 0) +
       ' das conversas do anúncio chegam ao FAROL com a assinatura dele.</p>';
     var linhas = '', n = 0;
@@ -667,7 +673,7 @@ tr.sub td{color:var(--muted)}
     /* (28/10, 3ª — Ricardo) a nota "sem a semana de DD/MM" no cabeçalho das colunas que a excluem: o número da coluna é o usado no
        rastreio e no custo por A */
     var semW = P.semanas_fora.length ? '<span class="rg">sem a semana de ' + P.semanas_fora.map(dm).join(', ') + '</span>' : '';
-    h += '<div class="scroll da-tab"><table><thead><tr><th>Anúncio</th><th class="r">Gasto (R$)' + semW + '</th><th class="r">Impressões' + semW + '</th><th class="r">CTR</th><th class="r">Freq.</th>' +
+    det += '<div class="scroll da-tab"><table><thead><tr><th>Anúncio</th><th class="r">Gasto (R$)' + semW + '</th><th class="r">Impressões' + semW + '</th><th class="r">CTR</th><th class="r">Freq.</th>' +
       '<th class="r">Conversas (Meta)' + semW + '</th><th class="r">Rastreio</th><th class="r">Qualif. (A)</th><th class="r">% A</th><th class="r">Custo por A (R$)</th><th class="r">Vendas</th><th>Sinais</th></tr></thead><tbody>' +
       linhas + '</tbody></table></div>';
     var notas = [];
@@ -678,7 +684,8 @@ tr.sub td{color:var(--muted)}
     if (!P.leitura_meta) notas.push('CTR, frequência e status aguardam a leitura do Meta desta janela (a cada 2 horas).');
     if (P.fora.gasto > 0) notas.push('Fora do quadro: R$ ' + brl(P.fora.gasto) + ' em campanhas do Meta que não abrem conversa (' + P.fora.campanhas.map(esc).join(' · ') + ').');
     notas.push('CTR = cliques no link ÷ impressões. Rastreio = leads lidos com o anúncio ÷ conversas iniciadas no Meta. Vendas = vendas dos leads do anúncio pelo nº do negócio, com a regra da conversão por classe. Toque no anúncio para ver o funil e a pergunta para a agência.');
-    return h + '<div class="small muted">' + notas.join(' ') + '</div>';
+    det += '<div class="small muted">' + notas.join(' ') + '</div>';
+    return h + '<details class="da-det"><summary>Ver os ' + n + (n === 1 ? ' anúncio' : ' anúncios') + ', por campanha</summary>' + det + '</details>';
   }
   function daPeriodoGoogle(P) {
     var G = P.google;
