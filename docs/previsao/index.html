@@ -300,6 +300,7 @@ tr.sub td{color:var(--muted)}
    com os números que a tela já carregou; só copia, não envia nem grava */
 .btBol{font:600 13px var(--f-body);border:1px solid var(--hl);background:var(--hl);color:#1a1205;border-radius:6px;padding:5px 12px;cursor:pointer}
 .btBol:disabled{opacity:.45;cursor:default}
+a.btBol{text-decoration:none;display:inline-block}   /* (28/10) o link da Reunião de resultados, com a cara do botão */
 .btBol[aria-expanded="true"]{background:transparent;color:var(--hl)}
 .btBol:focus-visible,.bolBt:focus-visible,#bolTexto:focus-visible,#bolPergunta:focus-visible{outline:2px solid var(--hl);outline-offset:2px}
 .bol{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:16px}
@@ -348,7 +349,8 @@ tr.sub td{color:var(--muted)}
   <div class="topo">
     <a class="voltar" href="../">← Painel Comercial</a>
     <a class="voltar" href="https://claude.ai/artifact/WK7tVgqjCtsRSmCzPLr2Ei" target="_blank" rel="noopener" title="Abre o Manual da Previsão de Vendas numa aba nova (exige estar logado no Claude com acesso à página)">📘 Manual da tela ↗</a>
-    <button class="btBol" id="btBoletim" type="button" aria-expanded="false" aria-controls="boletim" disabled title="Monta o texto da semana com os números desta tela, para copiar e colar. Não envia nada.">📨 Boletim do Rodrigo</button>
+    <a class="btBol" href="reuniao/" title="A página da reunião de sexta: a foto da semana, fechada toda quinta às 16h, com os combinados e as anotações.">📋 Reunião de resultados</a>
+    <button class="btBol" id="btBoletim" type="button" aria-expanded="false" aria-controls="boletim" disabled title="Monta o texto da última semana fechada (Reunião de resultados), para copiar e colar. Não envia nada.">📨 Boletim do Rodrigo</button>
     <button class="btBol" id="btTour" type="button" disabled title="Passa por cada quadro da aba aberta, com o que é, o exemplo de hoje e como ler. Não grava nada.">▶ Tour da tela</button>
   </div>
 
@@ -378,7 +380,7 @@ tr.sub td{color:var(--muted)}
           <textarea id="bolTexto" spellcheck="false"></textarea></label>
         <div class="bol-acoes">
           <button class="bolBt pri" id="bolCopiar" type="button">Copiar texto</button>
-          <button class="bolBt" id="bolRefazer" type="button">Refazer a partir da tela</button>
+          <button class="bolBt" id="bolRefazer" type="button">Refazer o texto</button>
           <span class="bol-st" id="bolStatus" role="status"></span>
         </div>
       </div>
@@ -387,7 +389,7 @@ tr.sub td{color:var(--muted)}
         <div id="bolRessalvas" style="display:grid;gap:8px"></div>
         <span class="bol-tag">Blocos</span>
         <div id="bolBlocos" style="display:grid;gap:8px"></div>
-        <p class="small muted" style="margin:0">Só copia: nada é enviado nem gravado. Os números são os que esta tela carregou.</p>
+        <p class="small muted" style="margin:0">Só copia: nada é enviado nem gravado. Os números são os da última semana fechada da Reunião de resultados (quinta, 16h), não os desta tela.</p>
       </div>
     </div>
   </section>
@@ -1090,14 +1092,15 @@ tr.sub td{color:var(--muted)}
     return g + '</svg><div class="small muted">Linha sólida: realizado até o dia. Faixa hachurada: o previsto para o mês, como a tela mostrava em cada dia; tracejado: o ponto central. Linha clara: a meta.</div>';
   }
 
-  /* (23/10) A REGRA DE CONTAGEM do tempo até o 1º registro — UMA fonte para a nota da tela e para o Boletim do Rodrigo.
+  /* (23/10) A REGRA DE CONTAGEM do tempo até o 1º registro — a nota da tela. (28/10) A frase do Boletim mora no Cofre
+     (reRegraAtend, Reuniao.gs), porque o Boletim passou a sair da semana fechada; as duas leem o mesmo `regra`.
      Hoje o Cofre copia as horas que a auditoria de segunda grava, na regra antiga (seg–sex, 8h–18h). A regra de 22/10
      (todos os dias, 8h–18h; o corretor sem o dia de folga) entra quando o Cofre calcular e mandar `regra: 'todos_os_dias'`
      no bloco comercial — aí a nota e o boletim viram juntos, sem mexer aqui. */
   function regraAtend(com) {
     return com && com.regra === 'todos_os_dias'
-      ? { nota: 'contado todos os dias, das 8h às 18h (o número de cada corretor não conta o dia de folga dele)', boletim: '(contado todos os dias, das 8h às 18h)' }
-      : { nota: 'em horas úteis (seg–sex, 8h–18h)', boletim: '(contado em horas úteis, de segunda a sexta, 8h–18h)' };
+      ? { nota: 'contado todos os dias, das 8h às 18h (o número de cada corretor não conta o dia de folga dele)' }
+      : { nota: 'em horas úteis (seg–sex, 8h–18h)' };
   }
 
   function comercialHtml(com, hoje) {
@@ -1507,11 +1510,12 @@ tr.sub td{color:var(--muted)}
 
   /* ══════════ (23/10) o Boletim do Rodrigo ══════════
      Protótipo aprovado pelo Ricardo: claude.ai/artifact/UAniHGgh5cMHJ6MamnpAc1 (layout, formato e "de onde vem cada linha").
-     Monta o texto SÓ com o que a tela já carregou (a última resposta da rota): nenhuma chamada nova, nenhuma conta além de
-     arredondar e da razão Google ÷ Meta. Só copia — não envia, não grava. No texto: "lead qualificado" (classe A); nunca
-     "SQL" nem "MQL". Linha sem dado (a Estrela não tem meta nem previsão) sai do texto em vez de mostrar zero. */
-  var BOL_OFFLINE = /outdoor|panfleta|r[aá]dio|busdoor|painel de led|evento/i;
-  var ultimoR = null, bolAberto = false;
+     (28/10, decisão 6 da Reunião de resultados) O TEXTO SAI DA SEMANA FECHADA: os números vêm da foto de quinta, 16h, pela
+     rota POST ?app=reuniao&fn=boletim — o objeto que a bolDados() montava aqui até 28/10 agora é montado no Cofre
+     (reBoletim, Reuniao.gs), sem mudar a conta, e gravado com a foto. Sem nenhuma semana fechada ainda, a rota devolve o
+     da tela de agora e o selo diz isso. Aqui ficam só o texto (bolTexto) e a pergunta sugerida. Só copia — não envia, não
+     grava. No texto: "lead qualificado" (classe A); nunca "SQL" nem "MQL". Linha sem dado sai do texto em vez de mostrar zero. */
+  var ultimoR = null, bolAberto = false, bolFoto = null, bolLendo = false;
 
   var r0 = function (v) { return 'R$ ' + Math.round(v).toLocaleString('pt-BR'); };
   var lista = function (a) { return a.length < 2 ? a.join('') : a.slice(0, -1).join(', ') + ' e ' + a[a.length - 1]; };
@@ -1524,93 +1528,15 @@ tr.sub td{color:var(--muted)}
     return isoMais(iso, -((d.getUTCDay() + 6) % 7));
   }
 
-  /* Tudo o que o texto usa, lido da resposta já carregada. emp = 'ps' | 'eu'. */
-  function bolDados(r, emp) {
-    var E = r[emp], cap = E.captacao || {}, c2 = E.camada2 || null, d = { emp: emp };
-    d.titulo = emp === 'ps' ? 'Comercial Parque' : 'Comercial Estrela';
-    d.semana = segundaDe(r.hoje);
-    d.leitura = E.vendas_atualizado_em || r.atualizado_em;
-
-    // vendas: realizado, meta, previsto · "até" = véspera da leitura quando ela é antes das 6h
-    if (E.realizado !== undefined && E.realizado !== null && E.meta) {
-      var lv = String(E.vendas_atualizado_em || '');
-      d.ate = lv ? (Number(lv.slice(11, 13)) < 6 ? isoMais(lv.slice(0, 10), -1) : lv.slice(0, 10)) : r.hoje;
-      d.vendas = { realizado: E.realizado, meta: E.meta, prev: c2 && c2.previsto ? c2.previsto : null };
-      var ha = isoMais(r.hoje, -7), hist = (c2 && c2.historico && c2.historico.mes_atual) || [];
-      hist.forEach(function (x) { if (x.data === ha && x.central !== null && x.central !== undefined) d.vendas.semanaPassada = x.central; });
-    }
-
-    // captação: as 2 últimas semanas completas e lidas · o necessário por semana do funil reverso
-    var compl = (cap.semanas || []).filter(function (s) { return s.completa && s.lida; }).slice(-2);
-    if (compl.length) d.captacao = { semanas: compl.map(function (s) { return { s: s.semana, v: s.sql }; }),
-                                     necessario: c2 && c2.reverso ? c2.reverso.por_semana.valor : null };
-
-    // custo: custo por SQL do Meta e do Google (Custo por canal) · custo por venda pelo Pocket (mês vigente e anterior)
-    var canal = function (nome) { return (cap.canais || []).filter(function (c) { return c.canal === nome && c.custo && c.custo.custo_sql > 0; })[0] || null; };
-    var meses = (E.custo_origem && E.custo_origem.meses) || [];
-    var origem = function (m, nome) { return m ? m.linhas.filter(function (l) { return l.origem === nome; })[0] || null : null; };
-    var cm = canal('Meta Ads'), cg = canal('Google (landing page)');
-    if (cm || cg) {
-      d.custo = { meta: cm ? cm.custo.custo_sql : null, google: cg ? cg.custo.custo_sql : null,
-                  metaMes: origem(meses[0], 'Meta Ads'), metaAnt: origem(meses[1], 'Meta Ads'), googleMes: origem(meses[0], 'Google (busca)') };
-    } else {
-      // a Estrela: as campanhas da Comunica Bem, cada uma com o seu custo por lead qualificado
-      var camp = (cap.canais || []).filter(function (c) { return c.custo && c.custo.custo_sql > 0; });
-      if (camp.length) d.custoCampanhas = camp.map(function (c) { return { canal: c.canal, sql: c.custo.custo_sql }; });
-    }
-
-    /* atendimento (23/10, ligado): da tabela "Atendimento comercial" — o total "em até 2h" e os corretores com 70% ou mais e
-       com menos de 40%, sem "(sem corretor)" e sem quem tem menos de 5 leads; a regra de contagem é a mesma da nota da tela */
-    var com = E.comercial;
-    if (com && com.total && com.total.r1_n) {
-      var cor = (com.corretores || []).filter(function (c) { return c.leads >= 5 && c.r1_n && c.corretor !== '(sem corretor)'; });
-      d.atend = { total: com.total.r1, regra: regraAtend(com).boletim,
-                  // pelo número arredondado que o texto mostra: 39,5% sai "40%" e não pode cair em "menos de 40%"
-                  altos: cor.filter(function (c) { return Math.round(c.r1 * 100) >= 70; }),
-                  baixos: cor.filter(function (c) { return Math.round(c.r1 * 100) < 40; }) };
-    }
-
-    /* (23/10, v2 do protótipo) ORIGEM DAS VENDAS: por origem do Pocket, mês vigente até o dia · mês anterior até o mesmo dia
-       (o corte que o Cofre expõe, ate_dia) · mês anterior fechado. E a pergunta da semana sai da maior variação contra o
-       mês anterior ATÉ O MESMO DIA, nunca contra o mês fechado. */
-    var mv = meses[0], ma = meses[1];
-    if (mv && ma && ma.ate_dia) {
-      var nomes = [];
-      [mv, ma].forEach(function (m) { m.linhas.forEach(function (l) { if (nomes.indexOf(l.origem) < 0) nomes.push(l.origem); }); });
-      var linhasO = nomes.map(function (n) {
-        var b = origem(mv, n), a = origem(ma, n);
-        return { o: n, mes: b ? b.vendas || 0 : 0, antDia: a ? a.vendas_ate_dia || 0 : 0, ant: a ? a.vendas || 0 : 0 };
-      });
-      var melhor = null;
-      linhasO.forEach(function (x) { if (!melhor || Math.abs(x.mes - x.antDia) > Math.abs(melhor.mes - melhor.antDia)) melhor = x; });
-      linhasO.push({ o: 'Sem anúncio no Pocket', mes: mv.vendas_sem_anuncio || 0, antDia: ma.sem_anuncio_ate_dia || 0, ant: ma.vendas_sem_anuncio || 0 });
-      d.origens = {
-        mesAtual: MESES_MIN[Number(mv.mes.slice(5, 7)) - 1], mesAnt: MESES_MIN[Number(ma.mes.slice(5, 7)) - 1],
-        dia: Number(String(mv.ate || mv.ate_dia || '').slice(8, 10)),
-        linhas: linhasO.filter(function (x) { return x.mes || x.antDia || x.ant; })
-                       .map(function (x, i) { x.i = i; return x; })
-                       .sort(function (a, b) { return (b.mes - a.mes) || (a.i - b.i); }),
-        migracoes: mv.migracoes || 0,
-        pocket: (mv.vendas_anunciadas || 0) + (mv.vendas_sem_anuncio || 0)
-      };
-      if (melhor && melhor.mes !== melhor.antDia) d.variacao = { origem: melhor.o, ant: melhor.antDia, mes: melhor.mes, dia: d.origens.dia };
-    }
-
-    // ressalvas — cada uma pela regra do protótipo
-    var fQ = frescorDe(E, 'qualidade'), ultCompleta = isoMais(d.semana, -7);
-    var offline = [];
-    meses.slice(0, 2).forEach(function (m) { m.linhas.forEach(function (l) {
-      if (BOL_OFFLINE.test(l.origem) && l.gasto === null && offline.indexOf(l.origem) < 0) offline.push(l.origem);
-    }); });
-    d.ress = {
-      emValidacao: !!(c2 && c2.selo && c2.selo.em_validacao),
-      offline: offline.length > 0,
-      semanaNaoLida: !!(fQ && (!fQ.semana || fQ.semana < ultCompleta)),
-      atrasados: (E.frescor || []).filter(function (f) { return f.estado === 'atrasado' && f.id !== 'assinatura'; })   // (28/10) o Boletim não muda agora
-    };
-    d.ultCompleta = ultCompleta;
-    d.proxima = r.proxima_leitura;
-    return d;
+  /* A semana fechada: uma leitura por abertura da página (a foto não muda até a próxima quinta). */
+  function bolLer() {
+    if (bolFoto || bolLendo) return;
+    var token = ''; try { token = localStorage.getItem(CHAVE_TOKEN) || ''; } catch (e) {}
+    bolLendo = true; $('bolLeitura').textContent = 'lendo a semana fechada…';
+    fetch(API + '?app=reuniao&fn=boletim', { method: 'POST', body: JSON.stringify({ token: token }), cache: 'no-store' })
+      .then(function (r) { return r.json(); })
+      .then(function (j) { bolLendo = false; if (!j || !j.ok) throw new Error((j && j.error) || 'resposta sem dado'); bolFoto = j; bolMontar(true); })
+      .catch(function (e) { bolLendo = false; $('bolLeitura').textContent = 'semana fechada não veio'; $('bolTexto').value = ''; $('bolStatus').textContent = 'Não consegui ler a semana fechada: ' + (e.message || e); });
   }
 
   function bolPerguntaSugerida(d) {
@@ -1684,11 +1610,15 @@ tr.sub td{color:var(--muted)}
   function bolAba() { return $('tab-eu').getAttribute('aria-selected') === 'true' ? 'eu' : 'ps'; }
 
   function bolMontar(refazer) {
-    if (!ultimoR) return;
-    var d = bolDados(ultimoR, bolAba());
+    if (!bolFoto) { bolLer(); return; }
+    var d = bolFoto[bolAba()];
+    $('bolTitulo').textContent = '📨 Boletim do Rodrigo · ' + (bolAba() === 'ps' ? 'Parque da Saudade' : 'Estrela Urbanidade');
+    if (!d) { $('bolTexto').value = ''; $('bolLeitura').textContent = 'sem a foto desta empresa'; $('bolRessalvas').innerHTML = ''; $('bolBlocos').innerHTML = ''; return; }
     if (refazer) $('bolPergunta').value = bolPerguntaSugerida(d);
     $('bolTexto').value = bolTexto(d, $('bolPergunta').value.trim());
-    $('bolLeitura').textContent = 'montado com a leitura de ' + dmh(d.leitura);
+    $('bolLeitura').textContent = bolFoto.de === 'semana_fechada'
+      ? 'semana fechada em ' + dmh(bolFoto.fechada_em) + ' · reunião de ' + dm(bolFoto.reuniao)
+      : 'nenhuma semana fechada ainda: números de agora (' + dmh(d.leitura) + ')';
     var chk = function (on, titulo, regra) {
       return '<div class="bol-chk ' + (on ? 'on' : 'off') + '"><span class="dot"></span><div><b>' + esc(titulo) + ' · ' + (on ? 'ligada' : 'desligada') + '</b><small>' + esc(regra) + '</small></div></div>';
     };
@@ -1699,8 +1629,7 @@ tr.sub td{color:var(--muted)}
       chk(rs.semanaNaoLida, 'Semana ainda não lida', 'a última semana completa (' + dm(d.ultCompleta) + ') ainda sem leitura de qualidade') +
       chk(rs.atrasados.length > 0, 'Dado atrasado', rs.atrasados.length ? 'cinza na Saúde do dado: ' + rs.atrasados.map(function (f) { return f.rotulo; }).join(', ') : 'algum item da Saúde do dado cinza');
     $('bolBlocos').innerHTML = '<div class="bol-chk ' + (d.atend ? 'on' : 'off') + '"><span class="dot"></span><div><b>Atendimento · ' + (d.atend ? 'no texto' : 'sem dado') +
-      '</b><small>Contagem pela regra da nota da tela: ' + esc(regraAtend((ultimoR[d.emp] || {}).comercial).boletim.replace(/^\(|\)$/g, '')) + '.</small></div></div>';
-    $('bolTitulo').textContent = '📨 Boletim do Rodrigo · ' + (d.emp === 'ps' ? 'Parque da Saudade' : 'Estrela Urbanidade');
+      '</b><small>' + (d.atend ? 'Contagem: ' + esc(d.atend.regra.replace(/^\(|\)$/g, '')) + '.' : 'Sem a auditoria de atendimento na foto.') + '</small></div></div>';
   }
 
   $('btBoletim').addEventListener('click', function () {
@@ -1710,7 +1639,7 @@ tr.sub td{color:var(--muted)}
     if (bolAberto) { $('bolStatus').textContent = ''; bolMontar(true); $('bolTexto').focus(); }
   });
   $('bolPergunta').addEventListener('input', function () { bolMontar(false); });
-  $('bolRefazer').addEventListener('click', function () { bolMontar(true); $('bolStatus').textContent = 'Texto refeito com os números da tela.'; });
+  $('bolRefazer').addEventListener('click', function () { bolMontar(true); $('bolStatus').textContent = 'Texto refeito com os números da semana fechada.'; });
   $('bolCopiar').addEventListener('click', function () {
     var t = $('bolTexto').value;
     var ok = function () { $('bolStatus').textContent = 'Copiado. Cole no WhatsApp ou no e-mail.'; };

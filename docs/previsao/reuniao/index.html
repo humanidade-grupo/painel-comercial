@@ -1,0 +1,600 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>Reunião de resultados</title>
+<link rel="icon" href="../../favicon-32.png">
+<!--
+  REUNIÃO DE RESULTADOS — 28/10/2026 (aprovada pelo Ricardo).
+
+  LAYOUT APROVADO: o artefato claude.ai WA8vnDsDLuKgr4YGAxpzhw (mockup de 28/10). Esta página o reproduz bloco a bloco,
+  de 0 a 9, na ordem da reunião de sexta. Desde a publicação, o artefato é REGISTRO, não referência (CLAUDE.md, regra 8).
+
+  O QUE ELA LÊ: só a rota POST ?app=reuniao do Cofre (Reuniao.gs). Fechada (quinta, 16h, gatilho do Cofre), a rota
+  devolve a FOTO da aba Reuniao_Semanal e a página não recalcula nada; antes disso, os números de agora, tirados da
+  mesma rota da Previsão. Nenhuma conta aqui: a página só desenha.
+  ESCRITA: anotações, "Por quê?" e combinados vão para a aba Reuniao_Combinados, SÓ com o token das Configurações
+  (hub_token_config, o do Ricardo). Com o token do Painel (hub_token_gestao), a página é só leitura.
+
+  DIFERENÇAS em relação ao mockup (para ninguém "corrigir" a página de volta):
+   · os combinados NÃO vão para o Caderno do Rodrigo (decisão 4 do Ricardo, 28/10): ficam no Cofre, e o bloco 0 lê
+     dali. O botão "Enviar ao Caderno" virou "Gravar combinado"; a sincronização com o Caderno é do Cowork;
+   · o bloco 0 mostra também os combinados mais antigos AINDA ABERTOS (marcados "de DD/MM"), para nenhum sumir só por
+     mudar de semana; "atrasado" é o aberto com prazo vencido, não um status gravado;
+   · a origem das vendas lista cada origem como o quadro da Previsão a tem, sem agrupar as pequenas ("Outros, rádio…");
+   · as cores e as fontes são as da tela da Previsão (a página é filha dela), não as do mockup;
+   · a seção "Para o Claude Code · como funciona" virou "Como funciona", escrita para quem usa a página;
+   · a Estrela mostra só os blocos que tem (sem meta nem funil no Cofre dela: sem placar, funil nem origem).
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600;700&family=Source+Sans+3:wght@400;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+:root{
+  --bg:#0f151b; --panel:#17202a; --panel2:#1d2833; --ink:#e6ebf0; --muted:#9aa7b4; --line:#2a3642;
+  --hl:#f2a72e; --hl-soft:#2e2412;
+  --bad:#ef7b72; --bad-soft:#3a1d1b; --ok:#6cc58f; --ok-soft:#173326; --info:#7fb0ff; --info-soft:#1a2740; --off:#7d8894; --off-soft:#212b35;
+  --f-head:"Barlow Semi Condensed","Arial Narrow",system-ui,sans-serif;
+  --f-body:"Source Sans 3",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-num:"JetBrains Mono",ui-monospace,Consolas,monospace;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:14px;line-height:1.45;margin:0}
+html.embutido body{background:transparent}
+.wrap{max-width:1080px;margin:0 auto;padding-inline:16px;padding-block:14px 48px;display:grid;gap:14px}
+h1,h2{font-family:var(--f-head);margin:0;text-wrap:balance}
+h1{font-size:24px;font-weight:700}
+.voltar{color:var(--muted);text-decoration:none;font-size:13px}
+.voltar:hover,.voltar:focus-visible{color:var(--ink)}
+.muted{color:var(--muted)} .small{font-size:12px}
+.num{font-family:var(--f-num);font-variant-numeric:tabular-nums}
+
+.head{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;justify-content:space-between}
+.sub{color:var(--muted);margin:2px 0 0}
+.nav{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.btn{font:600 13px var(--f-body);border-radius:6px;padding:6px 12px;cursor:pointer;border:1px solid var(--line);background:var(--panel2);color:var(--ink);text-decoration:none}
+.btn:disabled{opacity:.45;cursor:default}
+.btn.pri{background:var(--hl);border-color:var(--hl);color:#1a1205}
+.btn:focus-visible,textarea:focus-visible,input:focus-visible,select:focus-visible,.tabs button:focus-visible{outline:2px solid var(--hl);outline-offset:2px}
+.pill{font:600 11px var(--f-num);padding:3px 9px;border-radius:999px;border:1px solid var(--off);color:var(--muted)}
+.pill.fechada{border-color:var(--ok);color:var(--ok)}
+.pill.aberta{border-color:var(--hl);color:var(--hl)}
+.pill.alerta{border-color:var(--bad);color:var(--bad)}
+.tabs{display:flex;gap:4px;background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:3px;width:max-content;max-width:100%}
+.tabs button{font:600 14px var(--f-head);letter-spacing:.03em;border:0;background:transparent;color:var(--muted);padding:6px 14px;border-radius:4px;cursor:pointer}
+.tabs button[aria-selected="true"]{background:var(--ink);color:var(--panel)}
+
+.aviso{border:1px solid var(--hl);border-radius:6px;padding:10px 14px;background:var(--hl-soft);margin:0}
+.escrita{display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-size:13px;color:var(--muted)}
+.escrita b{color:var(--ink)}
+.escrita input{font:600 14px var(--f-num);color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:4px;padding:6px 8px;width:min(260px,100%)}
+
+.box{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:14px 16px;display:grid;gap:12px;min-width:0}
+.box h2{font-size:14px;letter-spacing:.06em;text-transform:uppercase;display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}
+.box h2 .n{font:600 12px var(--f-num);color:var(--hl)}
+.box h2 small{font:400 12px var(--f-body);color:var(--muted);text-transform:none;letter-spacing:0}
+
+.prev{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.prev li{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:10px;align-items:baseline}
+@media (max-width:620px){.prev li{grid-template-columns:auto minmax(0,1fr)}.prev li .who{grid-column:2}}
+.st{font:600 11px var(--f-num);padding:2px 8px;border-radius:999px;white-space:nowrap;background:var(--off-soft);color:var(--muted)}
+.st.entregue{background:var(--ok-soft);color:var(--ok)} .st.atrasado{background:var(--bad-soft);color:var(--bad)}
+.st.andamento{background:var(--info-soft);color:var(--info)} .st.cancelado{text-decoration:line-through}
+.who{color:var(--muted);font-size:12px;white-space:nowrap}
+.prev select{font:600 12px var(--f-body);background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:4px;padding:2px 4px}
+
+.changes{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.chg{background:var(--panel2);border-radius:6px;padding:12px;display:grid;gap:6px;align-content:start}
+.chg .fact{font-weight:600}
+.chg .v{font:600 20px var(--f-num)}
+.chg label{font-size:12px;color:var(--muted)}
+.dn{color:var(--bad)} .up{color:var(--ok)}
+.three{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.col{background:var(--panel2);border-radius:6px;padding:10px 12px;display:grid;gap:2px;align-content:start}
+.col .l{font:600 11px var(--f-num);letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
+.col .v{font:600 22px var(--f-num)}
+.col .c{font-size:12px;color:var(--muted)}
+@media (max-width:820px){.changes,.three{grid-template-columns:minmax(0,1fr)}}
+
+input[type=text],input[type=date],textarea,.newc select{width:100%;background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:7px 9px;font:14px var(--f-body)}
+textarea{min-height:84px;resize:vertical}
+.lido{white-space:pre-wrap;background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:7px 9px;min-height:34px}
+.lido.vazio{color:var(--muted);font-style:italic}
+
+.scroll{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th,td{padding:6px 8px;border-bottom:1px solid var(--line);text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+th{color:var(--muted);font:600 11px var(--f-num);letter-spacing:.05em;text-transform:uppercase}
+th:first-child,td:first-child{text-align:left;white-space:normal}
+tr.sub td{color:var(--muted)}
+.rg{display:block;font-size:11px;color:var(--muted)}
+.sig{display:grid;gap:10px}
+.sig div{display:grid;grid-template-columns:auto minmax(0,1fr);gap:10px;align-items:baseline}
+.chip{font:600 11px var(--f-body);padding:2px 8px;border-radius:999px;white-space:nowrap}
+.chip.bad{background:var(--bad-soft);color:var(--bad)} .chip.ok{background:var(--ok-soft);color:var(--ok)}
+.chip.warn{background:var(--hl-soft);color:var(--hl)} .chip.info{background:var(--info-soft);color:var(--info)}
+.wait{border:1px dashed var(--line);border-radius:6px;padding:12px;color:var(--muted);margin:0}
+.notes{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.notes label,.newc label{display:grid;gap:4px;font-size:12px;color:var(--muted)}
+.newc{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr) minmax(0,1fr) auto;gap:8px;align-items:end}
+@media (max-width:820px){.notes,.newc{grid-template-columns:minmax(0,1fr)}}
+.foot{color:var(--muted);font-size:12px;margin:0}
+.gv{font-size:11px;color:var(--muted);min-height:14px}
+.gv.ok{color:var(--ok)} .gv.erro{color:var(--bad)}
+.status{font-size:13px;min-height:18px}
+.status.ok{color:var(--ok)} .status.erro{color:var(--bad)}
+.spec ul{margin:0;padding-left:18px;display:grid;gap:6px}
+.espera{color:var(--muted)}
+.offbox{border:1px dashed var(--off);border-radius:6px;padding:12px;background:var(--off-soft)}
+
+.gate{position:fixed;inset:0;z-index:50;background:rgba(10,14,18,.92);display:flex;align-items:center;justify-content:center;padding:16px}
+.gatebox{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:20px;max-width:380px;width:100%;display:grid;gap:10px}
+.gatebox p{margin:0;color:var(--muted);font-size:13px}
+.gatebox input{font:600 15px var(--f-num);color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:4px;padding:8px}
+.gatebox button{font:600 14px var(--f-head);border:0;border-radius:4px;padding:8px;background:var(--ink);color:var(--panel);cursor:pointer}
+.gatebox .erro{color:var(--bad);font-size:12.5px;min-height:16px}
+/* A GUARDA DO [hidden] (regra da casa): toda classe que declara `display` ganha o par. */
+.gate[hidden],.box[hidden],.escrita[hidden],.tabs[hidden],section[hidden],.nav[hidden]{display:none!important}
+</style>
+<script>
+  try { if (window.top !== window.self) document.documentElement.classList.add('embutido'); }
+  catch (e) { document.documentElement.classList.add('embutido'); }
+</script>
+</head>
+<body>
+
+<div class="gate" id="gate" hidden>
+  <div class="gatebox">
+    <h2>Reunião de resultados</h2>
+    <p>Pede o token do Painel Comercial — você digita uma vez e ele fica guardado neste aparelho.</p>
+    <input id="tk" type="password" autocomplete="off" spellcheck="false" placeholder="token" aria-label="Token de acesso">
+    <button id="btEntrar" type="button">Entrar</button>
+    <div class="erro" id="gateErro"></div>
+  </div>
+</div>
+
+<div class="wrap">
+  <a class="voltar" href="../">← Previsão de Vendas</a>
+
+  <div class="head">
+    <div>
+      <h1 id="titulo">Reunião de resultados</h1>
+      <p class="sub" id="sub"></p>
+    </div>
+    <div class="nav" id="nav" hidden>
+      <button class="btn" type="button" id="btAnt"></button>
+      <span class="pill" id="pill" role="status"></span>
+      <button class="btn" type="button" id="btProx"></button>
+    </div>
+  </div>
+
+  <div class="tabs" role="tablist" id="tabs" hidden>
+    <button role="tab" id="tab-ps" aria-selected="true" aria-controls="view" type="button">Parque da Saudade</button>
+    <button role="tab" id="tab-eu" aria-selected="false" aria-controls="view" type="button">Estrela Urbanidade</button>
+  </div>
+
+  <p class="aviso" id="aviso"><b>Os números fecham toda quinta, às 16h.</b> Depois disso, esta página não muda mais: é a foto que vai para a
+    reunião de sexta. O que entrar no Facilita ou na SATI depois das 16h aparece na semana seguinte. Até as 16h, a página mostra
+    "aberta" e os números ainda mudam. O Ricardo pode reabrir e fechar de novo até o dia da reunião.</p>
+
+  <div class="escrita" id="escrita" hidden></div>
+
+  <div id="estado"><p class="espera">Lendo a reunião…</p></div>
+  <section id="view" role="tabpanel" style="display:grid;gap:14px" hidden></section>
+
+  <section class="box spec" aria-labelledby="t-spec">
+    <h2 id="t-spec">Como funciona</h2>
+    <ul>
+      <li><b>Uma página por reunião de sexta</b>, com os números da semana anterior (segunda a domingo). As setas ← → passam de uma semana para outra.</li>
+      <li><b>Fechamento:</b> toda quinta, às 16h, o Cofre grava a foto de todos os blocos (aba <code>Reuniao_Semanal</code>), com data e hora. Fechada, a página só lê a foto e não recalcula. Antes das 16h, ela está "aberta" e mostra os números de agora. O Ricardo pode reabrir e fechar de novo até o dia da reunião.</li>
+      <li><b>As 3 mudanças:</b> as três maiores variações, em unidades, entre a captação (semana contra semana) e a origem das vendas (mês contra o mês anterior até o mesmo dia). Sempre escritas como fato; a causa vai no campo "Por quê?".</li>
+      <li><b>Três colunas por bloco:</b> semana contra a semana anterior · mês até o dia contra o mês anterior até o mesmo dia · projeção ou necessário. Os números saem dos quadros da Previsão de Vendas; onde a comparação pede a semana passada (o funil, o atendimento, o centro da projeção), ela vem da foto da reunião anterior.</li>
+      <li><b>Anotações, "Por quê?" e combinados:</b> gravados no Cofre (aba <code>Reuniao_Combinados</code>), presos a esta reunião. Só o Ricardo escreve, com o token das Configurações; com o token do Painel a página é só leitura. Nenhum dado pessoal: texto com CPF, telefone ou e-mail é recusado.</li>
+      <li><b>Combinados anteriores (bloco 0):</b> os da reunião anterior, e os mais antigos ainda abertos. "Atrasado" é o combinado aberto com o prazo vencido.</li>
+      <li><b>Campanhas digitais:</b> os 3 anúncios de maior gasto com sinal no quadro "Desempenho por anúncio", sempre como pergunta para a agência.</li>
+      <li><b>Por que perdemos:</b> vazio até o novo funil da SATI gravar o motivo de saída.</li>
+      <li><b>Boletim do Rodrigo</b> (na Previsão): monta o texto a partir da última semana fechada.</li>
+      <li><b>Estrela:</b> a mesma página, com os blocos que a Estrela tem.</li>
+      <li>Nada desta página é enviado a ninguém.</li>
+    </ul>
+  </section>
+</div>
+
+<script>
+(function () {
+  'use strict';
+  var API = 'https://script.google.com/macros/s/AKfycbydLmUEX3g6FeojFGAcVHfNKoPsr4d9oTBUdi7GtcfsirQL6xHJM0BELVGcCrcqrICY/exec';
+  var CHAVE_TOKEN = 'hub_token_gestao';      // o mesmo do Painel — leitura
+  var CHAVE_ESCRITA = 'hub_token_config';    // o das Configurações, só do Ricardo — escrita
+  var CHAVE_EMP = 'reuniao_empresa';         // conveniência do aparelho: a última empresa aberta
+  var MESES = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
+  var DIAS = ['domingo', 'segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado'];
+  var STATUS_TXT = { aberto: 'aberto', andamento: 'andamento', entregue: 'entregue', cancelado: 'cancelado', atrasado: 'atrasado' };
+  var $ = function (id) { return document.getElementById(id); };
+
+  var esc = function (s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); };
+  var tem = function (v) { return v !== null && v !== undefined && !isNaN(v); };
+  var nf = function (v, d) { return !tem(v) ? '—' : Number(v).toLocaleString('pt-BR', { minimumFractionDigits: d || 0, maximumFractionDigits: d || 0 }); };
+  var pc = function (v, d) { return !tem(v) ? '—' : nf(v * 100, d === undefined ? 0 : d) + '%'; };
+  var brl = function (v) { return !tem(v) ? '—' : 'R$ ' + nf(v, 2); };
+  var dm = function (iso) { var m = String(iso || '').match(/^\d{4}-(\d{2})-(\d{2})/); return m ? m[2] + '/' + m[1] : '—'; };
+  var hm = function (c) { var m = String(c || '').match(/ (\d{2}):(\d{2})/); return m ? Number(m[1]) + 'h' + (m[2] === '00' ? '' : m[2]) : ''; };
+  var dia = function (iso) { var p = String(iso).slice(0, 10).split('-'); return DIAS[new Date(Date.UTC(+p[0], +p[1] - 1, +p[2])).getUTCDay()]; };
+  var mes = function (ym) { return MESES[Number(String(ym).slice(5, 7)) - 1] || ''; };
+  var sinal = function (n) { return n > 0 ? '+' + nf(n) : n < 0 ? '−' + nf(-n) : '0'; };
+  var cor = function (n) { return n > 0 ? 'up' : n < 0 ? 'dn' : ''; };
+  var varPc = function (de, para) { return de > 0 ? (para - de) / de : null; };
+  var pcSinal = function (v) { return !tem(v) ? '' : (v > 0 ? '+' : v < 0 ? '−' : '') + nf(Math.abs(v) * 100) + '%'; };
+
+  var tokenLer = function (k) { try { return localStorage.getItem(k) || ''; } catch (e) { return ''; } };
+  var tokenGravar = function (k, v) { try { if (v) localStorage.setItem(k, v); else localStorage.removeItem(k); } catch (e) {} };
+
+  var R = null, emp = 'ps', pedida = '';
+  try { pedida = (new URLSearchParams(location.search).get('r') || '').slice(0, 10); } catch (e) {}
+  try { emp = localStorage.getItem(CHAVE_EMP) === 'eu' ? 'eu' : 'ps'; } catch (e) {}
+
+  /* ══════════ portão ══════════ */
+  function abrirPortao(msg) {
+    $('gate').hidden = false; $('gateErro').textContent = msg || ''; $('view').hidden = true; $('estado').innerHTML = '';
+    setTimeout(function () { $('tk').focus(); }, 60);
+  }
+  $('btEntrar').onclick = function () {
+    var v = $('tk').value.trim();
+    if (!v) { $('gateErro').textContent = 'Digite o token.'; return; }
+    tokenGravar(CHAVE_TOKEN, v); $('tk').value = ''; $('gate').hidden = true; carregar();
+  };
+  $('tk').addEventListener('keydown', function (e) { if (e.key === 'Enter') $('btEntrar').click(); });
+
+  /* POST com o token no corpo (regra 4), texto puro: pedido "simples", sem consulta prévia de CORS. */
+  function pedir(fn, corpo, limiteS) {
+    return new Promise(function (resolve, reject) {
+      var venceu = false;
+      var t = setTimeout(function () { venceu = true; reject(new Error('o servidor não respondeu em ' + (limiteS || 90) + ' s')); }, (limiteS || 90) * 1000);
+      fetch(API + '?app=reuniao&fn=' + fn, { method: 'POST', body: JSON.stringify(corpo), cache: 'no-store' })
+        .then(function (r) { return r.json(); })
+        .then(function (j) { if (!venceu) { clearTimeout(t); resolve(j); } })
+        .catch(function (e) { if (!venceu) { clearTimeout(t); reject(e); } });
+    });
+  }
+  function bloqueia(titulo, html) {
+    $('view').hidden = true;
+    $('estado').innerHTML = '<div class="offbox"><strong>' + esc(titulo) + '</strong>' + html + '</div>';
+  }
+
+  function carregar() {
+    var token = tokenLer(CHAVE_TOKEN), te = tokenLer(CHAVE_ESCRITA);
+    if (!token && !te) { abrirPortao(''); return; }
+    $('estado').innerHTML = '<p class="espera">Lendo a reunião… (semana aberta: até 1 minuto, os números são calculados agora)</p>';
+    $('view').hidden = true;
+    var corpo = { token: token || te, token_escrita: te, reuniao: pedida };
+    pedir('semana', corpo)
+      .then(function (j) { return (j && j.ok) || /token|rota/i.test((j && j.error) || '') ? j : pedir('semana', corpo); },
+            function () { return pedir('semana', corpo); })
+      .then(function (r) {
+        if (!r || r.ok !== true) {
+          var err = (r && r.error) || 'resposta sem dado';
+          if (/token/i.test(err)) { tokenGravar(CHAVE_TOKEN, ''); abrirPortao('Token recusado. Confira e digite de novo.'); return; }
+          if (/rota desconhecida/i.test(err)) {
+            bloqueia('O servidor ainda não tem esta tela.', '<p>A rota ?app=reuniao nasceu em 28/10/2026. O conserto é publicar o servidor ' +
+              '(Implantar ▸ Gerenciar implantações ▸ ✏️ ▸ Nova versão).</p>');
+            return;
+          }
+          bloqueia('O servidor respondeu, mas sem dado.', '<p>' + esc(err) + '</p>');
+          return;
+        }
+        if (te && !r.escrita) tokenGravar(CHAVE_ESCRITA, '');   // token de escrita velho: some, a página fica só leitura
+        R = r; $('estado').innerHTML = ''; desenhar();
+      })
+      .catch(function (e) {
+        bloqueia('Não consegui ler a reunião.', '<p>' + esc(e.message || e) + '</p><p>Nenhum número aparece enquanto isso: tela vazia é melhor que tela desatualizada com cara de atual.</p>');
+      });
+  }
+
+  /* ══════════ cabeçalho: a semana, o estado, a navegação, a escrita ══════════ */
+  function estadoTexto(m) {
+    var hoje = String(R.agora).slice(0, 10), quinta = String(m.fecha_em).slice(0, 10);
+    if (m.estado === 'fechada') {
+      var f = String(m.fechada_em || '');
+      var q = f.slice(0, 10) === quinta ? 'na quinta, ' + dm(f) : (m.fechada_por === 'Ricardo' ? 'pelo Ricardo ' : '') + 'na ' + dia(f) + ', ' + dm(f);
+      return { cls: 'fechada', t: 'fechada ' + q + ', às ' + hm(f) + ' · números congelados' };
+    }
+    if (m.estado === 'reaberta') return { cls: 'aberta', t: 'reaberta · números de agora · fechar de novo até ' + dia(m.data) + ', ' + dm(m.data) };
+    if (m.estado === 'sem_foto') return { cls: '', t: 'sem foto · esta semana não foi fechada' };
+    if (m.passou_16h) return { cls: 'alerta', t: 'aberta · o fechamento das 16h ainda não gravou' };
+    return { cls: 'aberta', t: 'aberta · fecha ' + (hoje === quinta ? 'hoje' : 'na quinta, ' + dm(quinta) + ',') + ' às 16h' };
+  }
+
+  function cabecalho() {
+    var m = R.reuniao;
+    $('titulo').textContent = 'Reunião de resultados · ' + (emp === 'ps' ? 'Parque' : 'Estrela');
+    $('sub').textContent = dia(m.data).replace(/^./, function (x) { return x.toUpperCase(); }) + ', ' + dm(m.data) + ' · semana de ' +
+      dm(m.semana_de) + ' a ' + dm(m.semana_ate);
+    var e = estadoTexto(m);
+    $('pill').className = 'pill ' + e.cls; $('pill').textContent = e.t;
+    $('btAnt').textContent = m.anterior ? '← ' + dm(m.anterior) : '←'; $('btAnt').disabled = !m.anterior;
+    $('btProx').textContent = m.proxima ? dm(m.proxima) + ' →' : '→'; $('btProx').disabled = !m.proxima;
+    $('btAnt').onclick = function () { ir(m.anterior); };
+    $('btProx').onclick = function () { ir(m.proxima === m.atual ? '' : m.proxima); };
+    $('nav').hidden = false; $('tabs').hidden = false;
+    escritaBarra();
+  }
+  function ir(data) {
+    pedida = data || '';
+    try { history.replaceState(null, '', pedida ? '?r=' + pedida : location.pathname); } catch (e) {}
+    carregar();
+  }
+
+  function escritaBarra() {
+    var b = $('escrita'), m = R.reuniao;
+    b.hidden = false;
+    if (!R.escrita) {
+      b.innerHTML = '<span>Só leitura. Quem escreve é o Ricardo, com o token das Configurações.</span>' +
+        '<input id="te" type="password" autocomplete="off" spellcheck="false" placeholder="token das Configurações" aria-label="Token das Configurações">' +
+        '<button class="btn" id="btTe" type="button">Entrar para escrever</button>';
+      $('btTe').onclick = function () { var v = $('te').value.trim(); if (v) { tokenGravar(CHAVE_ESCRITA, v); carregar(); } };
+      $('te').addEventListener('keydown', function (e) { if (e.key === 'Enter') $('btTe').click(); });
+      return;
+    }
+    b.innerHTML = '<span><b>Você escreve como Ricardo.</b> Anotações e "Por quê?" gravam ao sair do campo.</span>' +
+      (m.pode_fechar ? '<button class="btn pri" id="btFechar" type="button">Fechar agora</button>' : '') +
+      (m.pode_reabrir ? '<button class="btn" id="btReabrir" type="button">Reabrir</button>' : '') +
+      '<span class="status" id="stAcao" role="status"></span>';
+    if ($('btFechar')) $('btFechar').onclick = function () {
+      if (!confirm('Fechar agora congela os números desta reunião (Parque e Estrela) com a leitura de agora. Fechar?')) return;
+      acao('fechar', this);
+    };
+    if ($('btReabrir')) $('btReabrir').onclick = function () {
+      if (!confirm('Reabrir volta a mostrar os números de agora. A foto só muda quando você fechar de novo. Reabrir?')) return;
+      acao('reabrir', this);
+    };
+  }
+  function acao(fn, bt) {
+    bt.disabled = true; $('stAcao').className = 'status'; $('stAcao').textContent = fn === 'fechar' ? 'Fechando… (até 1 minuto)' : 'Reabrindo…';
+    escrever(fn, { reuniao: R.reuniao.data }).then(function () { carregar(); }, function (e) {
+      bt.disabled = false; $('stAcao').className = 'status erro'; $('stAcao').textContent = e.message;
+    });
+  }
+
+  /* A escrita: só com o token das Configurações. Erro de token apaga o token guardado e volta a página para leitura. */
+  function escrever(fn, corpo) {
+    corpo.token = tokenLer(CHAVE_ESCRITA);
+    return pedir(fn, corpo, 120).then(function (j) {
+      if (j && j.ok) return j;
+      var err = (j && j.error) || 'não gravado';
+      if (j && j.codigo === 'token_escrita') { tokenGravar(CHAVE_ESCRITA, ''); R.escrita = false; escritaBarra(); }
+      throw new Error(err);
+    });
+  }
+
+  /* ══════════ os blocos ══════════ */
+  function box(n, id, titulo, nota, corpo) {
+    return '<section class="box" aria-labelledby="t-' + id + '"><h2 id="t-' + id + '"><span class="n">' + n + '</span> ' + esc(titulo) +
+      (nota ? ' <small>' + nota + '</small>' : '') + '</h2>' + corpo + '</section>';
+  }
+  function col(l, v, c) { return '<div class="col"><span class="l">' + esc(l) + '</span><span class="v">' + v + '</span><span class="c">' + c + '</span></div>'; }
+  function semDado(t) { return '<p class="wait">' + esc(t) + '</p>'; }
+
+  function statusDe(c) {
+    if ((c.status === 'aberto' || c.status === 'andamento') && c.prazo && c.prazo < String(R.agora).slice(0, 10)) return 'atrasado';
+    return c.status || 'aberto';
+  }
+  function comboStatus(c) {
+    return '<select data-status="' + esc(c.id) + '" aria-label="Status do combinado">' + R.status.map(function (s) {
+      return '<option value="' + s + '"' + (s === c.status ? ' selected' : '') + '>' + STATUS_TXT[s] + '</option>'; }).join('') + '</select>';
+  }
+  function linhaComb(c, mostrarReuniao) {
+    var s = statusDe(c);
+    return '<li><span class="st ' + s + '">' + STATUS_TXT[s] + '</span><span>' + esc(c.texto) +
+      (mostrarReuniao ? ' <span class="muted small">· de ' + dm(c.reuniao) + '</span>' : '') + '</span>' +
+      '<span class="who">' + esc(c.responsavel || '—') + (c.prazo ? ' · ' + dm(c.prazo) : '') + (R.escrita ? ' ' + comboStatus(c) : '') + '</span></li>';
+  }
+
+  function b0(D) {
+    var ant = D.combinados_anteriores || [];
+    var corpo = ant.length ? '<ul class="prev">' + ant.map(function (c) { return linhaComb(c, c.reuniao !== R.reuniao.anterior && c.reuniao !== isoMenos7(R.reuniao.data)); }).join('') + '</ul>'
+      : semDado('Nenhum combinado na reunião anterior.');
+    return box(0, 'prev', 'Combinados da reunião anterior', 'do Cofre · ' + dm(isoMenos7(R.reuniao.data)) + ' e os mais antigos ainda abertos', corpo);
+  }
+  function isoMenos7(iso) { var p = iso.split('-'); return new Date(Date.UTC(+p[0], +p[1] - 1, +p[2] - 7)).toISOString().slice(0, 10); }
+
+  function campoTexto(tipo, chave, valor, rotulo, ph, area) {
+    var id = 'f-' + tipo + '-' + chave.replace(/[^a-z0-9]/g, '_'), v = valor ? valor.texto : '';
+    var lab = '<label for="' + id + '">' + esc(rotulo) + '</label>';
+    if (!R.escrita) return '<span class="small muted">' + esc(rotulo) + '</span><div class="lido' + (v ? '' : ' vazio') + '">' + (v ? esc(v) : 'nada anotado') + '</div>';
+    var attrs = ' id="' + id + '" data-tipo="' + tipo + '" data-chave="' + esc(chave) + '" data-visto="' + esc(v) + '" placeholder="' + esc(ph) + '"';
+    return lab + (area ? '<textarea' + attrs + '>' + esc(v) + '</textarea>' : '<input type="text"' + attrs + ' value="' + esc(v) + '">') +
+      '<span class="gv" data-gv="' + id + '">' + (valor && valor.atualizado_em ? 'gravado ' + dm(valor.atualizado_em) + ' ' + hm(valor.atualizado_em) : '') + '</span>';
+  }
+
+  function b1(D, B) {
+    var ms = B.mudancas || [];
+    if (!ms.length) return box(1, 'chg', 'As 3 mudanças da semana', 'escolhidas pela tela: as maiores variações', semDado('Sem variação para mostrar nesta semana.'));
+    return box(1, 'chg', 'As 3 mudanças da semana', 'escolhidas pela tela: as maiores variações', '<div class="changes">' + ms.map(function (m) {
+      return '<div class="chg"><span class="fact">' + esc(m.fato) + '</span><span class="v ' + cor(m.delta) + '">' + nf(m.de) + ' → ' + nf(m.para) + '</span>' +
+        '<span class="small muted">' + sinal(m.delta) + (tem(m.pct) ? ' (' + pcSinal(m.pct) + ')' : '') + ' · ' + esc(m.corte) + '</span>' +
+        campoTexto('porque', m.chave, (D.porques || {})[m.chave], 'Por quê?', 'anotar na reunião', false) + '</div>';
+    }).join('') + '</div>');
+  }
+
+  function b2(B) {
+    var p = B.placar;
+    if (!p) return '';
+    var s = p.semana, mm = p.mes, pj = p.projecao, d = mm.realizado - mm.ant.vendas;
+    var cs = 'vendas de ' + dm(s.de) + ' a ' + dm(s.ate) + (s.ant ? ' · semana anterior: ' + nf(s.ant.vendas) + ' · <b class="' + cor(s.vendas - s.ant.vendas) + '">' + sinal(s.vendas - s.ant.vendas) + '</b>' : '');
+    var cm = mes(mm.mes) + ' até ' + dm(mm.ate) + ' · ' + mes(mm.ant.mes) + ' no mesmo dia: ' + nf(mm.ant.vendas) + ' · <b class="' + cor(d) + '">' + sinal(d) + '</b> · meta ' + nf(mm.meta);
+    var cp = pj ? 'centro ' + nf(pj.valor) + ' · meta ' + nf(pj.meta) + (tem(pj.centro_ant) ? ' · na semana passada, centro ' + nf(pj.centro_ant) : '') + (pj.em_validacao ? ' · em validação' : '') : 'sem previsão';
+    return box(2, 'placar', 'Placar de vendas', '', '<div class="three">' + col('Semana', nf(s.vendas), cs) + col('Mês até o dia', nf(mm.realizado), cm) +
+      col('Projeção', pj ? nf(pj.baixo) + ' a ' + nf(pj.alto) : '—', cp) + '</div>');
+  }
+
+  function b3(B) {
+    var c = B.captacao;
+    if (!c) return box(3, 'cap', 'Captação de leads', '', semDado('Nenhuma semana completa lida ainda.'));
+    var s = c.semana, q = c.quatro, n = c.necessario, h = '<div class="three">';
+    var vs = s.ant ? varPc(s.ant.sql, s.sql) : null;
+    h += col('Semana', nf(s.sql), 'qualificados de ' + dm(s.semana) + ' a ' + dm(s.ate) + (s.ant ? ' · anterior ' + nf(s.ant.sql) + (tem(vs) ? ' · <b class="' + cor(vs) + '">' + pcSinal(vs) + '</b>' : '') : '') +
+      (tem(s.crm) ? ' · leads no CRM ' + nf(s.crm) + (s.ant && tem(s.ant.crm) ? ' (anterior ' + nf(s.ant.crm) + ')' : '') : ''));
+    if (q) {
+      var vq = q.ant ? varPc(q.ant.sql, q.sql) : null;
+      h += col('4 semanas', nf(q.sql), 'qualificados de ' + dm(q.de) + ' a ' + dm(q.ate) + (q.ant ? ' · 4 semanas antes: ' + nf(q.ant.sql) + (tem(vq) ? ' · <b class="' + cor(vq) + '">' + pcSinal(vq) + '</b>' : '') : ' · ainda sem as 4 semanas de antes'));
+    } else h += col('4 semanas', '—', 'ainda sem 4 semanas completas');
+    h += n ? col('Necessário', nf(n.por_semana) + ' / sem.', 'pela meta de ' + nf(n.meta) + (tem(n.baixo) ? ' · faixa de ' + nf(n.baixo) + ' a ' + nf(n.alto) : ''))
+           : col('Necessário', '—', emp === 'eu' ? 'a Estrela ainda não tem meta no Cofre' : 'sem funil reverso');
+    h += '</div>';
+    var L = (c.canais && c.canais.linhas) || [];
+    if (L.length) {
+      h += '<div class="scroll"><table><thead><tr><th>' + (emp === 'eu' ? 'Campanha' : 'Canal') + '</th><th>Leads</th><th>Qualificados</th><th>Lead → qualificado</th><th>Custo por qualificado</th></tr></thead><tbody>' +
+        L.map(function (x) { return '<tr><td>' + esc(x.canal) + '</td><td>' + nf(x.leads) + '</td><td>' + nf(x.sql) + '</td><td>' + pc(x.conv) + '</td><td>' + brl(x.custo_sql) + '</td></tr>'; }).join('') +
+        '</tbody></table></div><p class="foot">Conversas lidas de ' + dm(c.canais.de) + ' a ' + dm(c.canais.ate) + ', o período do quadro "SQL por canal" da Previsão.</p>';
+    }
+    return box(3, 'cap', 'Captação de leads', '', h);
+  }
+
+  function b4(B) {
+    var f = B.funil;
+    if (f === undefined || (f === null && emp === 'eu')) return '';
+    if (!f) return box(4, 'fun', 'Funil de demanda', '', semDado('Sem leads com 30 dias completos.'));
+    var a = f.ant, pa = f.passagem || {}, pb = a ? a.passagem || {} : {};
+    var sv = function (x) { return x && tem(x.valor) ? pc(x.valor) + ' <span class="rg">' + pc(x.baixo) + ' a ' + pc(x.alto) + '</span>' : '—'; };
+    var lin = function (rot, n, p, na, pantes) {
+      return '<tr><td>' + rot + '</td><td>' + nf(n) + '</td><td>' + p + '</td>' + (a ? '<td>' + nf(na) + '</td><td>' + pantes + '</td>' : '') + '</tr>';
+    };
+    var h = '<div class="scroll"><table><thead><tr><th>Degrau</th><th>Leads</th><th>Passam ao seguinte</th>' + (a ? '<th>Semana anterior</th><th>Passavam</th>' : '') + '</tr></thead><tbody>' +
+      lin('Leads (conversas lidas, sem X nem N)', f.leads, pc(pa.lead_qualificado), a && a.leads, pc(pb.lead_qualificado)) +
+      lin('Com interesse (A e B)', f.qualificados, pc(pa.qualificado_sql), a && a.qualificados, pc(pb.qualificado_sql)) +
+      lin('Qualificados (A)', f.sql, sv(pa.sql_venda), a && a.sql, sv(pb.sql_venda)) +
+      lin('Vendas dos qualificados, em até ' + f.dias + ' dias', f.vendas_sql, '—', a && a.vendas_sql, '—') +
+      '</tbody></table></div>';
+    h += '<p class="foot">Leads de ' + dm(f.de) + ' a ' + dm(f.ate) + '. Do lead à venda: ' + pc(pa.lead_venda, 1) + ' (' + nf(f.vendas_sql + f.vendas_outros) + ' vendas em ' + nf(f.leads) +
+      ' leads, contando ' + nf(f.vendas_outros) + ' de leads que não chegaram a qualificado). ' +
+      (a ? 'A coluna da semana anterior é o funil da foto da reunião anterior.' : 'A coluna da semana anterior aparece a partir da segunda semana fechada.') + '</p>';
+    return box(4, 'fun', 'Funil de demanda', 'leads com 30 dias completos, para todos terem tido o mesmo tempo de virar venda', h);
+  }
+
+  function b5(B) {
+    var o = B.origem;
+    if (!o) return emp === 'eu' ? '' : box(5, 'ori', 'Origem das vendas', '', semDado('Sem o mês anterior para comparar.'));
+    var rotA = mes(o.mes) + ' até ' + dm(o.ate), rotB = mes(o.mes_ant) + ' até ' + dm(o.ate_ant);
+    var lin = function (n, a, b, sub) { return '<tr' + (sub ? ' class="sub"' : '') + '><td>' + esc(n) + '</td><td>' + nf(a) + '</td><td>' + nf(b) + '</td><td class="' + cor(a - b) + '">' + sinal(a - b) + '</td></tr>'; };
+    var h = '<div class="scroll"><table><thead><tr><th>Origem</th><th>' + esc(rotA) + '</th><th>' + esc(rotB) + '</th><th>Diferença</th></tr></thead><tbody>' +
+      o.linhas.map(function (x) { return lin(x.origem, x.mes, x.ant); }).join('') +
+      lin('Vendas sem anúncio no Pocket', o.sem_anuncio.mes, o.sem_anuncio.ant, true) +
+      (o.migracoes.mes || o.migracoes.ant ? lin('Migrações (não passam pelo Pocket)', o.migracoes.mes, o.migracoes.ant, true) : '') +
+      '</tbody></table></div>';
+    return box(5, 'ori', 'Origem das vendas', 'declarada pelo vendedor no Pocket · até o mesmo dia', h);
+  }
+
+  function b6(B) {
+    var c = B.campanhas;
+    var nota = 'os 3 sinais de maior gasto do quadro "Desempenho por anúncio", como perguntas para a agência';
+    if (c && c.erro) return box(6, 'camp', 'Campanhas digitais', nota, semDado('O quadro de anúncios não veio: ' + c.erro));
+    if (!c || !c.sinais || !c.sinais.length) return box(6, 'camp', 'Campanhas digitais', nota, semDado('Nenhum anúncio com sinal no período.'));
+    return box(6, 'camp', 'Campanhas digitais', nota + ' · ' + dm(c.periodo.de) + ' a ' + dm(c.periodo.ate), '<div class="sig">' + c.sinais.map(function (s) {
+      return '<div><span class="chip ' + esc(s.sinal.tom) + '">' + esc(s.sinal.texto) + '</span><span><b>' + esc(s.rotulo) + '</b> (' + brl(s.gasto) + '): ' + esc(s.pergunta) + '</span></div>';
+    }).join('') + '</div>');
+  }
+
+  function b7(B) { return box(7, 'perda', 'Por que perdemos', '', '<p class="wait">' + esc((B.perdas && B.perdas.texto) || '') + '</p>'); }
+
+  function b8(B) {
+    var a = B.atendimento;
+    if (!a) return box(8, 'at', 'Atendimento', '', semDado('Sem a auditoria de atendimento para esta empresa.'));
+    var t = a.total, h = '<div class="three">';
+    h += col('Em até 2h', pc(t.r1), nf(t.k) + ' de ' + nf(t.n) + ' leads · ' + esc(a.regra.replace(/^\(contado |\)$/g, '')) + (a.ant ? ' · semana anterior ' + pc(a.ant.r1) : ''));
+    h += a.melhor ? col('Melhor', pc(a.melhor.r1), esc(a.melhor.corretor) + (tem(a.melhor.mediana) ? ' · mediana ' + nf(a.melhor.mediana, 1) + ' h' : '')) : col('Melhor', '—', 'menos de 5 leads por corretor');
+    h += a.pior ? col('A melhorar', pc(a.pior.r1), esc(a.pior.corretor) + (tem(a.pior.mediana) ? ' · mediana ' + nf(a.pior.mediana, 1) + ' h' : '')) : col('A melhorar', '—', '—');
+    h += '</div><p class="foot">Leads de ' + dm(a.de) + ' a ' + dm(a.ate) + '. Só corretores com 5 leads ou mais.</p>';
+    return box(8, 'at', 'Atendimento', '', h);
+  }
+
+  function b9(D) {
+    var A = D.anotacoes || {}, rot = R.anotacoes_rotulos || {};
+    var h = '<div class="notes"><div style="display:grid;gap:4px">' + campoTexto('anotacao', 'ricardo', A.ricardo, rot.ricardo || 'Ricardo', 'preparo da reunião e pontos de atenção', true) + '</div>' +
+      '<div style="display:grid;gap:4px">' + campoTexto('anotacao', 'rodrigo', A.rodrigo, rot.rodrigo || 'Rodrigo', 'o que o Rodrigo pedir para registrar', true) + '</div></div>';
+    var cs = D.combinados || [];
+    h += cs.length ? '<ul class="prev">' + cs.map(function (c) { return linhaComb(c, false); }).join('') + '</ul>' : '';
+    if (R.escrita) {
+      h += '<div class="newc"><label for="c-t">Novo combinado<input type="text" id="c-t" placeholder="o que será feito"></label>' +
+        '<label for="c-r">Responsável<select id="c-r">' + R.responsaveis.map(function (x) { return '<option>' + esc(x) + '</option>'; }).join('') + '</select></label>' +
+        '<label for="c-p">Prazo<input type="date" id="c-p"></label>' +
+        '<button class="btn pri" type="button" id="c-add">Gravar combinado</button></div><div class="status" id="c-st" role="status"></div>';
+    } else if (!cs.length) h += semDado('Nenhum combinado nesta reunião.');
+    h += '<p class="foot">Os combinados ficam no Cofre, presos a esta reunião; o bloco 0 da próxima reunião os cobra. O Caderno do Rodrigo é atualizado pelo Cowork, não por esta página. Nada daqui é enviado a ninguém.</p>';
+    return box(9, 'not', 'Anotações e combinados', '', h);
+  }
+
+  function desenhar() {
+    cabecalho();
+    ['ps', 'eu'].forEach(function (e) { $('tab-' + e).setAttribute('aria-selected', String(e === emp)); });
+    var D = R.empresas[emp] || {}, B = D.blocos;
+    var v = $('view');
+    if (!B) {
+      v.innerHTML = b0(D) + '<div class="offbox"><strong>Sem foto desta reunião.</strong> A semana não foi fechada, então não há números guardados para ela.</div>' + b9(D);
+    } else {
+      v.innerHTML = b0(D) + b1(D, B) + b2(B) + b3(B) + b4(B) + b5(B) + b6(B) + b7(B) + b8(B) + b9(D);
+    }
+    var leit = D.leitura ? 'Números com a leitura do Facilita de ' + dm(D.leitura) + ' ' + hm(D.leitura) + '.' : '';
+    if (leit) v.insertAdjacentHTML('beforeend', '<p class="foot">' + esc(leit) + '</p>');
+    v.hidden = false;
+    ligar();
+  }
+
+  /* ══════════ a escrita na página ══════════ */
+  function ligar() {
+    if (!R.escrita) return;
+    document.querySelectorAll('[data-tipo]').forEach(function (el) {
+      el.addEventListener('change', function () { gravarCampo(el); });
+    });
+    document.querySelectorAll('[data-status]').forEach(function (el) {
+      el.addEventListener('change', function () {
+        el.disabled = true;
+        escrever('combinado', { id: el.getAttribute('data-status'), status: el.value }).then(function (j) {
+          trocarComb(j.item); desenhar();
+        }, function (e) { el.disabled = false; alert('Status não gravado: ' + e.message); });
+      });
+    });
+    var add = $('c-add');
+    if (add) add.onclick = function () {
+      var t = $('c-t').value.trim(), st = $('c-st');
+      if (!t) { st.className = 'status erro'; st.textContent = 'Escreva o combinado antes de gravar.'; return; }
+      add.disabled = true; st.className = 'status'; st.textContent = 'Gravando…';
+      escrever('combinado', { reuniao: R.reuniao.data, empresa: emp, texto: t, responsavel: $('c-r').value, prazo: $('c-p').value })
+        .then(function (j) { (R.empresas[emp].combinados = R.empresas[emp].combinados || []).push(j.item); desenhar(); $('c-st').className = 'status ok'; $('c-st').textContent = 'Combinado gravado no Cofre.'; },
+              function (e) { add.disabled = false; st.className = 'status erro'; st.textContent = e.message; });
+    };
+  }
+  function trocarComb(item) {
+    var D = R.empresas[item.empresa];
+    ['combinados', 'combinados_anteriores'].forEach(function (k) {
+      (D[k] || []).forEach(function (c, i) { if (c.id === item.id) D[k][i] = item; });
+    });
+  }
+  function gravarCampo(el) {
+    var tipo = el.getAttribute('data-tipo'), chave = el.getAttribute('data-chave'), gv = document.querySelector('[data-gv="' + el.id + '"]');
+    var texto = el.value.trim();
+    if (texto === el.getAttribute('data-visto')) return;
+    gv.className = 'gv'; gv.textContent = 'gravando…';
+    escrever('anotar', { reuniao: R.reuniao.data, empresa: emp, tipo: tipo, chave: chave, texto: texto }).then(function (j) {
+      el.setAttribute('data-visto', j.item.texto);
+      var alvo = tipo === 'porque' ? 'porques' : 'anotacoes';
+      (R.empresas[emp][alvo] = R.empresas[emp][alvo] || {})[chave] = { texto: j.item.texto, atualizado_em: j.item.atualizado_em };
+      gv.className = 'gv ok'; gv.textContent = 'gravado ' + dm(j.item.atualizado_em) + ' ' + hm(j.item.atualizado_em);
+    }, function (e) { gv.className = 'gv erro'; gv.textContent = e.message; });
+  }
+
+  /* ══════════ abas ══════════ */
+  ['ps', 'eu'].forEach(function (e) {
+    $('tab-' + e).addEventListener('click', function () {
+      emp = e; try { localStorage.setItem(CHAVE_EMP, e); } catch (x) {}
+      if (R) desenhar();
+    });
+  });
+
+  carregar();
+})();
+</script>
+</body>
+</html>
