@@ -337,7 +337,9 @@ th .q{width:16px;height:16px;font-size:10px;margin-left:4px}
     $('seg').hidden = false;
     Array.prototype.forEach.call(document.querySelectorAll('#seg button'), function (x) { x.setAttribute('aria-pressed', String(x.getAttribute('data-per') === per)); });
     var at = R.atendimento || {};
-    $('sub').textContent = cap(R.periodo.rotulo) + ' · vendas do Facilita · atendimento de ' + dm(at.de) + ' a ' + dm(at.ate) + ' · visão de gestão (Ricardo e Rodrigo)';
+    // (29/10, auditoria G9/G10) o 1º lead da janela (a 1ª semana pode começar no meio) e a migração dentro das vendas
+    $('sub').textContent = cap(R.periodo.rotulo) + ' · vendas do Facilita' + (R.vendas_migracoes ? ' (inclui ' + R.vendas_migracoes + (R.vendas_migracoes === 1 ? ' migração' : ' migrações') + ')' : '') +
+      ' · atendimento de ' + dm(at.primeira_entrada || at.de) + ' a ' + dm(at.ate) + ' · visão de gestão (Ricardo e Rodrigo)';
     var h = '';
     h += placar(L);
     h += ote(L);
@@ -354,7 +356,7 @@ th .q{width:16px;height:16px;font-size:10px;margin-left:4px}
   function cap(s) { s = String(s || ''); return s.charAt(0).toUpperCase() + s.slice(1); }
 
   function placar(L) {
-    var n = L.length, M = R.media || {}, at = R.atendimento || {};
+    var n = L.filter(function (l) { return !l.sem_dado; }).length, M = R.media || {}, at = R.atendimento || {};   // (29/10) posição só entre quem tem dado
     var h = '<section class="box" aria-labelledby="t-plc"><h2 id="t-plc">Placar em 5 dimensões' + q('placar') +
       ' <small>posição de 1 a ' + n + ' em cada uma · clique no nome para abrir o caderno</small></h2>';
     h += '<div class="scroll"><table><thead><tr><th></th>' +
@@ -363,11 +365,12 @@ th .q{width:16px;height:16px;font-size:10px;margin-left:4px}
       '<th class="dim">Disciplina' + q('disc') + '</th>' +
       '<th class="dim" colspan="2">Resultado' + q('result') + '</th>' +
       '<th class="dim" colspan="2">Qualidade da venda' + q('qual') + '</th></tr>' +
-      '<tr><th>Vendedor</th><th>Leads A e B recebidos</th><th>1º contato em até 2h</th><th>Mediana</th><th>Sem registro</th>' +
+      '<tr><th>Vendedor</th><th>Leads A e B recebidos</th><th>1º contato em até 2h</th><th>Mediana</th><th>Sem registro desde ' + dm(R.registro_desde || '2026-10-19') + '</th>' +
       '<th>Vendas</th><th>Conversão do qualificado</th><th>Reservas</th><th>Desconto acima de 10%</th></tr></thead><tbody>';
     L.forEach(function (l) {
       var c = l.conv || {};
-      h += '<tr' + (l.nome === sel ? ' class="sel"' : '') + '><td><button class="nome" type="button" data-sel="' + esc(l.nome) + '">' + esc(l.nome) + '</button></td>' +
+      h += '<tr' + (l.nome === sel ? ' class="sel"' : '') + '><td><button class="nome" type="button" data-sel="' + esc(l.nome) + '">' + esc(l.nome) + '</button>' +
+        (l.sem_dado ? '<span class="fx">sem lead nem venda ainda: fora da média</span>' : '') + '</td>' +
         '<td>' + l.ab + rk(l.pos.ab, n) + '</td>' +
         '<td>' + pc(l.r1) + rk(l.pos.r1, n) + '</td><td>' + hr(l.mediana) + '</td>' +
         '<td>' + l.sem_registro + rk(l.pos.sem_registro, n) + '</td>' +
@@ -381,7 +384,9 @@ th .q{width:16px;height:16px;font-size:10px;margin-left:4px}
       '<td>' + med(M.reservas) + '</td><td>' + med(M.desc_n) + '</td></tr>';
     h += '</tbody></table></div>';
     var cv = R.conversao || {};
-    h += '<p class="legend">Vendas: Facilita, ' + esc(R.periodo.rotulo) + ', ' + R.vendas_total + ' vendas (inclui as que não passam pela SATI). ' +
+    h += '<p class="legend">Vendas: Facilita, ' + esc(R.periodo.rotulo) + ', ' + R.vendas_total + ' vendas (inclui as que não passam pela SATI' +
+      (R.vendas_migracoes ? ' e ' + R.vendas_migracoes + (R.vendas_migracoes === 1 ? ' migração, que não conta' : ' migrações, que não contam') + ' no OTE' : '') + '). ' +
+      'Sem registro: só leads recebidos desde ' + dm(R.registro_desde || '2026-10-19') + '. Quem ainda não recebeu lead nem vendeu fica fora das médias e das posições. ' +
       'Atendimento: ' + (R.periodo.id === 'semana' ? 'a semana de ' + dm(at.de) + ' a ' + dm(at.ate) : 'as últimas 4 semanas, de ' + dm(at.de) + ' a ' + dm(at.ate)) +
       ', sem o dia de folga de cada corretor; a média da velocidade é a da equipe inteira, todos os dias. ' +
       'Conversão do qualificado: leads A com 1º contato de ' + dm(cv.de) + ' a ' + dm(cv.ate) + ' que viraram venda em até ' + (cv.dias || 30) +
@@ -407,7 +412,10 @@ th .q{width:16px;height:16px;font-size:10px;margin-left:4px}
   }
   function ote(L) {
     var cfg = (R.ote && R.ote.cfg) || { ind: {}, teto: 1.2 }, ord = (R.ote && R.ote.ordem) || [];
-    var exemplo = L[0] ? L[0].ote : null, fora = exemplo ? exemplo.fora : [];
+    // (29/10, auditoria G8) "fora" por vendedor: o acompanhamento vale para todos; "sem dado" é de cada um
+    var acomp = Object.keys(cfg.ind || {}).filter(function (id) { return cfg.ind[id].acompanhamento; });
+    var fora = acomp.slice(), foraDe = {};
+    L.forEach(function (l) { ((l.ote && l.ote.fora) || []).forEach(function (id) { if (acomp.indexOf(id) < 0) (foraDe[id] = foraDe[id] || []).push(l.nome); }); });
     var h = '<section class="box" aria-labelledby="t-ote"><h2 id="t-ote">OTE · simulação' + q('ote') +
       ' <small>quanto do variável-alvo cada um teria atingido em ' + esc(R.mes.rotulo) + ' · não é pagamento</small></h2>';
     h += '<p class="note"><b>Rascunho para decidir com o Rodrigo.</b> Os pesos e as metas abaixo são um ponto de partida. Enquanto o OTE não for aprovado, esta parte só mostra o caminho de cada um até o alvo, e o variável continua sendo o que vale hoje: super bônus, bônus de meta proporcional e bônus de Reserva.</p>';
@@ -415,7 +423,7 @@ th .q{width:16px;height:16px;font-size:10px;margin-left:4px}
     ['vendas', 'conversao', 'reservas', 'atendimento', 'no_ato', 'prazo', 'registro'].forEach(function (id) {
       var c = cfg.ind[id]; if (!c || !(c.peso > 0)) return;
       var ac = c.acompanhamento ? 'acompanhamento' + (c.ate ? ' até ' + dm(c.ate) + '/' + c.ate.slice(0, 4) : '') : '';
-      h += '<span' + (ac ? ' class="fora" title="aparece, sem peso: ' + esc(ac) + '"' : fora.indexOf(id) >= 0 ? ' class="fora" title="fora da simulação: sem alvo ou sem dado"' : '') + '>' +
+      h += '<span' + (ac ? ' class="fora" title="aparece, sem peso: ' + esc(ac) + '"' : !tem(c.alvo) ? ' class="fora" title="fora da simulação: sem alvo"' : '') + '>' +
         esc(c.rotulo) + ' · ' + nf(c.peso) + '% · ' + esc(ac || oteFmt({ id: id, alvo: c.alvo })) + '</span>';
     });
     h += '</div><div class="ote">';
@@ -438,7 +446,9 @@ th .q{width:16px;height:16px;font-size:10px;margin-left:4px}
       '; no registro, a nota é 1 − % sem registro ÷ ' + nf((cfg.ind.registro || {}).alvo) + '% (leads sem registro ÷ leads A e B recebidos; com ' + nf((cfg.ind.registro || {}).alvo) + '% ou mais, a nota é zero). Vendas, Reservas, no ato e prazo são do mês; atendimento e registro, das últimas 4 semanas. ' +
       'No ato: o que vence no dia da venda (a Única, a entrada ou a 1ª parcela) ÷ o VGV do mês, combinado no Facilita, não o recebido; à vista com desconto acima de 10% não conta. ' +
       'Prazo: por venda parcelada, cartão 21x = 0 e 12x = 100%, boleto 72x = 0 e 48x = 100%, média pelo valor; Reserva fora. ' +
-      (fora.length ? 'Em acompanhamento ou sem dado, sem peso: ' + fora.map(function (id) { return ((cfg.ind[id] || {}).rotulo || id).toLowerCase(); }).join(', ') + '; o peso deles foi redistribuído entre os ativos na mesma proporção. ' : '') +
+      (fora.length ? 'Em acompanhamento, sem peso para todos: ' + fora.map(function (id) { return ((cfg.ind[id] || {}).rotulo || id).toLowerCase(); }).join(', ') + '. ' : '') +
+      Object.keys(foraDe).map(function (id) { return 'Sem dado, sem peso: ' + ((cfg.ind[id] || {}).rotulo || id).toLowerCase() + ' para ' + foraDe[id].join(', ') + '. '; }).join('') +
+      (fora.length || Object.keys(foraDe).length ? 'O peso de quem fica fora vai para os ativos de cada um, na mesma proporção. ' : '') +
       'Cada linha abre o detalhe por indicador.</p>';
     return h + '</section>';
   }
@@ -513,10 +523,13 @@ th .q{width:16px;height:16px;font-size:10px;margin-left:4px}
     var h = '<section class="box" aria-labelledby="t-pk"><h2 id="t-pk">O que o vendedor vê no Pocket' + q('pk') + ' <small>só a própria posição contra a média · sem os nomes dos colegas</small></h2>';
     h += '<div class="two"><p class="legend">Cada vendedor vê os próprios números de cada dimensão, a média da equipe como referência e o seu OTE simulado. Não vê o ranking nem os números dos colegas. O caderno não aparece para o vendedor, só os combinados dele, com prazo e status. Prévia do cartão de ' + esc(sel) + ' (o mês).</p>';
     var ehMes = R.periodo.id === 'mes';
+    // (29/10, auditoria G7) fora do recorte Mês, o 2h e o sem registro da prévia vêm do OTE de cada um (que é sempre do mês)
+    var itOte = function (id) { return ((l.ote && l.ote.itens) || []).filter(function (i) { return i.id === id; })[0] || null; };
+    var r1M = ehMes ? l.r1 : (itOte('atendimento') || {}).realizado, regM = ehMes ? l.sem_registro : (itOte('registro') || {}).sem_registro;
     h += '<div class="pocket" aria-label="Prévia do Pocket"><span class="t">Você · ' + esc(R.mes.rotulo.split(' ')[0]) + '</span>' +
       (ehMes ? '<div class="prow"><span>Vendas</span><b>' + l.vendas + ' · média ' + med(M.vendas) + '</b></div>' + bar(l.vendas, M.vendas, maxV) : '<div class="prow"><span>Vendas</span><b>do mês, no Pocket</b></div>') +
-      '<div class="prow"><span>1º contato em até 2h</span><b>' + pc(l.r1) + ' · média ' + pc(M.r1) + '</b></div>' + bar(l.r1, M.r1, 1) +
-      '<div class="prow"><span>Sem registro</span><b>' + l.sem_registro + ' · média ' + med(M.sem_registro) + '</b></div>' +
+      '<div class="prow"><span>1º contato em até 2h</span><b>' + pc(r1M) + (ehMes ? ' · média ' + pc(M.r1) : '') + '</b></div>' + bar(r1M, ehMes ? M.r1 : null, 1) +
+      '<div class="prow"><span>Sem registro</span><b>' + (tem(regM) ? regM : '—') + (ehMes ? ' · média ' + med(M.sem_registro) : '') + '</b></div>' +
       '<div class="prow"><span>OTE simulado · não é pagamento</span><b>' + pc(l.ote.pct) + ' do alvo</b></div>' +
       '<div class="prow"><span>Combinados abertos</span><b>' + C.length + '</b></div></div></div>';
     return h + '</section>';
@@ -541,7 +554,7 @@ th .q{width:16px;height:16px;font-size:10px;margin-left:4px}
       veloc: ['A parte dos leads com primeiro contato do corretor em até 2 horas, contada todos os dias das 8h às 18h, sem o dia de folga dele. Ao lado, a mediana do tempo até o primeiro registro.',
         bT.nome ? bT.nome + ': ' + pc(bT.r1) + ' em até 2h, mediana de ' + hr(bT.mediana) + '. ' + wT.nome + ': ' + pc(wT.r1) + ', mediana de ' + hr(wT.mediana) + '.' : '—',
         'Lead esfria em horas. Abaixo de 30% vira alerta no monitoramento.'],
-      disc: ['Leads que o corretor recebeu e que não têm nenhum registro de atendimento no Facilita.',
+      disc: ['Leads que o corretor recebeu a partir de ' + dm(R.registro_desde || '2026-10-19') + ' (quando o registro no Facilita virou obrigatório) e que não têm nenhum registro de atendimento. Lead de antes dessa data não conta, nem aqui nem no OTE.',
         wS.nome ? wS.nome + ': ' + wS.sem_registro + '. A média da equipe é ' + med(M.sem_registro) + '.' : '—',
         'Desde 19/10, tentativa sem registro conta como não feita. Mais que o dobro da média pede conversa.'],
       result: ['Vendas no Facilita, incluindo as que não passam pela SATI, e a conversão dos leads qualificados que o vendedor recebeu.',

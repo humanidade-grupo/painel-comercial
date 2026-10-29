@@ -314,7 +314,7 @@
    ?app=doacoes (script.google.com, cross-origin — passa direto pelo SW).
    Estratégia: rede primeiro (pega versão nova quando online), cache como
    reserva offline. A cada deploy, bumpar a versão em CACHE. */
-const CACHE = 'painel-comercial-291026-3';
+const CACHE = 'painel-comercial-291026-4';
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(['./'])).then(() => self.skipWaiting()));
