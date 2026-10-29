@@ -238,6 +238,43 @@ tr.tot td{font-weight:600;border-top:2px solid var(--act)}
 tr.sub td{color:var(--muted)}
 .scroll{overflow-x:auto}
 .offbox{border:1px dashed var(--off);border-radius:4px;padding:10px;color:var(--muted);font-size:13px;background:var(--off-soft)}
+/* (28/10) o quadro "Desempenho por anúncio" — mockup aprovado: claude.ai/artifact/Qe1FiK21T47CVc2UqwoWUn */
+.da-seg{display:flex;gap:4px;flex-wrap:wrap}
+.da-seg button{font:600 13px var(--f-body);padding:4px 10px;border-radius:4px;border:1px solid var(--line);background:transparent;color:var(--muted);cursor:pointer}
+.da-seg button[aria-pressed="true"]{color:var(--ink);border-color:var(--hl);background:var(--hl-soft)}
+.da-seg button:focus-visible,.da-exp:focus-visible{outline:2px solid var(--hl);outline-offset:2px}
+.da-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+@media (max-width:760px){.da-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.da-kpi{background:var(--bg);border-radius:4px;padding:8px 10px;display:grid;gap:2px}
+.da-kpi .v{font:600 20px var(--f-num)} .da-kpi .l{font-size:12px;color:var(--muted)}
+.da-kpi.bad .v{color:var(--bad)} .da-kpi.warn .v{color:var(--hl)}
+.da-nota{border:1px dashed var(--line);border-radius:4px;padding:8px 10px;color:var(--muted);font-size:13px;margin:0}
+.da-nota b{color:var(--ink)}
+.da-tab table{min-width:1080px}
+.da-tab td{font-variant-numeric:tabular-nums}
+.da-tab td:first-child{white-space:normal;min-width:220px}
+.da-tab td.sg-c{white-space:normal;min-width:200px}
+.da-tab tr.grp td{background:var(--bg);color:var(--muted);font:600 11px var(--f-num);letter-spacing:.05em;text-transform:uppercase;white-space:normal}
+.da-st{font-size:11px;color:var(--muted)}
+.da-suf{font-size:11px;color:var(--muted);font-family:var(--f-num)}
+.sg{display:inline-block;font:600 11px var(--f-body);padding:1px 7px;border-radius:999px;margin:0 4px 4px 0;white-space:nowrap}
+.sg.bad{background:var(--bad-soft);color:var(--bad)} .sg.warn{background:var(--hl-soft);color:var(--hl)}
+.sg.ok{background:var(--ok-soft);color:var(--ok)} .sg.info{background:#16263a;color:#8ab8f0} .sg.mut{background:var(--off-soft);color:var(--muted)}
+.trk{display:inline-flex;align-items:center;gap:6px}
+.trk i{display:inline-block;width:44px;height:6px;border-radius:3px;background:var(--line);position:relative;overflow:hidden}
+.trk i b{position:absolute;inset:0 auto 0 0;background:var(--ok)}
+.trk i b.w{background:var(--hl)} .trk i b.x{background:var(--bad)} .trk i b.n{background:var(--off)}
+.trk.nv{color:var(--muted)}
+.da-exp{background:none;border:0;color:var(--ink);font:inherit;text-align:left;cursor:pointer;padding:0}
+.da-exp::before{content:"▸ ";color:var(--muted)}
+.da-exp[aria-expanded="true"]::before{content:"▾ "}
+.da-tab tr.det td{background:var(--bg);white-space:normal}
+.funil{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font:12px var(--f-num)}
+.funil span{background:var(--panel);border:1px solid var(--line);border-radius:4px;padding:3px 7px}
+.funil em{color:var(--muted);font-style:normal}
+.da-ask{margin:8px 0 0} .da-ask b{color:var(--hl)}
+.da-tab .grey{color:var(--off)}
+.da-per{display:grid;gap:10px;min-width:0} .da-per[hidden]{display:none}
 .offbox strong{color:var(--ink)}
 .chip{display:inline-block;font-size:11px;font-weight:600;padding:1px 7px;border-radius:999px;white-space:nowrap;background:var(--hl-soft);color:var(--hl)}
 .cat td.grey{color:var(--off);text-align:right;font-family:var(--f-num)}
@@ -550,7 +587,7 @@ tr.sub td{color:var(--muted)}
     emp.frescor.forEach(function (f) {
       var st, txt = esc(f.rotulo), carimbo = '—';
       if (f.estado === 'em_dia') { st = '<span class="st ok">em dia</span>'; carimbo = f.data && f.data.length > 10 ? dmh(f.data) : dm(f.data); }
-      else if (f.estado === 'atrasado') { st = '<span class="st old">atrasado</span>'; carimbo = f.dias + ' dias'; }
+      else if (f.estado === 'atrasado') { st = '<span class="st old">atrasado</span>'; carimbo = f.dias === null || f.dias === undefined ? (f.data ? dm(f.data) : '—') : f.dias + ' dias'; }
       else if (f.estado === 'incompleto') st = '<span class="st bad">incompleto</span>';
       else if (f.estado === 'sem_meta') st = '<span class="st bad">sem meta</span>';
       else st = '<span class="st bad">' + (f.texto_nunca === 'nenhuma conta da Estrela acessível' ? 'sem conta' : 'nunca lançado') + '</span>';
@@ -563,6 +600,135 @@ tr.sub td{color:var(--muted)}
     });
     return '<div class="health">' + h + '</div>';
   }
+
+  /* ══════════ (28/10) Desempenho por anúncio — mockup aprovado: claude.ai/artifact/Qe1FiK21T47CVc2UqwoWUn ══════════
+     Tudo vem calculado da rota (DesempenhoAnuncios.gs, captacao.desempenho_anuncios): os três períodos, os sinais com as
+     regras do mockup e a pergunta de cada linha. A tela só desenha e alterna o período (os três já vêm prontos; trocar
+     não chama nada). O seletor vale para o quadro do Meta e para o do Google.
+     DIFERENÇAS em relação ao mockup (para ninguém "corrigir" de volta): cores e fontes são as da tela, não as do mockup;
+     uma linha por Anúncio ID (o mockup juntou os dois "AD1 · Estático"; aqui eles saem separados, com o fim do ID);
+     todas as linhas abrem o funil; a pergunta é uma só, a do sinal mais forte; as campanhas do Meta que não abrem
+     conversa (alcance, tráfego) ficam fora da tabela, somadas na nota; no Google, as campanhas do Google Ads aparecem
+     com gasto, cliques e CTR, e o custo por qualificado só no total. */
+  function daRastreio(a, rg) {
+    if (!a.conversas_rastreio) return '<span class="grey">—</span>';
+    var r = a.rastreio, cls = !a.rastreio_vale ? 'n' : r >= rg.rastreio_ok ? '' : r >= rg.rastreio_meio ? 'w' : 'x';
+    return '<span class="trk' + (a.rastreio_vale ? '' : ' nv') + '" data-t="' + nf(a.lidas) + ' de ' + nf(a.conversas_rastreio) + ' conversas' +
+      (a.rastreio_vale ? '' : ' — menos de ' + rg.min_conversas + ': o rastreio não vale') + '">' +
+      pc(r, 0) + ' <i><b class="' + cls + '" style="width:' + Math.max(2, Math.min(100, r * 100)) + '%"></b></i></span>';
+  }
+  function daSinais(lista) { return (lista || []).map(function (x) { return '<span class="sg ' + x.tom + '">' + esc(x.texto) + '</span>'; }).join(''); }
+  function daFunil(a) {
+    var p = [[nf(a.impressoes), 'impressões']];
+    if (a.cliques_link !== null) p.push([nf(a.cliques_link), 'cliques no link']);
+    p.push([nf(a.conversas), 'conversas'], [nf(a.lidas), 'lidas com o anúncio'], [nf(a.interesse), 'com interesse'], [nf(a.a), 'qualificados'], [nf(a.vendas), a.vendas === 1 ? 'venda' : 'vendas']);
+    return '<div class="funil">' + p.map(function (x) { return '<span>' + x[0] + ' <em>' + x[1] + '</em></span>'; }).join('→') + '</div>';
+  }
+  function daPeriodoMeta(P, rg, chave) {
+    var R = P.resumo, h = '';
+    var tomR = R.rastreio === null ? '' : R.rastreio < rg.rastreio_meio ? ' bad' : R.rastreio < rg.rastreio_ok ? ' warn' : '';
+    h += '<div class="da-kpis">' +
+      '<div class="da-kpi' + tomR + '"><span class="v">' + pc(R.rastreio, 0) + '</span><span class="l">das conversas do Meta chegam ao FAROL com o anúncio (' + nf(R.lidas) + ' de ' + nf(R.conversas) + ')</span></div>' +
+      '<div class="da-kpi' + (R.abaixo_80 ? ' bad' : '') + '"><span class="v">' + nf(R.abaixo_80) + '</span><span class="l">anúncios com rastreio abaixo de ' + pc(rg.rastreio_ok, 0) + ' (' + rg.min_conversas + '+ conversas)</span></div>' +
+      '<div class="da-kpi' + (R.gasto_sem_custo > 0 ? ' warn' : '') + '"><span class="v">R$ ' + nf(R.gasto_sem_custo, 0) + '</span><span class="l">de gasto sem custo por qualificado confiável (os anúncios com rastreio abaixo de ' + pc(rg.rastreio_ok, 0) + ')</span></div>' +
+      '<div class="da-kpi"><span class="v">' + (R.melhor ? 'R$ ' + brl(R.melhor.custo_a) : '—') + '</span><span class="l">' + (R.melhor ? 'menor custo por qualificado (' + esc(R.melhor.rotulo) + ')' : 'menor custo por qualificado: nenhum anúncio com ' + rg.min_a + '+ qualificados e rastreio verde') + '</span></div>' +
+      '</div>' +
+      '<p class="da-nota"><b>Leia com cuidado.</b> Muitos anúncios têm menos de ' + rg.min_a + ' qualificados, e com amostra pequena um anúncio pode parecer bom ou ruim por acaso. ' +
+      'Esses aparecem com "amostra pequena" e ficam fora das comparações. O custo por qualificado só aparece quando pelo menos ' + pc(rg.rastreio_ok, 0) +
+      ' das conversas do anúncio chegam ao FAROL com a assinatura dele.</p>';
+    var linhas = '', n = 0;
+    P.campanhas.forEach(function (c) {
+      linhas += '<tr class="grp"><td colspan="12">' + esc(c.campanha) + ' · R$ ' + brl(c.gasto) + '</td></tr>';
+      c.anuncios.forEach(function (a) {
+        var id = chave + '-' + P.id + '-' + (n++);
+        linhas += '<tr><td><button class="da-exp" type="button" aria-expanded="false" aria-controls="' + id + '" title="' + esc(a.anuncio) + '">' + esc(a.rotulo) + '</button>' +
+          (a.sufixo ? ' <span class="da-suf">(' + esc(a.sufixo) + ')</span>' : '') + (a.status ? '<div class="da-st">' + esc(a.status) + '</div>' : '') + '</td>' +
+          '<td class="r num">' + brl(a.gasto) + '</td><td class="r num">' + nf(a.impressoes) + '</td>' +
+          '<td class="r num">' + (a.ctr === null ? '<span class="grey">—</span>' : pc(a.ctr, 2)) + '</td>' +
+          '<td class="r num">' + (a.frequencia === null ? '<span class="grey">—</span>' : nf(a.frequencia, 2)) + '</td>' +
+          '<td class="r num">' + nf(a.conversas) + '</td><td class="r num">' + daRastreio(a, rg) + '</td>' +
+          '<td class="r num">' + (a.lidas ? nf(a.a) : '<span class="grey">—</span>') + '</td>' +
+          '<td class="r num">' + (a.pct_a === null ? '<span class="grey">—</span>' : pc(a.pct_a, 0)) + '</td>' +
+          '<td class="r num">' + (a.custo_a === null ? '<span class="grey">—</span>' : brl(a.custo_a)) + '</td>' +
+          '<td class="r num">' + (a.lidas ? nf(a.vendas) : '<span class="grey">—</span>') + '</td>' +
+          '<td class="sg-c">' + daSinais(a.sinais) + '</td></tr>' +
+          '<tr class="det" id="' + id + '" hidden><td colspan="12">' + daFunil(a) +
+          (a.pergunta ? '<p class="da-ask"><b>Pergunta para a agência:</b> ' + esc(a.pergunta) + '</p>' : '') + '</td></tr>';
+      });
+    });
+    h += '<div class="scroll da-tab"><table><thead><tr><th>Anúncio</th><th class="r">Gasto (R$)</th><th class="r">Impressões</th><th class="r">CTR</th><th class="r">Freq.</th>' +
+      '<th class="r">Conversas (Meta)</th><th class="r">Rastreio</th><th class="r">Qualif. (A)</th><th class="r">% A</th><th class="r">Custo por A (R$)</th><th class="r">Vendas</th><th>Sinais</th></tr></thead><tbody>' +
+      linhas + '</tbody></table></div>';
+    var notas = [];
+    if (P.semanas_fora.length) notas.push('<b>Rastreio, % A e custo por A sem a semana de ' + P.semanas_fora.map(dm).join(', ') + '</b>: nenhum lead do Meta dela veio com o anúncio — falha da leitura, não da agência. Gasto, impressões e conversas contam a semana inteira.');
+    if (!P.leitura_meta) notas.push('CTR, frequência e status aguardam a leitura do Meta desta janela (a cada 2 horas).');
+    if (P.fora.gasto > 0) notas.push('Fora do quadro: R$ ' + brl(P.fora.gasto) + ' em campanhas do Meta que não abrem conversa (' + P.fora.campanhas.map(esc).join(' · ') + ').');
+    notas.push('CTR = cliques no link ÷ impressões. Rastreio = leads lidos com o anúncio ÷ conversas iniciadas no Meta. Vendas = vendas dos leads do anúncio pelo nº do negócio, com a regra da conversão por classe. Toque no anúncio para ver o funil e a pergunta para a agência.');
+    return h + '<div class="small muted">' + notas.join(' ') + '</div>';
+  }
+  function daPeriodoGoogle(P) {
+    var G = P.google;
+    if (!G) return '<div class="offbox">Nenhum lead da página nem gasto do Google no período.</div>';
+    var t = G.total, linhas = '';
+    linhas += '<tr class="grp"><td colspan="9">Botões da página · leads e qualificados do FAROL</td></tr>';
+    G.botoes.forEach(function (b) {
+      linhas += '<tr><td>' + esc(b.botao.replace(/^LP_provis[oó]ria_/, '').replace(/_/g, ' ')) + '<div class="da-st">' + esc(b.botao) + '</div></td>' +
+        '<td class="dash" colspan="3">rateio indisponível</td><td class="r num">' + nf(b.lidas) + '</td><td class="r num">' + nf(b.a) + '</td>' +
+        '<td class="r num">' + (b.pct_a === null ? '<span class="grey">—</span>' : pc(b.pct_a, 0)) + '</td><td class="dash">rateio indisponível</td><td class="sg-c">' + daSinais(b.sinais) + '</td></tr>';
+    });
+    if (G.campanhas.length) {
+      linhas += '<tr class="grp"><td colspan="9">Campanhas do Google Ads · gasto, cliques e CTR do script da conta</td></tr>';
+      G.campanhas.forEach(function (c) {
+        linhas += '<tr><td>' + esc(c.campanha) + '</td><td class="r num">' + brl(c.gasto) + '</td><td class="r num">' + nf(c.cliques) + '</td><td class="r num">' + (c.ctr === null ? '—' : pc(c.ctr, 2)) + '</td>' +
+          '<td class="dash" colspan="4">o lead não diz de qual campanha veio</td><td></td></tr>';
+      });
+    }
+    linhas += '<tr class="tot"><td>Todo o Google</td><td class="r num">' + (t.gasto === null ? '—' : brl(t.gasto)) + '</td><td class="r num">' + nf(t.cliques) + '</td><td class="r num">' + (t.ctr === null ? '—' : pc(t.ctr, 2)) + '</td>' +
+      '<td class="r num">' + nf(t.lidas) + '</td><td class="r num">' + nf(t.a) + '</td><td class="r num">' + (t.pct_a === null ? '—' : pc(t.pct_a, 0)) + '</td>' +
+      '<td class="r num">' + (t.custo_a === null ? '—' : brl(t.custo_a)) + '</td><td></td></tr>';
+    return '<div class="scroll da-tab"><table><thead><tr><th>Botão da página</th><th class="r">Gasto (R$)</th><th class="r">Cliques</th><th class="r">CTR</th><th class="r">Leads</th><th class="r">Qualif. (A)</th><th class="r">% A</th><th class="r">Custo por A (R$)</th><th>Sinais</th></tr></thead><tbody>' +
+      linhas + '</tbody></table></div>' +
+      '<div class="small muted">No Google, o lead chega pela página (landing page): a SATI registra o botão clicado, não a campanha. Por isso o gasto e o custo por qualificado saem só do Google inteiro — dividir o gasto entre os botões seria inventar um rateio. Os cliques do Google são todos os cliques do anúncio (o que o script da conta tem).</div>';
+  }
+  function anunciosHtml(D, emp, stale) {
+    var tit = '<div class="head"><h2>Desempenho por anúncio · Meta Ads</h2>';
+    if (!D) return '<div class="panel">' + tit + '</div><div class="offbox">O Cofre ainda não entrega este quadro (aguarda a nova versão da rota).</div></div>';
+    if (D.erro) return '<div class="panel">' + tit + '</div><div class="offbox">Não consegui montar o quadro: ' + esc(D.erro) + '</div></div>';
+    if (D.vazio) {
+      var txt = emp === 'eu' ? 'Aguarda o token do Meta da Estrela: sem ele, o gasto por anúncio não entra no Cofre.' : 'Sem dado: ' + esc(D.vazio) + '.';
+      return '<div class="panel">' + tit + '</div><div class="offbox">' + txt + '</div></div>';
+    }
+    var chave = 'da-' + emp, rg = D.regras, seg = '<div class="da-seg" role="group" aria-label="Período" data-da="' + chave + '">' +
+      D.periodos.map(function (P) {
+        return '<button type="button" data-per="' + P.id + '" aria-pressed="' + (P.id === D.padrao) + '">' + esc(P.rotulo) + (P.mes_nome ? ' (' + esc(P.mes_nome) + ')' : '') + '</button>';
+      }).join('') + '</div>';
+    var corpo = function (fn) {
+      return D.periodos.map(function (P) {
+        return '<div data-da-grupo="' + chave + '" data-per="' + P.id + '"' + (P.id === D.padrao ? '' : ' hidden') + ' class="da-per">' +
+          '<span class="stamp">' + dm(P.de) + ' a ' + dm(P.ate) + ' · ' + P.semanas.length + (P.semanas.length === 1 ? ' semana lida' : ' semanas lidas') + '</span>' + fn(P, rg, chave) + '</div>';
+      }).join('');
+    };
+    var fMeta = frescorDe(ultimoR.eu, 'gasto_meta');
+    var aviso = emp === 'eu' && !D.token_meta ? '<div class="aviso"><b>Aguarda o token do Meta da Estrela.</b> O gasto por anúncio da Estrela no Cofre é o lançado à mão' +
+      (fMeta && fMeta.data ? ', até ' + dm(fMeta.data) : '') + '; CTR, frequência e status só vêm com a leitura da conta.</div>' : '';
+    var h = '<div class="panel' + (stale ? ' stale' : '') + '">' + tit + '</div>' + seg + aviso + corpo(daPeriodoMeta) + '</div>';
+    if (emp === 'ps') h += '<div class="panel' + (stale ? ' stale' : '') + '"><div class="head"><h2>Desempenho por campanha · Google Ads</h2></div>' + corpo(daPeriodoGoogle) + '</div>';
+    return h;
+  }
+  document.addEventListener('click', function (ev) {
+    var b = ev.target.closest && ev.target.closest('.da-seg button');
+    if (b) {
+      var g = b.parentNode.getAttribute('data-da'), per = b.getAttribute('data-per');
+      b.parentNode.querySelectorAll('button').forEach(function (x) { x.setAttribute('aria-pressed', String(x === b)); });
+      document.querySelectorAll('[data-da-grupo="' + g + '"]').forEach(function (d) { d.hidden = d.getAttribute('data-per') !== per; });
+      return;
+    }
+    var e = ev.target.closest && ev.target.closest('.da-exp');
+    if (e) {
+      var aberto = e.getAttribute('aria-expanded') === 'true', d = document.getElementById(e.getAttribute('aria-controls'));
+      e.setAttribute('aria-expanded', String(!aberto)); if (d) d.hidden = aberto;
+    }
+  });
 
   /* ══════════ Parque ══════════ */
   function parque(r) {
@@ -680,24 +846,14 @@ tr.sub td{color:var(--muted)}
       linhas += '<tr><td>' + esc(c.canal) + '</td><td class="dash">' + (c.gasto_midia ? 'R$ ' + brl(c.gasto_midia) + ' sem campanha casada' : 'sem gasto lançado') + '</td><td class="r num">' + nf(c.leads) +
         '</td><td class="r num">' + nf(c.sql) + '</td><td class="dash">—</td><td class="dash">—</td><td class="dash">—</td></tr>';
     });
-    h += '<div class="g75"><div class="panel' + (sM ? ' stale' : '') + '"><div class="head"><h2>Custo por canal</h2><span class="stamp">' + per + '</span></div>' +
+    h += '<div class="panel' + (sM ? ' stale' : '') + '"><div class="head"><h2>Custo por canal</h2><span class="stamp">' + per + '</span></div>' +
       freshLinha(!sM, sM ? '<b>Dado atrasado.</b> Gasto Meta lançado até ' + dm(fM && fM.data) + '.' + (velho(frescorDe(P, 'gasto_google')) ? ' Google sem gasto lançado.' : '') : 'Em dia. Gasto Meta lançado até ' + dm(fM.data) + '.') +
       '<div class="scroll"><table><thead><tr><th>Canal</th><th class="r">Gasto (R$)</th><th class="r">Leads</th><th class="r">SQL</th><th class="r">CPL</th><th class="r">Custo por SQL</th><th class="r">Custo de mídia por venda</th></tr></thead><tbody>' +
       linhas + '</tbody></table></div>' +
       '<div class="small muted">Leads e SQL só das semanas com gasto lançado. Custo de mídia por venda = gasto ÷ vendas dos leads do canal (pelo nº do negócio no Facilita), não a origem declarada no Pocket.</div></div>';
 
-    var maxAd = teto(Math.max.apply(null, cap.anuncios.map(function (a) { return a.custo_sql || 0; }).concat([1])));
-    var ads = '<span class="hd">Anúncio</span><span class="hd">Custo por SQL (R$)</span><span class="hd r">SQL</span>';
-    cap.anuncios.forEach(function (a) {
-      var w = a.custo_sql === null ? 0 : a.custo_sql / maxAd * 100;
-      ads += '<span>' + esc(a.anuncio) + '</span><span class="hb"><i style="width:' + w + '%"></i><b style="left:calc(' + w + '% + 6px)">' + (a.custo_sql === null ? '—' : brl(a.custo_sql)) + '</b></span><span class="r">' + a.sql + '</span>';
-    });
-    var fato = cap.anuncios_fato, sa = cap.sql_sem_anuncio;
-    h += '<div class="panel' + (sM ? ' stale' : '') + '"><div class="head"><h2>Custo por SQL · anúncios do Meta</h2><span class="stamp">' + per + '</span></div>' +
-      freshLinha(!sM, sM ? '<b>Dado atrasado.</b> Mesmo período do custo por canal.' : 'Em dia.') +
-      (cap.anuncios.length ? '<div class="ch ads">' + ads + '</div>' : '<div class="offbox">Nenhum anúncio identificado pela assinatura da SATI no período.</div>') +
-      '<div class="small muted">' + (fato ? 'Fato: o ' + esc(fato.caro) + ' custa ' + nf(fato.vezes, 1) + ' vezes mais por SQL que o ' + esc(fato.barato) + ' (anúncios com ' + fato.min_sql + ' SQL ou mais). Pergunta: público ou texto? ' : '') +
-      (sa && sa.sql > 0 ? sa.sql + ' dos ' + sa.de + ' SQL do ' + esc(sa.canal) + ' vieram de assinaturas genéricas da SATI, sem anúncio.' : '') + '</div></div></div>';
+    // (28/10) Desempenho por anúncio — substitui o "Custo por SQL · anúncios do Meta" (o campo captacao.anuncios segue na rota)
+    h += anunciosHtml(cap.desempenho_anuncios, 'ps', sM || sQ);
 
     // (12/10) custo por venda por origem DECLARADA no Pocket — inclusive a mídia offline, que não tem QR
     var co = P.custo_origem;
@@ -1028,16 +1184,29 @@ tr.sub td{color:var(--muted)}
         return lv(a.canal) + ': R$ ' + lv(brl(u.gasto)) + ' ÷ ' + lv(nf(u.sql)) + ' = R$ ' + lv(brl(u.custo_sql)) + ' por qualificado.' +
           (b ? ' ' + lv(b.canal) + ': R$ ' + lv(brl(b.custo.custo_sql)) + '.' : '');
       } },
-    { re: /^Custo por SQL · anúncios/,
-      oque: 'O custo por qualificado de cada anúncio do Meta.',
-      ler: 'Só compare anúncios com 10 ou mais qualificados. O custo é fato; a causa (público ou texto) é pergunta.',
+    { re: /^Desempenho por anúncio/,
+      oque: 'Cada anúncio do Meta, da impressão à venda: o gasto, as conversas que abriu, quantas chegaram ao FAROL com a assinatura dele (o rastreio) e quantos qualificados deram.',
+      ler: 'Rastreio baixo é assinatura falhando: o número do anúncio fica incompleto, não ruim. Só compare custo por qualificado entre anúncios com rastreio verde e 10 ou mais qualificados. O sinal é fato; a causa é pergunta para a agência.',
       ex: function (E) {
-        var cap = E.captacao || {}, f = cap.anuncios_fato;
-        if (!f) return null;
-        var achar = function (n) { return (cap.anuncios || []).filter(function (a) { return a.anuncio === n; })[0]; };
-        var b = achar(f.barato), c = achar(f.caro);
-        if (!b || !c) return null;
-        return lv(b.anuncio) + ': R$ ' + lv(brl(b.custo_sql)) + '. ' + lv(c.anuncio) + ': R$ ' + lv(brl(c.custo_sql)) + ', ' + lv(nf(f.vezes, 1)) + ' vezes mais.';
+        var D = E.captacao && E.captacao.desempenho_anuncios;
+        if (!D || !D.periodos) return null;
+        var P = D.periodos.filter(function (p) { return p.id === D.padrao; })[0], R = P && P.resumo;
+        if (!R || R.rastreio === null) return null;
+        var m = null;
+        P.campanhas.forEach(function (c) { c.anuncios.forEach(function (a) { if (!m && R.melhor && a.custo_a === R.melhor.custo_a) m = a; }); });
+        return (m ? lv(m.rotulo) + ': ' + lv(nf(m.conversas)) + ' conversas, ' + lv(nf(m.lidas)) + ' lidas (' + lv(pc(m.rastreio, 0)) + '), ' + lv(nf(m.a)) + ' qualificados, R$ ' + lv(brl(m.custo_a)) + ' por qualificado. ' : '') +
+          'No total, ' + lv(nf(R.lidas)) + ' de ' + lv(nf(R.conversas)) + ' conversas (' + lv(pc(R.rastreio, 0)) + ') chegam com o anúncio.';
+      } },
+    { re: /^Desempenho por campanha · Google/,
+      oque: 'Os leads do Google por botão da página e o gasto por campanha do Google Ads.',
+      ler: 'O lead não diz de qual campanha veio, então o custo por qualificado é só do Google inteiro. Por botão, compare a % de qualificados.',
+      ex: function (E) {
+        var D = E.captacao && E.captacao.desempenho_anuncios;
+        var P = D && D.periodos ? D.periodos.filter(function (p) { return p.id === D.padrao; })[0] : null, G = P && P.google;
+        if (!G || !G.botoes.length) return null;
+        var b = G.botoes[0];
+        return lv(b.botao.replace(/^LP_provis[oó]ria_/, '').replace(/_/g, ' ')) + ': ' + lv(nf(b.lidas)) + ' leads, ' + lv(nf(b.a)) + ' qualificados.' +
+          (G.total.custo_a !== null ? ' Google inteiro: R$ ' + lv(brl(G.total.custo_a)) + ' por qualificado.' : '');
       } },
     { re: /^Custo por venda, pela origem/,
       oque: 'Vendas de cada origem declarada pelo vendedor e o gasto daquela origem.',
@@ -1309,6 +1478,7 @@ tr.sub td{color:var(--muted)}
       freshLinha(!(sQ || sM), sQ || sM ? '<b>Dado atrasado.</b> Leads lidos até ' + dm(fQ && fQ.data) + ' · gasto Meta até ' + dm(fM && fM.data) + '.' : 'Em dia.') + canaisHtml(cap) +
       (linhas ? '<div class="scroll"><table><thead><tr><th>Campanha</th><th class="r">Gasto (R$)</th><th class="r">SQL</th><th class="r">Custo por SQL</th></tr></thead><tbody>' + linhas + '</tbody></table></div>' : '') +
       '<div class="small muted">Vale o gasto da conta do Meta, nas semanas com gasto lançado.</div></div></div>';
+    h += anunciosHtml(cap.desempenho_anuncios, 'eu', sQ || sM);
     h += comercialHtml(E.comercial, r.hoje);
     h += '<div class="layer"><h2>2 · Previsão</h2><span class="desc">apagada até a Estrela ter meta de vendas e funil</span></div>';
     return h;
@@ -1415,7 +1585,7 @@ tr.sub td{color:var(--muted)}
       emValidacao: !!(c2 && c2.selo && c2.selo.em_validacao),
       offline: offline.length > 0,
       semanaNaoLida: !!(fQ && (!fQ.semana || fQ.semana < ultCompleta)),
-      atrasados: (E.frescor || []).filter(function (f) { return f.estado === 'atrasado'; })
+      atrasados: (E.frescor || []).filter(function (f) { return f.estado === 'atrasado' && f.id !== 'assinatura'; })   // (28/10) o Boletim não muda agora
     };
     d.ultCompleta = ultCompleta;
     d.proxima = r.proxima_leitura;
