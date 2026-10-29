@@ -396,8 +396,10 @@ tr.sub td{color:var(--muted)}
     var ant = D.combinados_anteriores || [];
     var corpo = ant.length ? '<ul class="prev">' + ant.map(function (c) { return linhaComb(c, c.reuniao !== R.reuniao.anterior && c.reuniao !== isoMenos7(R.reuniao.data)); }).join('') + '</ul>'
       : semDado('Nenhum combinado na reunião anterior.');
-    return box(0, 'prev', 'Combinados da reunião anterior', 'do Cofre · ' + dm(isoMenos7(R.reuniao.data)) + ' e os mais antigos ainda abertos', corpo);
+    // (29/10, auditoria U9) sem reunião anterior registrada, o subtítulo não cita uma data em que não houve reunião
+    return box(0, 'prev', 'Combinados da reunião anterior', R.reuniao.anterior ? 'da reunião de ' + dm(R.reuniao.anterior) + ' e os mais antigos ainda abertos' : 'primeira reunião registrada: ainda não há anterior', corpo);
   }
+  function isoMais(iso, n) { var p = String(iso).split('-'); return new Date(Date.UTC(+p[0], +p[1] - 1, +p[2] + n)).toISOString().slice(0, 10); }
   function isoMenos7(iso) { var p = iso.split('-'); return new Date(Date.UTC(+p[0], +p[1] - 1, +p[2] - 7)).toISOString().slice(0, 10); }
 
   function campoTexto(tipo, chave, valor, rotulo, ph, area) {
@@ -411,8 +413,8 @@ tr.sub td{color:var(--muted)}
 
   function b1(D, B) {
     var ms = B.mudancas || [];
-    if (!ms.length) return box(1, 'chg', 'As 3 mudanças da semana', 'escolhidas pela tela: as maiores variações', semDado('Sem variação para mostrar nesta semana.'));
-    return box(1, 'chg', 'As 3 mudanças da semana', 'escolhidas pela tela: as maiores variações', '<div class="changes">' + ms.map(function (m) {
+    if (!ms.length) return box(1, 'chg', 'As 3 mudanças da semana', 'as três maiores variações, escolhidas no fechamento da semana', semDado('Sem variação para mostrar nesta semana.'));
+    return box(1, 'chg', 'As 3 mudanças da semana', 'as três maiores variações, escolhidas no fechamento da semana', '<div class="changes">' + ms.map(function (m) {
       return '<div class="chg"><span class="fact">' + esc(m.fato) + '</span><span class="v ' + cor(m.delta) + '">' + nf(m.de) + ' → ' + nf(m.para) + '</span>' +
         '<span class="small muted">' + sinal(m.delta) + (tem(m.pct) ? ' (' + pcSinal(m.pct) + ')' : '') + ' · ' + esc(m.corte) + '</span>' +
         campoTexto('porque', m.chave, (D.porques || {})[m.chave], 'Por quê?', 'anotar na reunião', false) + '</div>';
@@ -441,7 +443,10 @@ tr.sub td{color:var(--muted)}
       var vq = q.ant ? varPc(q.ant.sql, q.sql) : null;
       h += col('4 semanas', nf(q.sql), 'qualificados de ' + dm(q.de) + ' a ' + dm(q.ate) + (q.ant ? ' · 4 semanas antes: ' + nf(q.ant.sql) + (tem(vq) ? ' · <b class="' + cor(vq) + '">' + pcSinal(vq) + '</b>' : '') : ' · ainda sem as 4 semanas de antes'));
     } else h += col('4 semanas', '—', 'ainda sem 4 semanas completas');
-    h += n ? col('Necessário', nf(n.por_semana) + ' / sem.', 'pela meta de ' + nf(n.meta) + (tem(n.baixo) ? ' · faixa de ' + nf(n.baixo) + ' a ' + nf(n.alto) : ''))
+    // (29/10, auditoria U7) a conta inteira: meta − vendas que não passam pela SATI − vendas dos MQL, ÷ conversão do qualificado
+    h += n ? col('Necessário', nf(n.por_semana) + ' / sem.', 'meta ' + nf(n.meta) + (tem(n.nao_sati) ? ' − ' + nf(n.nao_sati) + ' que não passam pela SATI' : '') +
+               (tem(n.mql) ? ' − ' + nf(n.mql, 1) + ' dos MQL' : '') + (tem(n.conv) ? ', ÷ ' + pc(n.conv) + ' de conversão do qualificado' : '') +
+               (tem(n.baixo) ? ' · faixa de ' + nf(n.baixo) + ' a ' + nf(n.alto) : ''))
            : col('Necessário', '—', emp === 'eu' ? 'a Estrela ainda não tem meta no Cofre' : 'sem funil reverso');
     h += '</div>';
     var L = (c.canais && c.canais.linhas) || [];
@@ -450,6 +455,7 @@ tr.sub td{color:var(--muted)}
         L.map(function (x) { return '<tr><td>' + esc(x.canal) + '</td><td>' + nf(x.leads) + '</td><td>' + nf(x.sql) + '</td><td>' + pc(x.conv) + '</td><td>' + brl(x.custo_sql) + '</td></tr>'; }).join('') +
         '</tbody></table></div><p class="foot">Conversas lidas de ' + dm(c.canais.de) + ' a ' + dm(c.canais.ate) + ', o período do quadro "SQL por canal" da Previsão.</p>';
     }
+    if (c.regua_mistura) h += '<p class="foot"><b>Atenção:</b> ' + esc(c.regua_mistura) + ' (desde 06/11 o qualificado é quem aceitou a visita).</p>';
     return box(3, 'cap', 'Captação de leads', '', h);
   }
 
@@ -462,7 +468,7 @@ tr.sub td{color:var(--muted)}
     var lin = function (rot, n, p, na, pantes) {
       return '<tr><td>' + rot + '</td><td>' + nf(n) + '</td><td>' + p + '</td>' + (a ? '<td>' + nf(na) + '</td><td>' + pantes + '</td>' : '') + '</tr>';
     };
-    var h = '<div class="scroll"><table><thead><tr><th>Degrau</th><th>Leads</th><th>Passam ao seguinte</th>' + (a ? '<th>Semana anterior</th><th>Passavam</th>' : '') + '</tr></thead><tbody>' +
+    var h = '<div class="scroll"><table><thead><tr><th>Degrau</th><th>Leads</th><th>Passam ao seguinte</th>' + (a ? '<th>Na foto de ' + dm(a.ate ? isoMais(a.ate, 30) : '') + '</th><th>Passavam</th>' : '') + '</tr></thead><tbody>' +
       lin('Leads (conversas lidas, sem X nem N)', f.leads, pc(pa.lead_qualificado), a && a.leads, pc(pb.lead_qualificado)) +
       lin('Com interesse (A e B)', f.qualificados, pc(pa.qualificado_sql), a && a.qualificados, pc(pb.qualificado_sql)) +
       lin('Qualificados (A)', f.sql, sv(pa.sql_venda), a && a.sql, sv(pb.sql_venda)) +
@@ -470,7 +476,8 @@ tr.sub td{color:var(--muted)}
       '</tbody></table></div>';
     h += '<p class="foot">Leads de ' + dm(f.de) + ' a ' + dm(f.ate) + '. Do lead à venda: ' + pc(pa.lead_venda, 1) + ' (' + nf(f.vendas_sql + f.vendas_outros) + ' vendas em ' + nf(f.leads) +
       ' leads, contando ' + nf(f.vendas_outros) + ' de leads que não chegaram a qualificado). ' +
-      (a ? 'A coluna da semana anterior é o funil da foto da reunião anterior.' : 'A coluna da semana anterior aparece a partir da segunda semana fechada.') + '</p>';
+      (a ? 'A coluna ao lado é o funil da foto da reunião anterior: a mesma coorte (leads desde 31/08 com 30 dias), até ' + dm(a.ate) + ', não os leads de uma semana só.'
+         : 'A coluna da foto anterior aparece a partir da segunda semana fechada; ela mostra a mesma coorte uma semana antes, não os leads de uma semana só.') + '</p>';
     return box(4, 'fun', 'Funil de demanda', 'leads com 30 dias completos, para todos terem tido o mesmo tempo de virar venda', h);
   }
 
@@ -492,7 +499,10 @@ tr.sub td{color:var(--muted)}
     var nota = 'os 3 sinais de maior gasto do quadro "Desempenho por anúncio", como perguntas para a agência';
     if (c && c.erro) return box(6, 'camp', 'Campanhas digitais', nota, semDado('O quadro de anúncios não veio: ' + c.erro));
     if (!c || !c.sinais || !c.sinais.length) return box(6, 'camp', 'Campanhas digitais', nota, semDado('Nenhum anúncio com sinal no período.'));
-    return box(6, 'camp', 'Campanhas digitais', nota + ' · ' + dm(c.periodo.de) + ' a ' + dm(c.periodo.ate), '<div class="sig">' + c.sinais.map(function (s) {
+    // (29/10, auditoria U4) a semana sem anúncio lido sai das colunas: o subtítulo diz qual e quanto ficou de fora
+    var fora = (c.semanas_fora || []).length ? ', sem a semana de ' + c.semanas_fora.map(dm).join(', ') + ' (anúncio dos leads não lido' +
+      (c.fora && c.fora.gasto ? ': ' + brl(c.fora.gasto) + ' e ' + nf(c.fora.conversas) + ' conversas fora' : '') + ')' : '';
+    return box(6, 'camp', 'Campanhas digitais', nota + ' · ' + dm(c.periodo.de) + ' a ' + dm(c.periodo.ate) + fora, '<div class="sig">' + c.sinais.map(function (s) {
       return '<div><span class="chip ' + esc(s.sinal.tom) + '">' + esc(s.sinal.texto) + '</span><span><b>' + esc(s.rotulo) + '</b> (' + brl(s.gasto) + '): ' + esc(s.pergunta) + '</span></div>';
     }).join('') + '</div>');
   }
@@ -506,8 +516,9 @@ tr.sub td{color:var(--muted)}
     h += col('Em até 2h', pc(t.r1), nf(t.k) + ' de ' + nf(t.n) + ' leads · ' + esc(a.regra.replace(/^\(contado |\)$/g, '')) + (a.ant ? ' · semana anterior ' + pc(a.ant.r1) : ''));
     h += a.melhor ? col('Melhor', pc(a.melhor.r1), esc(a.melhor.corretor) + (tem(a.melhor.mediana) ? ' · mediana ' + nf(a.melhor.mediana, 1) + ' h' : '')) : col('Melhor', '—', 'menos de 5 leads por corretor');
     h += a.pior ? col('A melhorar', pc(a.pior.r1), esc(a.pior.corretor) + (tem(a.pior.mediana) ? ' · mediana ' + nf(a.pior.mediana, 1) + ' h' : '')) : col('A melhorar', '—', '—');
-    h += '</div><p class="foot">Leads de ' + dm(a.de) + ' a ' + dm(a.ate) + '. Só corretores com 5 leads ou mais.</p>';
-    return box(8, 'at', 'Atendimento', '', h);
+    h += '</div><p class="foot">As 4 semanas de ' + dm(a.de) + ' a ' + dm(a.ate) + ', não só a semana da reunião. Só corretores com 5 leads ou mais. ' +
+      'O número da equipe conta todo lead, todos os dias (o tempo que o cliente sente); o de cada corretor não conta o dia de folga dele, e por isso a equipe pode ficar abaixo de todos os corretores.</p>';
+    return box(8, 'at', 'Atendimento', '4 semanas até ' + dm(a.ate), h);
   }
 
   function b9(D) {
@@ -534,7 +545,8 @@ tr.sub td{color:var(--muted)}
     if (!B) {
       v.innerHTML = b0(D) + '<div class="offbox"><strong>Sem foto desta reunião.</strong> A semana não foi fechada, então não há números guardados para ela.</div>' + b9(D);
     } else {
-      v.innerHTML = b0(D) + b1(D, B) + b2(B) + b3(B) + b4(B) + b5(B) + b6(B) + b7(B) + b8(B) + b9(D);
+      // (29/10, auditoria R2) entre 06/11 e 06/12 as taxas misturam as duas réguas
+      v.innerHTML = (B.aviso_regua ? '<p class="foot"><b>Atenção:</b> ' + esc(B.aviso_regua) + '</p>' : '') + b0(D) + b1(D, B) + b2(B) + b3(B) + b4(B) + b5(B) + b6(B) + b7(B) + b8(B) + b9(D);
     }
     var leit = D.leitura ? 'Números com a leitura do Facilita de ' + dm(D.leitura) + ' ' + hm(D.leitura) + '.' : '';
     if (leit) v.insertAdjacentHTML('beforeend', '<p class="foot">' + esc(leit) + '</p>');
