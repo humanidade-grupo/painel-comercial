@@ -1,0 +1,636 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>Governança da equipe</title>
+<link rel="icon" href="../favicon-32.png">
+<!--
+  GOVERNANÇA DA EQUIPE · PARQUE — 28/10/2026 (aprovada pelo Ricardo). Só Parque; a Estrela vem depois.
+
+  LAYOUT APROVADO: o artefato claude.ai QYMpSKk29EUZ3RuZ3FTYQF (mockup de 28/10). Esta página o reproduz bloco a bloco:
+  aviso · placar em 5 dimensões · OTE em simulação · monitoramento · caderno · o que o vendedor vê no Pocket. Desde a
+  publicação, o artefato é REGISTRO, não referência (CLAUDE.md, regra 8).
+
+  QUEM VÊ (decisão 1): só Ricardo e Rodrigo. A rota POST ?app=equipe (Equipe.gs, no Cofre) RECUSA o token de gestão do
+  Painel, que é de três pessoas. Lê com o token das Configurações (hub_token_config, o do Ricardo) ou com o token da
+  Equipe (hub_token_equipe, o do Rodrigo). Escreve no caderno SÓ o das Configurações.
+  O QUE ELA LÊ: só a rota. Nenhuma conta aqui: a página só desenha. O OTE é SIMULAÇÃO — não é pagamento.
+
+  DIFERENÇAS em relação ao mockup (para ninguém "corrigir" a página de volta):
+   · a conversão do qualificado já sai calculada por vendedor (no mockup, "Cofre"), com a faixa e o n; ela segue FORA do
+     OTE enquanto a aba Equipe_OTE não tiver o alvo dela (o mockup não deu alvo) — o peso vai para os outros quatro;
+   · as posições seguem UMA regra só (ranking de competição 1, 2, 2, 4…; a menos de 5% divide a posição): no mockup,
+     Disciplina e Qualidade da venda tinham posições desenhadas à mão que não seguiam regra nenhuma (ex.: 0 e 0 Reservas
+     em 5º, 6 sem registro em 3º atrás de dois empatados em 2º);
+   · "Sem registro" conta todo lead da aba de atendimento (A, B e N), como a Previsão; os leads N são poucos;
+   · contratos parados = VENDA JÁ LANÇADA ainda em Contrato ou Aprovação há mais de 30 dias (conferido: são os 3 do
+     mockup; negócio em Contrato sem venda lançada fica fora);
+   · o "exemplo de hoje" de cada (?) é montado dos números de agora, não fixo — o "o que é" e o "como ler" são os textos
+     do mockup;
+   · a média da velocidade é a conta da equipe inteira (todo lead, todos os dias: o tempo que o cliente sente), como o
+     mockup mostra (33% · 3,8 h); as outras médias são a média dos vendedores;
+   · as cores e as fontes são as da Previsão de Vendas; a seção "Para o Claude Code · regras" virou "Como funciona".
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600;700&family=Source+Sans+3:wght@400;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+:root{
+  --bg:#0f151b; --panel:#17202a; --panel2:#1d2833; --ink:#e6ebf0; --muted:#9aa7b4; --line:#2a3642;
+  --hl:#f2a72e; --hl-soft:#2e2412;
+  --bad:#ef7b72; --bad-soft:#3a1d1b; --ok:#6cc58f; --ok-soft:#173326; --info:#7fb0ff; --info-soft:#1a2740; --off:#7d8894; --off-soft:#212b35;
+  --f-head:"Barlow Semi Condensed","Arial Narrow",system-ui,sans-serif;
+  --f-body:"Source Sans 3",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-num:"JetBrains Mono",ui-monospace,Consolas,monospace;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:14px;line-height:1.45;margin:0}
+html.embutido body{background:transparent}
+.wrap{max-width:1120px;margin:0 auto;padding-inline:16px;padding-block:14px 48px;display:grid;gap:14px}
+h1,h2,h3{font-family:var(--f-head);margin:0;text-wrap:balance}
+h1{font-size:24px;font-weight:700}
+.voltar{color:var(--muted);text-decoration:none;font-size:13px}
+.voltar:hover,.voltar:focus-visible{color:var(--ink)}
+html.embutido .voltar{display:none}
+.muted{color:var(--muted)} .small{font-size:12px}
+.num{font-family:var(--f-num);font-variant-numeric:tabular-nums}
+
+.head{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;justify-content:space-between}
+.sub{color:var(--muted);margin:2px 0 0}
+.seg{display:flex;gap:4px;flex-wrap:wrap}
+.seg button{font:600 13px var(--f-body);padding:6px 11px;border-radius:6px;border:1px solid var(--line);background:none;color:var(--muted);cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--panel2);color:var(--ink);border-color:var(--hl)}
+.seg button:focus-visible,select:focus-visible,textarea:focus-visible,input:focus-visible,.btn:focus-visible,.q:focus-visible,.nome:focus-visible,.oterow:focus-visible{outline:2px solid var(--hl);outline-offset:2px}
+
+.note{border:1px dashed var(--line);border-radius:8px;padding:10px 12px;color:var(--muted);font-size:13px;margin:0}
+.note b{color:var(--ink)}
+.box{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:14px 16px;display:grid;gap:12px;min-width:0}
+.box h2{font-size:14px;letter-spacing:.06em;text-transform:uppercase;display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}
+.box h2 small{font:400 12px var(--f-body);color:var(--muted);text-transform:none;letter-spacing:0}
+.legend{font-size:12px;color:var(--muted);margin:0}
+
+.scroll{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:13px}
+.scroll table{min-width:920px}
+th,td{padding:7px 8px;border-bottom:1px solid var(--line);text-align:right;vertical-align:top;font-variant-numeric:tabular-nums;white-space:nowrap}
+th{color:var(--muted);font:600 11px var(--f-num);letter-spacing:.05em;text-transform:uppercase}
+th:first-child,td:first-child{text-align:left}
+th.dim{border-bottom:2px solid var(--line);text-align:center}
+td .rk{display:inline-block;min-width:22px;font:600 11px var(--f-num);padding:1px 6px;border-radius:999px;margin-left:6px;text-align:center}
+.r1{background:var(--ok-soft);color:var(--ok)} .r5{background:var(--bad-soft);color:var(--bad)} .rm{background:var(--panel2);color:var(--muted)}
+td .fx{display:block;font-size:11px;color:var(--muted)}
+tr.avg td{color:var(--muted);font-style:italic}
+tr.sel td{background:rgba(242,167,46,.07)}
+.nome{font:600 13px var(--f-body);color:var(--ink);background:none;border:0;padding:0;cursor:pointer;text-decoration:underline dotted var(--muted);text-underline-offset:3px}
+.na{color:var(--muted)}
+
+.wt{display:flex;flex-wrap:wrap;gap:6px}
+.wt span{font:12px var(--f-num);background:var(--panel2);border-radius:6px;padding:3px 8px}
+.wt span.fora{color:var(--muted);text-decoration:line-through}
+.ote{display:grid;gap:6px}
+.oterow{display:grid;grid-template-columns:110px minmax(0,1fr) 56px;gap:10px;align-items:center;background:none;border:0;color:var(--ink);font:inherit;text-align:left;padding:3px 0;cursor:pointer;width:100%}
+.otebar{height:14px;background:var(--panel2);border-radius:7px;position:relative;overflow:hidden}
+.otebar i{position:absolute;inset:0 auto 0 0;border-radius:7px;background:var(--info)}
+.otebar b{position:absolute;top:-2px;bottom:-2px;left:83.33%;width:2px;background:var(--hl)}
+.oterow span:last-child{font:600 13px var(--f-num);text-align:right}
+.otedet{margin:0 0 6px 120px;background:var(--panel2);border-radius:6px;padding:8px 10px}
+@media (max-width:620px){.otedet{margin-left:0}}
+.otedet table{font-size:12px}
+.otedet td,.otedet th{padding:4px 6px}
+
+.alerts{display:grid;gap:8px}
+.alerts div{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:10px;align-items:baseline}
+@media (max-width:620px){.alerts div{grid-template-columns:auto minmax(0,1fr)}.alerts .who{grid-column:2}}
+.chip{font:600 11px var(--f-body);padding:2px 8px;border-radius:999px;white-space:nowrap}
+.c-bad{background:var(--bad-soft);color:var(--bad)} .c-warn{background:var(--hl-soft);color:var(--hl)} .c-info{background:var(--info-soft);color:var(--info)}
+.who{color:var(--muted);font-size:12px;white-space:nowrap}
+
+.cad{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.2fr);gap:14px}
+@media (max-width:860px){.cad{grid-template-columns:minmax(0,1fr)}}
+.vcard{background:var(--panel2);border-radius:8px;padding:12px;display:grid;gap:8px;align-content:start}
+.vcard h3{font-size:18px}
+.kv{display:grid;grid-template-columns:1fr auto auto;gap:4px 12px;font-size:13px}
+.kv span:nth-child(3n+2){font:600 13px var(--f-num);text-align:right}
+.kv span:nth-child(3n){color:var(--muted);text-align:right;font-size:12px}
+.log{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.log li{border-left:3px solid var(--line);padding:4px 0 4px 10px;display:grid;gap:2px}
+.log li.feedback{border-color:var(--info)} .log li.combinado{border-color:var(--hl)} .log li.treinamento{border-color:var(--ok)} .log li.reconhecimento{border-color:#c49cff}
+.log .meta{font:12px var(--f-num);color:var(--muted);display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.log .meta b.atr{color:var(--bad)}
+.log select{width:auto;font:600 12px var(--f-body);background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:4px;padding:1px 4px}
+.log .vazio{color:var(--muted);font-style:italic;border:0;padding:0}
+.newe{display:grid;grid-template-columns:150px minmax(0,1fr) 150px auto;gap:8px;align-items:end}
+@media (max-width:760px){.newe{grid-template-columns:minmax(0,1fr)}}
+select,textarea,input[type=date],input[type=password],input[type=text]{width:100%;background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:7px 9px;font:14px var(--f-body)}
+textarea{min-height:56px;resize:vertical}
+label{display:grid;gap:4px;font-size:12px;color:var(--muted)}
+.btn{font:600 13px var(--f-body);border-radius:8px;padding:8px 12px;cursor:pointer;border:1px solid var(--hl);background:var(--hl);color:#1a1205}
+.btn:disabled{opacity:.45;cursor:default}
+.status{font-size:13px;min-height:18px;margin:0}
+.status.ok{color:var(--ok)} .status.erro{color:var(--bad)}
+.so-leitura{font-size:12px;color:var(--muted);margin:0}
+
+.two{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:16px;align-items:start}
+@media (max-width:860px){.two{grid-template-columns:minmax(0,1fr)}}
+.pocket{max-width:360px;width:100%;background:#fbf6ee;color:#42270c;border-radius:14px;padding:14px;display:grid;gap:9px;border:1px solid #e6d8c3;font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
+.pocket .t{font:600 12px var(--f-num);letter-spacing:.05em;color:#8a7358;text-transform:uppercase}
+.prow{display:grid;grid-template-columns:1fr auto;gap:6px;font-size:13px}
+.prow b{font-family:var(--f-num)}
+.pbar{height:8px;background:#efe5d6;border-radius:4px;position:relative}
+.pbar i{position:absolute;inset:0 auto 0 0;background:#2f7d54;border-radius:4px}
+.pbar s{position:absolute;top:-3px;bottom:-3px;width:2px;background:#8a7358}
+.pocket .av{font-size:11px;color:#8a7358}
+
+.q{display:inline-grid;place-items:center;width:20px;height:20px;border-radius:50%;border:1px solid var(--muted);color:var(--muted);font:600 12px var(--f-body);background:none;cursor:pointer;vertical-align:middle;padding:0}
+.q[aria-expanded="true"]{border-color:var(--hl);color:var(--hl)}
+th .q{width:16px;height:16px;font-size:10px;margin-left:4px}
+.pop{position:fixed;z-index:30;width:min(380px,calc(100vw - 32px));background:var(--panel2);border:1px solid var(--hl);border-radius:10px;padding:14px;display:grid;gap:8px;box-shadow:0 10px 30px rgba(0,0,0,.55)}
+.pop .lab{font:600 11px var(--f-num);letter-spacing:.06em;text-transform:uppercase}
+.pop .w{color:var(--muted)} .pop .e{color:var(--hl)} .pop .r{color:var(--ok)}
+.pop p{margin:0;font-size:13px;color:var(--ink);white-space:normal;text-transform:none;letter-spacing:0;font-family:var(--f-body);font-weight:400}
+.spec ul{margin:0;padding-left:18px;display:grid;gap:6px}
+.foot{color:var(--muted);font-size:12px;margin:0}
+.espera{color:var(--muted)}
+.wait{border:1px dashed var(--line);border-radius:6px;padding:12px;color:var(--muted);margin:0}
+
+.gate{position:fixed;inset:0;z-index:50;background:rgba(10,14,18,.92);display:flex;align-items:center;justify-content:center;padding:16px}
+.gatebox{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:20px;max-width:400px;width:100%;display:grid;gap:10px}
+.gatebox p{margin:0;color:var(--muted);font-size:13px}
+.gatebox input{font:600 15px var(--f-num)}
+.gatebox button{font:600 14px var(--f-head);border:0;border-radius:4px;padding:8px;background:var(--ink);color:var(--panel);cursor:pointer}
+.gatebox .erro{color:var(--bad);font-size:12.5px;min-height:16px}
+/* A GUARDA DO [hidden] (regra da casa): toda classe que declara `display` ganha o par. */
+.gate[hidden],.box[hidden],.seg[hidden],section[hidden],.newe[hidden],.otedet[hidden]{display:none!important}
+</style>
+<script>
+  try { if (window.top !== window.self) document.documentElement.classList.add('embutido'); }
+  catch (e) { document.documentElement.classList.add('embutido'); }
+</script>
+</head>
+<body>
+
+<div class="gate" id="gate" hidden>
+  <div class="gatebox">
+    <h2>Governança da equipe</h2>
+    <p>Só para o Ricardo e o Rodrigo. Digite o token da Equipe (ou o das Configurações) — uma vez; ele fica guardado neste aparelho. O token do Painel não abre esta página.</p>
+    <input id="tk" type="password" autocomplete="off" spellcheck="false" placeholder="token" aria-label="Token de acesso">
+    <button id="btEntrar" type="button">Entrar</button>
+    <div class="erro" id="gateErro"></div>
+  </div>
+</div>
+
+<div class="wrap">
+  <a class="voltar" href="../">← Painel Comercial</a>
+
+  <div class="head">
+    <div>
+      <h1>Governança da equipe · Parque</h1>
+      <p class="sub" id="sub">visão de gestão (Ricardo e Rodrigo)</p>
+    </div>
+    <div class="seg" role="group" aria-label="Período" id="seg" hidden>
+      <button type="button" data-per="semana" aria-pressed="false">Semana</button>
+      <button type="button" data-per="mes" aria-pressed="true">Mês</button>
+      <button type="button" data-per="3meses" aria-pressed="false">3 meses</button>
+    </div>
+  </div>
+
+  <p class="note"><b>Para desenvolver, não para punir.</b> A comparação é pelo que cada um fez com o que recebeu. Com 40 a 70 leads por mês, uma ou duas vendas mudam a posição. Por isso cada dimensão mostra a posição e a média, e diferença pequena não é diferença.</p>
+
+  <div id="estado"><p class="espera">Lendo os números da equipe…</p></div>
+  <section id="view" style="display:grid;gap:14px" hidden></section>
+
+  <section class="box spec" aria-labelledby="t-spec">
+    <h2 id="t-spec">Como funciona</h2>
+    <ul>
+      <li><b>Quem vê:</b> só o Ricardo e o Rodrigo. O token do Painel não abre esta página. O vendedor vê os números dele num cartão do Pocket, com a média da equipe — nunca o ranking nem os números dos colegas.</li>
+      <li><b>De onde vêm os números</b> (nenhum é digitado): vendas, Reservas e descontos do Facilita (a mesma lista do Executivo) · leads A e B, atendimento, sem registro e entregue de folga da Previsão de Vendas (a aba de atendimento e a escala do Pocket) · conversão do qualificado pela regra da conversão por classe da Previsão · contratos parados do histórico de etapas.</li>
+      <li><b>Placar:</b> posição de 1 a 5 em cada dimensão, com a média. Valores a menos de 5% um do outro dividem a posição.</li>
+      <li><b>OTE:</b> simulação, não é pagamento. Os pesos e os alvos estão na aba <code>Equipe_OTE</code> do Cofre, que o Ricardo edita. Indicador sem alvo fica fora e o peso dele vai para os outros. O OTE é sempre do mês, em qualquer recorte do período.</li>
+      <li><b>Monitoramento:</b> cada alerta traz a regra ao lado. Lead entregue em dia de folga é da distribuição, nunca do corretor.</li>
+      <li><b>Caderno:</b> feedback, combinado com prazo, treinamento e reconhecimento — sem advertência. Gravado no Cofre (aba <code>Equipe_Caderno</code>); só o Ricardo escreve. Os combinados aparecem para o vendedor no Pocket, com prazo e status.</li>
+      <li><b>Período:</b> Semana = a última semana lida do atendimento (segunda a domingo) · Mês = o mês até hoje · 3 meses = o mês e os dois anteriores. O atendimento só existe nas últimas 4 semanas.</li>
+      <li>Nenhum dado de cliente nesta página: só o nº do negócio, quando preciso. Nada daqui é enviado a ninguém.</li>
+    </ul>
+  </section>
+  <p class="foot" id="foot"></p>
+</div>
+
+<script>
+(function () {
+  'use strict';
+  var API = 'https://script.google.com/macros/s/AKfycbydLmUEX3g6FeojFGAcVHfNKoPsr4d9oTBUdi7GtcfsirQL6xHJM0BELVGcCrcqrICY/exec';
+  var CHAVE_CONFIG = 'hub_token_config';   // o das Configurações, só do Ricardo — lê e escreve
+  var CHAVE_EQUIPE = 'hub_token_equipe';   // o da Equipe, o do Rodrigo — só lê
+  var CHAVE_PER = 'equipe_periodo', CHAVE_SEL = 'equipe_vendedor';   // conveniências do aparelho
+  var TIPO_TXT = { feedback: 'feedback', combinado: 'combinado', treinamento: 'treinamento', reconhecimento: 'reconhecimento' };
+  var $ = function (id) { return document.getElementById(id); };
+  var esc = function (s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); };
+  var tem = function (v) { return v !== null && v !== undefined && !isNaN(v); };
+  var nf = function (v, d) { return !tem(v) ? '—' : Number(v).toLocaleString('pt-BR', { minimumFractionDigits: d || 0, maximumFractionDigits: d || 0 }); };
+  var pc = function (v) { return tem(v) ? Math.round(v * 100) + '%' : '—'; };
+  var pp = function (v) { return tem(v) ? (Math.round(v * 10000) / 100).toLocaleString('pt-BR', { maximumFractionDigits: 2 }) + '%' : '—'; };   // 18,75%
+  var hr = function (v) { return tem(v) ? nf(v, 1) + ' h' : '—'; };
+  var med = function (v) { return tem(v) ? (Math.abs(v) >= 20 || Math.abs(v - Math.round(v)) < 0.05 ? nf(v) : nf(v, 1)) : '—'; };   // 58 · 12,8 · 6 (o mockup)
+  var dm = function (iso) { var m = String(iso || '').match(/^\d{4}-(\d{2})-(\d{2})/); return m ? m[2] + '/' + m[1] : '—'; };
+  var ler = function (k) { try { return localStorage.getItem(k) || ''; } catch (e) { return ''; } };
+  var gravar = function (k, v) { try { if (v) localStorage.setItem(k, v); else localStorage.removeItem(k); } catch (e) {} };
+
+  var R = null, per = ler(CHAVE_PER) || 'mes', sel = ler(CHAVE_SEL), cache = {}, abertoOte = {};
+  if (['semana', 'mes', '3meses'].indexOf(per) < 0) per = 'mes';
+
+  /* ══════════ portão ══════════ */
+  function token() { return ler(CHAVE_CONFIG) || ler(CHAVE_EQUIPE); }
+  function abrirPortao(msg) {
+    $('gate').hidden = false; $('gateErro').textContent = msg || ''; $('view').hidden = true; $('seg').hidden = true; $('estado').innerHTML = '';
+    setTimeout(function () { $('tk').focus(); }, 60);
+  }
+  $('btEntrar').onclick = function () {
+    var v = $('tk').value.trim();
+    if (!v) { $('gateErro').textContent = 'Digite o token.'; return; }
+    gravar(CHAVE_EQUIPE, v); $('tk').value = ''; $('gate').hidden = true; carregar();
+  };
+  $('tk').addEventListener('keydown', function (e) { if (e.key === 'Enter') $('btEntrar').click(); });
+
+  /* POST com o token no corpo (regra 4), texto puro: pedido "simples", sem consulta prévia de CORS. */
+  function pedir(fn, corpo, limiteS) {
+    return new Promise(function (resolve, reject) {
+      var venceu = false;
+      var t = setTimeout(function () { venceu = true; reject(new Error('o servidor não respondeu em ' + (limiteS || 90) + ' s')); }, (limiteS || 90) * 1000);
+      fetch(API + '?app=equipe&fn=' + fn, { method: 'POST', body: JSON.stringify(corpo), cache: 'no-store' })
+        .then(function (r) { return r.json(); })
+        .then(function (j) { if (!venceu) { clearTimeout(t); resolve(j); } })
+        .catch(function (e) { if (!venceu) { clearTimeout(t); reject(e); } });
+    });
+  }
+  function bloqueia(titulo, html) {
+    $('view').hidden = true;
+    $('estado').innerHTML = '<div class="box"><h2>' + esc(titulo) + '</h2>' + html + '</div>';
+  }
+
+  function carregar() {
+    var tk = token();
+    if (!tk) { abrirPortao(''); return; }
+    if (cache[per]) { R = cache[per]; desenhar(); }
+    else { $('estado').innerHTML = '<p class="espera">Lendo os números da equipe… (até 1 minuto na primeira leitura)</p>'; $('view').hidden = true; }
+    var pedido = per;
+    pedir('dados', { token: tk, periodo: pedido })
+      .then(function (r) {
+        if (!r || r.ok !== true) {
+          var err = (r && r.error) || 'resposta sem dado';
+          if (r && r.codigo === 'token') {
+            if (ler(CHAVE_EQUIPE) === tk) gravar(CHAVE_EQUIPE, '');
+            abrirPortao(ler(CHAVE_CONFIG) === tk ? 'O token das Configurações foi recusado — confira na tela de Configurações.' : 'Token recusado. Confira e digite de novo.');
+            return;
+          }
+          if (/rota desconhecida/i.test(err)) {
+            bloqueia('O servidor ainda não tem esta tela.', '<p>A rota ?app=equipe nasceu em 28/10/2026. O conserto é publicar o servidor (Implantar ▸ Gerenciar implantações ▸ ✏️ ▸ Nova versão).</p>');
+            return;
+          }
+          bloqueia('O servidor respondeu, mas sem dado.', '<p>' + esc(err) + '</p>');
+          return;
+        }
+        cache[pedido] = r;
+        if (pedido === per) { R = r; $('estado').innerHTML = ''; desenhar(); }
+      })
+      .catch(function (e) {
+        if (cache[pedido]) return;
+        bloqueia('Não consegui ler os números da equipe.', '<p>' + esc(e.message || e) + '</p><p>Nenhum número aparece enquanto isso: tela vazia é melhor que tela desatualizada com cara de atual.</p>');
+      });
+  }
+
+  /* ══════════ período ══════════ */
+  Array.prototype.forEach.call(document.querySelectorAll('#seg button'), function (b) {
+    b.addEventListener('click', function () {
+      per = b.getAttribute('data-per'); gravar(CHAVE_PER, per);
+      Array.prototype.forEach.call(document.querySelectorAll('#seg button'), function (x) { x.setAttribute('aria-pressed', String(x === b)); });
+      carregar();
+    });
+  });
+
+  /* ══════════ desenho ══════════ */
+  function linha(n) { return (R.linhas || []).filter(function (l) { return l.nome === n; })[0] || null; }
+  function rk(p, n) {
+    if (!p) return '';
+    var c = p === 1 ? 'r1' : p === n ? 'r5' : 'rm';
+    return ' <span class="rk ' + c + '" title="posição ' + p + ' de ' + n + '">' + p + '</span>';
+  }
+  function q(id) { return ' <button class="q" type="button" data-h="' + id + '" aria-expanded="false" aria-label="O que é e como ler">?</button>'; }
+
+  function desenhar() {
+    if (!R) return;
+    var L = R.linhas || [];
+    if (!sel || !linha(sel)) {   // padrão: quem está mais longe do alvo no OTE
+      var ord = (R.ote && R.ote.ordem) || [];
+      sel = ord.length ? ord[ord.length - 1] : (L[0] && L[0].nome) || '';
+    }
+    $('seg').hidden = false;
+    Array.prototype.forEach.call(document.querySelectorAll('#seg button'), function (x) { x.setAttribute('aria-pressed', String(x.getAttribute('data-per') === per)); });
+    var at = R.atendimento || {};
+    $('sub').textContent = cap(R.periodo.rotulo) + ' · vendas do Facilita · atendimento de ' + dm(at.de) + ' a ' + dm(at.ate) + ' · visão de gestão (Ricardo e Rodrigo)';
+    var h = '';
+    h += placar(L);
+    h += ote(L);
+    h += monitoramento();
+    h += caderno();
+    h += pocket();
+    $('view').innerHTML = h;
+    $('view').hidden = false;
+    $('foot').textContent = 'Calculado em ' + dm(R.atualizado_em) + ' ' + String(R.atualizado_em || '').slice(11, 16) +
+      ' · vendas lidas do Facilita em ' + dm(R.vendas_atualizado_em) + ' ' + String(R.vendas_atualizado_em || '').slice(11, 16) +
+      ' · os números se refazem a cada 10 minutos · Equipe.gs';
+    ligar();
+  }
+  function cap(s) { s = String(s || ''); return s.charAt(0).toUpperCase() + s.slice(1); }
+
+  function placar(L) {
+    var n = L.length, M = R.media || {}, at = R.atendimento || {};
+    var h = '<section class="box" aria-labelledby="t-plc"><h2 id="t-plc">Placar em 5 dimensões' + q('placar') +
+      ' <small>posição de 1 a ' + n + ' em cada uma · clique no nome para abrir o caderno</small></h2>';
+    h += '<div class="scroll"><table><thead><tr><th></th>' +
+      '<th class="dim">Oportunidade' + q('oport') + '</th>' +
+      '<th class="dim" colspan="2">Velocidade' + q('veloc') + '</th>' +
+      '<th class="dim">Disciplina' + q('disc') + '</th>' +
+      '<th class="dim" colspan="2">Resultado' + q('result') + '</th>' +
+      '<th class="dim" colspan="2">Qualidade da venda' + q('qual') + '</th></tr>' +
+      '<tr><th>Vendedor</th><th>Leads A e B recebidos</th><th>1º contato em até 2h</th><th>Mediana</th><th>Sem registro</th>' +
+      '<th>Vendas</th><th>Conversão do qualificado</th><th>Reservas</th><th>Desconto acima de 10%</th></tr></thead><tbody>';
+    L.forEach(function (l) {
+      var c = l.conv || {};
+      h += '<tr' + (l.nome === sel ? ' class="sel"' : '') + '><td><button class="nome" type="button" data-sel="' + esc(l.nome) + '">' + esc(l.nome) + '</button></td>' +
+        '<td>' + l.ab + rk(l.pos.ab, n) + '</td>' +
+        '<td>' + pc(l.r1) + rk(l.pos.r1, n) + '</td><td>' + hr(l.mediana) + '</td>' +
+        '<td>' + l.sem_registro + rk(l.pos.sem_registro, n) + '</td>' +
+        '<td>' + l.vendas + rk(l.pos.vendas, n) + '</td>' +
+        '<td>' + (c.n ? pc(c.valor) + rk(l.pos.conv, n) + '<span class="fx">' + c.k + ' de ' + c.n + ' · faixa ' + pc(c.baixo) + '–' + pc(c.alto) + '</span>' : '<span class="na">sem lead A maduro</span>') + '</td>' +
+        '<td>' + l.reservas + rk(l.pos.reservas, n) + '</td>' +
+        '<td>' + l.desc_n + rk(l.pos.desc_n, n) + '</td></tr>';
+    });
+    h += '<tr class="avg"><td>Média da equipe</td><td>' + med(M.ab) + '</td><td>' + pc(M.r1) + '</td><td>' + hr(M.mediana) + '</td><td>' + med(M.sem_registro) + '</td>' +
+      '<td>' + med(M.vendas) + '</td><td>' + (M.conv_n ? pc(M.conv) + '<span class="fx">' + M.conv_k + ' de ' + M.conv_n + '</span>' : '—') + '</td>' +
+      '<td>' + med(M.reservas) + '</td><td>' + med(M.desc_n) + '</td></tr>';
+    h += '</tbody></table></div>';
+    var cv = R.conversao || {};
+    h += '<p class="legend">Vendas: Facilita, ' + esc(R.periodo.rotulo) + ', ' + R.vendas_total + ' vendas (inclui as que não passam pela SATI). ' +
+      'Atendimento: ' + (R.periodo.id === 'semana' ? 'a semana de ' + dm(at.de) + ' a ' + dm(at.ate) : 'as últimas 4 semanas, de ' + dm(at.de) + ' a ' + dm(at.ate)) +
+      ', sem o dia de folga de cada corretor; a média da velocidade é a da equipe inteira, todos os dias. ' +
+      'Conversão do qualificado: leads A com 1º contato de ' + dm(cv.de) + ' a ' + dm(cv.ate) + ' que viraram venda em até ' + (cv.dias || 30) +
+      ' dias, pela mesma regra da conversão por classe da Previsão, calculada no Cofre; o vendedor é o dono do negócio no Facilita. ' +
+      'Desconto acima de 10% não conta Temporário, que tem tabela própria. Captação própria e indicação entram como sexta dimensão quando o novo funil separar o funil de captação própria.</p>';
+    return h + '</section>';
+  }
+
+  function oteFmt(it) {
+    if (it.id === 'registro') return '−' + nf(it.alvo) + ' por lead sem registro';
+    if (it.id === 'atendimento' || it.id === 'conversao') return tem(it.alvo) ? 'alvo ' + nf(it.alvo) + '%' : 'sem alvo';
+    return tem(it.alvo) ? 'alvo ' + nf(it.alvo) + '/mês' : 'sem alvo';
+  }
+  function oteReal(it) {
+    if (!tem(it.realizado)) return '—';
+    if (it.id === 'atendimento' || it.id === 'conversao') return pc(it.realizado);
+    if (it.id === 'registro') return nf(it.realizado) + ' sem registro';
+    return nf(it.realizado);
+  }
+  function ote(L) {
+    var cfg = (R.ote && R.ote.cfg) || { ind: {}, teto: 1.2 }, ord = (R.ote && R.ote.ordem) || [];
+    var exemplo = L[0] ? L[0].ote : null, fora = exemplo ? exemplo.fora : [];
+    var h = '<section class="box" aria-labelledby="t-ote"><h2 id="t-ote">OTE · simulação' + q('ote') +
+      ' <small>quanto do variável-alvo cada um teria atingido em ' + esc(R.mes.rotulo) + ' · não é pagamento</small></h2>';
+    h += '<p class="note"><b>Rascunho para decidir com o Rodrigo.</b> Os pesos e as metas abaixo são um ponto de partida. Enquanto o OTE não for aprovado, esta parte só mostra o caminho de cada um até o alvo, e o variável continua sendo o que vale hoje: super bônus, bônus de meta proporcional e bônus de Reserva.</p>';
+    h += '<div class="wt">';
+    ['vendas', 'conversao', 'atendimento', 'reservas', 'registro'].forEach(function (id) {
+      var c = cfg.ind[id]; if (!c || !(c.peso > 0)) return;
+      h += '<span' + (fora.indexOf(id) >= 0 ? ' class="fora" title="fora da simulação: sem alvo na aba Equipe_OTE"' : '') + '>' + esc(c.rotulo) + ' · ' + nf(c.peso) + '% · ' +
+        esc(oteFmt({ id: id, alvo: c.alvo })) + '</span>';
+    });
+    h += '</div><div class="ote">';
+    var teto = cfg.teto || 1.2;
+    ord.forEach(function (nome) {
+      var l = linha(nome); if (!l) return;
+      var p = l.ote.pct, w = tem(p) ? Math.min(100, p / teto * 100) : 0;
+      h += '<button class="oterow" type="button" data-ote="' + esc(nome) + '" aria-expanded="' + (!!abertoOte[nome]) + '"><span>' + esc(nome) + '</span>' +
+        '<span class="otebar"><i style="width:' + w.toFixed(1) + '%"></i><b style="left:' + (100 / teto).toFixed(2) + '%"></b></span><span>' + pc(p) + '</span></button>';
+      h += '<div class="otedet" id="od-' + esc(nome) + '"' + (abertoOte[nome] ? '' : ' hidden') + '><table><thead><tr><th>Indicador</th><th>Realizado</th><th>Alvo</th><th>Atingido</th><th>Peso</th><th>Pontos</th></tr></thead><tbody>';
+      l.ote.itens.forEach(function (it) {
+        h += '<tr><td>' + esc(it.rotulo) + '</td><td>' + oteReal(it) + '</td><td>' + esc(oteFmt(it)) + '</td>' +
+          (it.fora ? '<td colspan="3" class="na">fora: ' + esc(it.fora) + '</td>' : '<td>' + pc(it.atingido) + '</td><td>' + pp(it.peso_efetivo) + '</td><td>' + nf(it.pontos * 100, 1) + '</td>') + '</tr>';
+      });
+      h += '</tbody></table></div>';
+    });
+    h += '</div><p class="legend">Barra até ' + pc(teto) + ' (teto); a linha laranja marca 100% do alvo. Cada indicador vale realizado ÷ alvo, com teto de ' + pc(teto) +
+      '; no registro, cada lead sem registro tira ' + nf((cfg.ind.registro || {}).alvo) + ' pontos. Vendas e Reservas são do mês; atendimento e registro, das últimas 4 semanas. ' +
+      (fora.indexOf('conversao') >= 0 ? 'Nesta simulação a conversão do qualificado ainda não entra: o Cofre já a calcula por vendedor, mas falta o alvo dela na aba Equipe_OTE; o peso dela foi redistribuído pelos outros quatro. ' : '') +
+      'Cada linha abre o detalhe por indicador.</p>';
+    return h + '</section>';
+  }
+
+  function monitoramento() {
+    var A = R.alertas || [], cls = { bad: 'c-bad', warn: 'c-warn', info: 'c-info' };
+    var rot = { registro: 'registro', velocidade: 'velocidade', desconto: 'desconto', distribuicao: 'distribuição', contrato: 'contrato' };
+    var h = '<section class="box" aria-labelledby="t-mon"><h2 id="t-mon">Monitoramento' + q('mon') + ' <small>o que pede conversa · regra escrita em cada alerta</small></h2>';
+    if (!A.length) h += '<p class="wait">Nenhum alerta pelas regras de hoje.</p>';
+    else {
+      h += '<div class="alerts">';
+      A.forEach(function (a) {
+        h += '<div><span class="chip ' + (cls[a.tom] || 'c-info') + '">' + esc(rot[a.tipo] || a.tipo) + '</span><span>' + esc(a.texto) + '</span><span class="who">regra: ' + esc(a.regra) + '</span></div>';
+      });
+      h += '</div>';
+    }
+    return h + '</section>';
+  }
+
+  function caderno() {
+    var l = linha(sel); if (!l) return '';
+    var M = R.media || {}, C = (R.caderno || []).filter(function (c) { return c.vendedor === sel; });
+    var h = '<section class="box" aria-labelledby="t-cad"><h2 id="t-cad">Caderno · ' + esc(sel) + q('cad') + ' <small>desenvolvimento: feedback, combinado, treinamento, reconhecimento</small></h2>';
+    h += '<div class="cad"><div class="vcard"><h3>' + esc(sel) + '</h3><div class="kv">' +
+      '<span>Vendas</span><span>' + l.vendas + '</span><span>média ' + med(M.vendas) + '</span>' +
+      '<span>Leads A e B recebidos</span><span>' + l.ab + '</span><span>média ' + med(M.ab) + '</span>' +
+      '<span>1º contato em até 2h</span><span>' + pc(l.r1) + '</span><span>média ' + pc(M.r1) + '</span>' +
+      '<span>Sem registro</span><span>' + l.sem_registro + '</span><span>média ' + med(M.sem_registro) + '</span>' +
+      '<span>Reservas</span><span>' + l.reservas + '</span><span>média ' + med(M.reservas) + '</span>' +
+      '<span>OTE simulado</span><span>' + pc(l.ote.pct) + '</span><span>alvo 100%</span></div>' +
+      '<p class="legend">' + esc(leitura(l, M)) + '</p></div>';
+    h += '<div style="display:grid;gap:10px;align-content:start"><ul class="log">';
+    if (!C.length) h += '<li class="vazio">Nenhum registro ainda.</li>';
+    C.forEach(function (c) {
+      var st = '';
+      if (R.status && R.status[c.tipo]) {
+        st = R.escrita ? ' · <select data-cid="' + esc(c.id) + '" aria-label="Status">' + R.status[c.tipo].map(function (s) {
+          return '<option' + (s === c.status ? ' selected' : '') + '>' + esc(s) + '</option>'; }).join('') + '</select>' : ' · ' + esc(c.status);
+      }
+      h += '<li class="' + esc(c.tipo) + '"><span class="meta">' + esc(TIPO_TXT[c.tipo] || c.tipo) + ' · ' + dm(c.data) +
+        (c.prazo ? ' · prazo ' + dm(c.prazo) : '') + st + (c.atrasado ? ' · <b class="atr">atrasado</b>' : '') + '</span><span>' + esc(c.texto) + '</span></li>';
+    });
+    h += '</ul>';
+    if (R.escrita) {
+      h += '<div class="newe"><label for="e-t">Tipo<select id="e-t"><option value="feedback">Feedback</option><option value="combinado">Combinado</option>' +
+        '<option value="treinamento">Treinamento</option><option value="reconhecimento">Reconhecimento</option></select></label>' +
+        '<label for="e-x">Registro<textarea id="e-x" placeholder="o que foi conversado ou combinado" maxlength="2000"></textarea></label>' +
+        '<label for="e-p">Prazo <span id="e-pl">(combinado)</span><input type="date" id="e-p"></label>' +
+        '<button class="btn" type="button" id="e-add">Registrar</button></div><p class="status" id="e-st" role="status"></p>';
+    } else {
+      h += '<p class="so-leitura">Só leitura: escrever no caderno é só do Ricardo (o token das Configurações).</p>';
+    }
+    return h + '</div></div></section>';
+  }
+  function leitura(l, M) {   // uma frase, do dado: o ponto que mais destoa da média (sem julgamento)
+    var p = [];
+    if (tem(M.ab) && M.ab > 0) p.push('Recebeu ' + (l.ab >= M.ab * 0.9 && l.ab <= M.ab * 1.1 ? 'o mesmo volume da média' : l.ab > M.ab ? 'mais leads que a média' : 'menos leads que a média'));
+    if (tem(M.vendas) && M.vendas > 0) p.push('vendeu ' + (l.vendas >= M.vendas * 0.9 && l.vendas <= M.vendas * 1.1 ? 'na média' : l.vendas > M.vendas ? 'acima da média' : 'abaixo da média'));
+    var s = p.join(' e ') + '.';
+    if (tem(M.sem_registro) && M.sem_registro > 0 && l.sem_registro > 2 * M.sem_registro) s += ' O registro no Facilita é o ponto que mais destoa.';
+    else if (tem(l.r1) && l.r1 < 0.3) s += ' A velocidade do primeiro contato é o ponto que mais destoa.';
+    return s;
+  }
+
+  function pocket() {
+    var l = linha(sel); if (!l) return '';
+    var M = R.media || {}, C = (R.caderno || []).filter(function (c) { return c.vendedor === sel && c.tipo === 'combinado' && c.status === 'aberto'; });
+    var bar = function (v, m, max) { return '<div class="pbar"><i style="width:' + Math.min(100, (v || 0) / max * 100).toFixed(0) + '%"></i><s style="left:' + Math.min(100, (m || 0) / max * 100).toFixed(0) + '%"></s></div>'; };
+    var maxV = Math.max(20, l.vendas, M.vendas || 0);
+    var h = '<section class="box" aria-labelledby="t-pk"><h2 id="t-pk">O que o vendedor vê no Pocket' + q('pk') + ' <small>só a própria posição contra a média · sem os nomes dos colegas</small></h2>';
+    h += '<div class="two"><p class="legend">Cada vendedor vê os próprios números de cada dimensão, a média da equipe como referência e o seu OTE simulado. Não vê o ranking nem os números dos colegas. O caderno não aparece para o vendedor, só os combinados dele, com prazo e status. Prévia do cartão de ' + esc(sel) + ' (o mês).</p>';
+    var ehMes = R.periodo.id === 'mes';
+    h += '<div class="pocket" aria-label="Prévia do Pocket"><span class="t">Você · ' + esc(R.mes.rotulo.split(' ')[0]) + '</span>' +
+      (ehMes ? '<div class="prow"><span>Vendas</span><b>' + l.vendas + ' · média ' + med(M.vendas) + '</b></div>' + bar(l.vendas, M.vendas, maxV) : '<div class="prow"><span>Vendas</span><b>do mês, no Pocket</b></div>') +
+      '<div class="prow"><span>1º contato em até 2h</span><b>' + pc(l.r1) + ' · média ' + pc(M.r1) + '</b></div>' + bar(l.r1, M.r1, 1) +
+      '<div class="prow"><span>Sem registro</span><b>' + l.sem_registro + ' · média ' + med(M.sem_registro) + '</b></div>' +
+      '<div class="prow"><span>OTE simulado · não é pagamento</span><b>' + pc(l.ote.pct) + ' do alvo</b></div>' +
+      '<div class="prow"><span>Combinados abertos</span><b>' + C.length + '</b></div></div></div>';
+    return h + '</section>';
+  }
+
+  /* ══════════ (?) — o que é · exemplo de hoje · como ler ══════════
+     "O que é" e "como ler": os textos do mockup. "Exemplo de hoje": montado dos números de agora. */
+  function ajuda(id) {
+    var L = R.linhas || [], M = R.media || {};
+    var top = function (k, menor) { return L.slice().filter(function (l) { return tem(l[k]); }).sort(function (a, b) { return menor ? a[k] - b[k] : b[k] - a[k]; })[0] || {}; };
+    var bV = top('vendas'), wV = top('vendas', true), bR = top('reservas'), bT = top('r1'), wT = top('r1', true), wS = top('sem_registro'), bA = top('ab');
+    var l = linha(sel) || L[0] || {};
+    var fora = (l.ote && l.ote.fora) || [];
+    var H = {
+      placar: ['Compara os vendedores em cinco dimensões, com a posição de 1 a ' + L.length + ' em cada uma e a média da equipe.',
+        bV.nome ? bV.nome + ' é ' + bV.pos.vendas + 'º em vendas (' + bV.vendas + ') e ' + bV.pos.reservas + 'º em Reservas (' + bV.reservas + '). ' +
+          bR.nome + ' é ' + bR.pos.reservas + 'º em Reservas (' + bR.reservas + ') e ' + bR.pos.r1 + 'º em velocidade (' + pc(bR.r1) + ').' : '—',
+        'Uma posição boa numa dimensão e ruim em outra mostra o que desenvolver em cada um. Uma ou duas vendas de diferença não é diferença: com amostra pequena, a posição muda por acaso.'],
+      oport: ['Quantos leads com interesse (classes A e B) a SATI entregou a cada vendedor ' + (R.periodo.id === 'semana' ? 'na semana' : 'nas últimas 4 semanas') + '.',
+        bA.nome ? bA.nome + ' recebeu ' + bA.ab + '; a média da equipe é ' + med(M.ab) + '.' : '—',
+        'Quem recebe mais tem mais chance de vender. Compare o resultado de cada um sempre contra o que ele recebeu, nunca só o volume.'],
+      veloc: ['A parte dos leads com primeiro contato do corretor em até 2 horas, contada todos os dias das 8h às 18h, sem o dia de folga dele. Ao lado, a mediana do tempo até o primeiro registro.',
+        bT.nome ? bT.nome + ': ' + pc(bT.r1) + ' em até 2h, mediana de ' + hr(bT.mediana) + '. ' + wT.nome + ': ' + pc(wT.r1) + ', mediana de ' + hr(wT.mediana) + '.' : '—',
+        'Lead esfria em horas. Abaixo de 30% vira alerta no monitoramento.'],
+      disc: ['Leads que o corretor recebeu e que não têm nenhum registro de atendimento no Facilita.',
+        wS.nome ? wS.nome + ': ' + wS.sem_registro + '. A média da equipe é ' + med(M.sem_registro) + '.' : '—',
+        'Desde 19/10, tentativa sem registro conta como não feita. Mais que o dobro da média pede conversa.'],
+      result: ['Vendas no Facilita, incluindo as que não passam pela SATI, e a conversão dos leads qualificados que o vendedor recebeu.',
+        bV.nome ? bV.nome + ': ' + bV.vendas + ' vendas. ' + wV.nome + ': ' + wV.vendas + '. A média é ' + med(M.vendas) + '.' +
+          (tem(M.conv) ? ' Na equipe, ' + pc(M.conv) + ' dos leads A viraram venda em 30 dias.' : '') : '—',
+        'As vendas dizem quanto cada um fez. A conversão é a medida justa entre eles, porque desconta quantos leads cada um recebeu. Com 20 a 25 leads A por vendedor, a faixa é larga: olhe a faixa, não só o número.'],
+      qual: ['Se o vendedor vende o produto prioritário (Reserva) e sem abrir mão do preço. Desconto acima de 10% não conta o Temporário, que tem tabela própria.',
+        bR.nome ? bR.nome + ': ' + bR.reservas + ' Reservas e ' + bR.desc_n + ' ' + (bR.desc_n === 1 ? 'venda' : 'vendas') + ' com desconto acima de 10%. ' +
+          (function () { var z = L.filter(function (x) { return x.desc_n === 0; }).map(function (x) { return x.nome; }); return z.length ? z.join(', ') + ': nenhuma acima de 10%.' : ''; })() : '—',
+        'Vender bem é vender o que a empresa precisa, pelo preço da tabela. Desconto alto e repetido é ponto de conversa.'],
+      ote: ['Simulação do variável-alvo: quanto do alvo cada um teria atingido. Cada indicador vale realizado ÷ alvo, com teto de ' + pc((R.ote.cfg || {}).teto || 1.2) + ', e entra com o seu peso. Não é pagamento.' +
+          (fora.indexOf('conversao') >= 0 ? ' A conversão do qualificado ainda não entra: falta o alvo dela na aba Equipe_OTE, e o peso dela foi redistribuído pelos outros.' : ''),
+        l.ote ? l.nome + ': ' + l.ote.itens.filter(function (i) { return !i.fora; }).map(function (i) {   // o formato do mockup
+          var curto = { vendas: 'vendas', conversao: 'conversão', atendimento: 'atendimento', reservas: 'Reservas', registro: 'registro' }[i.id];
+          if (i.id === 'registro') return curto + ' ' + pc(i.atingido) + ' × ' + pp(i.peso_efetivo);
+          return curto + ' ' + oteReal(i) + ' de ' + (i.id === 'atendimento' || i.id === 'conversao' ? nf(i.alvo) + '%' : nf(i.alvo)) + ' (' + pc(i.atingido) + ') × ' + pp(i.peso_efetivo);
+        }).join(' + ') + ' = ' + pc(l.ote.pct) + '.' : '—',
+        'Mostra o caminho de cada um até o alvo e onde ele perde pontos. O variável que vale continua sendo o de hoje até o OTE ser aprovado.'],
+      mon: ['Os alertas, cada um com a regra escrita ao lado.',
+        (R.alertas || []).slice(0, 2).map(function (a) { return a.texto + ' (regra: ' + a.regra + ')'; }).join(' · ') || 'Nenhum alerta hoje.',
+        'É a pauta da conversa individual. Alerta de distribuição, como lead entregue de folga, é problema da escala, não do corretor.'],
+      cad: ['Os registros de desenvolvimento de cada vendedor: feedback, combinado com prazo, treinamento e reconhecimento.',
+        (function () {
+          var c = (R.caderno || []).filter(function (x) { return x.vendedor === sel && x.tipo === 'combinado' && x.status === 'aberto'; });
+          if (!c.length) return sel + ' não tem combinado aberto.';
+          var a = c.filter(function (x) { return x.atrasado; }).length;
+          return sel + ' tem ' + c.length + (c.length === 1 ? ' combinado aberto' : ' combinados abertos') + (a ? ', ' + a + ' atrasado' + (a === 1 ? '' : 's') : '') + '.';
+        })(),
+        'Na conversa seguinte, comece pelos combinados abertos. Um ponto que aparece duas ou três vezes no caderno é o que precisa de desenvolvimento.'],
+      pk: ['O cartão que cada vendedor vê no Pocket: os números dele, a média da equipe e o OTE simulado.',
+        l.nome ? l.nome + ' vê ' + l.vendas + ' vendas contra a média de ' + med(M.vendas) + ', e ' + pc(l.ote.pct) + ' do alvo no OTE simulado.' : '—',
+        'O vendedor não vê o ranking nem os números dos colegas. O OTE aparece com o aviso de simulação, para não ser lido como promessa de pagamento.']
+    };
+    return H[id];
+  }
+  var pop = null, cur = null;
+  function fechar() { if (pop) { pop.remove(); pop = null; } if (cur) { cur.setAttribute('aria-expanded', 'false'); cur = null; } }
+  document.addEventListener('click', function (e) { if (pop && !pop.contains(e.target) && !(e.target.closest && e.target.closest('.q'))) fechar(); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') fechar(); });
+  addEventListener('scroll', fechar, { passive: true });
+
+  function ligar() {
+    Array.prototype.forEach.call(document.querySelectorAll('#view .q'), function (b) {
+      b.addEventListener('click', function (e) {
+        e.stopPropagation(); var mesmo = cur === b; fechar(); if (mesmo) return;
+        var h = ajuda(b.getAttribute('data-h')); if (!h) return;
+        pop = document.createElement('div'); pop.className = 'pop'; pop.setAttribute('role', 'dialog');
+        pop.innerHTML = '<span class="lab w">O que é</span><p>' + esc(h[0]) + '</p><span class="lab e">Exemplo de hoje</span><p>' + esc(h[1]) +
+          '</p><span class="lab r">Como ler</span><p>' + esc(h[2]) + '</p>';
+        document.body.appendChild(pop);
+        var r = b.getBoundingClientRect(), w = pop.offsetWidth;
+        pop.style.left = Math.max(16, Math.min(r.left, innerWidth - w - 16)) + 'px';
+        pop.style.top = Math.max(16, Math.min(r.bottom + 8, innerHeight - pop.offsetHeight - 16)) + 'px';
+        b.setAttribute('aria-expanded', 'true'); cur = b;
+      });
+    });
+    Array.prototype.forEach.call(document.querySelectorAll('#view [data-sel]'), function (b) {
+      b.addEventListener('click', function () {
+        sel = b.getAttribute('data-sel'); gravar(CHAVE_SEL, sel); desenhar();
+        var c = $('t-cad'); if (c && c.scrollIntoView) c.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+    });
+    Array.prototype.forEach.call(document.querySelectorAll('#view [data-ote]'), function (b) {
+      b.addEventListener('click', function () {
+        var n = b.getAttribute('data-ote'); abertoOte[n] = !abertoOte[n];
+        b.setAttribute('aria-expanded', String(!!abertoOte[n])); $('od-' + n).hidden = !abertoOte[n];
+      });
+    });
+    var tp = $('e-t');
+    if (tp) {
+      var ajusta = function () { $('e-pl').textContent = tp.value === 'combinado' ? '(obrigatório)' : '(opcional)'; };
+      tp.addEventListener('change', ajusta); ajusta();
+      $('e-add').addEventListener('click', registrar);
+    }
+    Array.prototype.forEach.call(document.querySelectorAll('#view select[data-cid]'), function (s) {
+      s.addEventListener('change', function () { escrever({ id: s.getAttribute('data-cid'), status: s.value }, null); });
+    });
+  }
+
+  /* ══════════ escrita (só o token das Configurações) ══════════ */
+  function escrever(corpo, st) {
+    var tk = ler(CHAVE_CONFIG) || ler(CHAVE_EQUIPE);
+    corpo.token = tk;
+    if (st) { st.className = 'status'; st.textContent = 'gravando…'; }
+    return pedir('caderno', corpo, 60).then(function (j) {
+      if (!j || j.ok !== true) throw new Error((j && j.error) || 'não gravou');
+      var lst = R.caderno || (R.caderno = []), achou = false;
+      lst.forEach(function (c, i) { if (c.id === j.item.id) { lst[i] = j.item; achou = true; } });
+      if (!achou) lst.unshift(j.item);
+      Object.keys(cache).forEach(function (k) { if (cache[k] !== R) cache[k].caderno = lst; });
+      desenhar();
+      var s2 = $('e-st'); if (s2) { s2.className = 'status ok'; s2.textContent = 'Gravado no caderno ' + (j.item.vendedor ? 'de ' + j.item.vendedor : '') + ' em ' + dm(j.item.atualizado_em) + ' ' + String(j.item.atualizado_em).slice(11, 16) + '.'; }
+      return j;
+    }).catch(function (e) {
+      var s3 = st || $('e-st'); if (s3) { s3.className = 'status erro'; s3.textContent = e.message || String(e); }
+      if (!st) desenhar();
+    });
+  }
+  function registrar() {
+    var tipo = $('e-t').value, texto = $('e-x').value.trim(), prazo = $('e-p').value, st = $('e-st');
+    if (!texto) { st.className = 'status erro'; st.textContent = 'Escreva o registro antes.'; return; }
+    if (tipo === 'combinado' && !prazo) { st.className = 'status erro'; st.textContent = 'Combinado precisa de prazo.'; return; }
+    $('e-add').disabled = true;
+    escrever({ vendedor: sel, tipo: tipo, texto: texto, prazo: prazo }, st).then(function () { var b = $('e-add'); if (b) b.disabled = false; });
+  }
+
+  carregar();
+})();
+</script>
+</body>
+</html>
